@@ -733,3 +733,39 @@ canvas {
   text-align: center;
   margin-top: 32px;
 }
+
+/* ---------- CC ATTRIBUTION FOOTER ---------- */
+.cc-attribution {
+  text-align: center;
+  margin-top: 24px;
+  padding: 12px 16px;
+  border-top: 1px solid rgba(200, 164, 0, 0.3);
+  font-size: 0.75rem;
+  color: #666;
+  line-height: 1.5;
+}
+
+.cc-attribution p {
+  margin: 0;
+}
+
+.cc-attribution a {
+  color: #1a2a4a;
+  text-decoration: underline;
+}
+
+.cc-attribution a:hover {
+  color: #c8a400;
+}
+
+.cc-attribution--game {
+  background: #1a2a4a;
+  border-top: 1px solid rgba(200, 164, 0, 0.3);
+  color: rgba(245, 240, 232, 0.55);
+  padding: 8px 16px;
+  margin-top: 0;
+}
+
+.cc-attribution--game a {
+  color: rgba(200, 164, 0, 0.8);
+}

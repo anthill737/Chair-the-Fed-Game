@@ -2,7 +2,11 @@
 
 **Navigate market shocks as the Chair of the U.S. Federal Reserve! Balance inflation and unemployment over 16 quarters — without crippling the economy.**
 
-All rights reserved. Based on the "Chair the Fed" educational game by the Federal Reserve Bank of San Francisco.
+## Attribution
+
+"[Simulation: Chair the Fed](https://creativecommons.org/licenses/by/4.0/)" by Linda Williams and [Lumen Learning](https://lumenlearning.com) is licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). Changes were made to the original material.
+
+Screenshot of Chair the Fed graphic provided by Lumen Learning — [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
 
 ---
 
