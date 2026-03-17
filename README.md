@@ -6,9 +6,11 @@ All rights reserved. Based on the "Chair the Fed" educational game by the Federa
 
 ---
 
-## How to Play
+## Play the Game
 
-Open `index.html` in any modern web browser. No server, build step, or internet connection required.
+**[▶ Launch Chair the Fed](https://htmlpreview.github.io/?https://github.com/anthill737/Chair-the-Fed-Game/blob/main/index.html)**
+
+Or clone the repo and open `index.html` locally — no server or build step required.
 
 ---
 
