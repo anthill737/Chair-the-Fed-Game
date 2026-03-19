@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Chair the Fed — Monetary Policy Simulation</title>
+  <title>Fed Chairman - Monetary Policy Simulation</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
@@ -15,15 +15,15 @@
   <div class="intro-wrapper">
     <header class="intro-header">
       <div class="fed-seal">&#9670;</div>
-      <h1>Chair the Federal Reserve</h1>
-      <p class="subtitle">A Monetary Policy Simulation</p>
+      <h1>Fed Chairman</h1>
+      <p class="subtitle">A 2014-2017 Monetary Policy Simulation</p>
     </header>
 
     <div class="intro-body">
       <div class="intro-column">
         <section class="intro-section">
           <h2>Your Role</h2>
-          <p>You are the newly appointed Chair of the Federal Reserve, the central bank of the United States. Your primary tool is the <strong>federal funds rate</strong> — the interest rate at which banks lend money to each other overnight. By raising or lowering this rate, you influence borrowing costs across the entire economy.</p>
+          <p>You are the newly appointed Fed Chairman, guiding monetary policy at the central bank of the United States. Your primary tool is the <strong>federal funds rate</strong> &mdash; the interest rate at which banks lend money to each other overnight. By raising or lowering this rate, you influence borrowing costs across the entire economy.</p>
         </section>
 
         <section class="intro-section">
@@ -34,7 +34,7 @@
 
         <section class="intro-section">
           <h2>Unemployment</h2>
-          <p>The unemployment rate measures the share of workers actively seeking jobs. A healthy economy sustains a <strong>natural rate near 5%</strong> — some job turnover is normal. Much higher signals a weak economy; much lower can fuel wage-driven inflation.</p>
+          <p>The unemployment rate measures the share of workers actively seeking jobs. A healthy economy sustains a <strong>natural rate near 5%</strong> &mdash; some job turnover is normal. Much higher signals a weak economy; much lower can fuel wage-driven inflation.</p>
           <p class="tip">Lower interest rates tend to <em>reduce</em> unemployment by making investment and hiring cheaper.</p>
         </section>
       </div>
@@ -42,17 +42,17 @@
       <div class="intro-column">
         <section class="intro-section">
           <h2>The Tradeoff</h2>
-          <p>Monetary policy involves a fundamental tension. Raising rates fights inflation but risks slowing the economy and raising unemployment. Lowering rates stimulates hiring but can push inflation higher. Holding rates steady lets prior policy continue to work — but the economy doesn't always cooperate.</p>
-          <p>Real-world events — oil shocks, financial crises, productivity booms — will force you to react quickly and sometimes accept imperfect outcomes.</p>
+          <p>Monetary policy involves a fundamental tension. Raising rates fights inflation but risks slowing the economy and raising unemployment. Lowering rates stimulates hiring but can push inflation higher. Holding rates steady lets prior policy continue to work &mdash; but the economy doesn't always cooperate.</p>
+          <p>Real-world events &mdash; oil shocks, financial crises, productivity booms &mdash; will force you to react quickly and sometimes accept imperfect outcomes.</p>
         </section>
 
         <section class="intro-section">
           <h2>How to Play</h2>
           <ul class="how-to-list">
-            <li>The simulation runs for <strong>16 quarters</strong> (4 years).</li>
+            <li>The simulation runs for <strong>16 quarters</strong> from <strong>2014 through 2017</strong>.</li>
             <li>Each quarter, review current economic conditions and news.</li>
             <li>Choose to <strong>raise</strong>, <strong>lower</strong>, or <strong>hold</strong> the federal funds rate.</li>
-            <li>Rate changes take effect with a lag — policy doesn't work overnight.</li>
+            <li>Rate changes take effect with a lag &mdash; policy doesn't work overnight.</li>
             <li>Your goal: keep inflation near <strong>2%</strong> and unemployment near <strong>5%</strong>.</li>
             <li>At the end, you'll be evaluated and either <strong>reappointed or removed</strong>.</li>
           </ul>
@@ -60,12 +60,12 @@
 
         <section class="intro-section scoring-preview">
           <h2>Scoring</h2>
-          <p>You are scored each quarter based on how close inflation and unemployment are to their targets. Your final score (0–100) determines your reappointment outcome.</p>
+          <p>You are scored each quarter based on how close inflation and unemployment are to their targets. Your final score (0-100) determines your reappointment outcome.</p>
           <table class="score-table">
-            <tr><td>80–100</td><td>Reappointed with Distinction</td></tr>
-            <tr><td>60–79</td><td>Reappointed</td></tr>
-            <tr><td>40–59</td><td>Not Reappointed</td></tr>
-            <tr><td>0–39</td><td>Removed from Office</td></tr>
+            <tr><td>80-100</td><td>Reappointed with Distinction</td></tr>
+            <tr><td>60-79</td><td>Reappointed</td></tr>
+            <tr><td>40-59</td><td>Not Reappointed</td></tr>
+            <tr><td>0-39</td><td>Removed from Office</td></tr>
           </table>
         </section>
       </div>
@@ -77,7 +77,7 @@
 
     <footer class="cc-attribution">
       <p>
-        &ldquo;<a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">Simulation: Chair the Fed</a>&rdquo;
+        &ldquo;<a href="https://courses.lumenlearning.com/wmintrobusinessx51xmaster/chapter/chair-the-fed-achieve-low-unemployment-and-low-inflation-rates/" target="_blank" rel="noopener">Simulation: Chair the Fed</a>&rdquo;
         by Linda Williams and <a href="https://lumenlearning.com" target="_blank" rel="noopener">Lumen Learning</a>
         is licensed under <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a>.
         Changes were made to the original material.
@@ -95,7 +95,7 @@
   <header class="game-header">
     <div class="game-title">
       <span class="fed-seal-sm">&#9670;</span>
-      <span>Chair the Federal Reserve</span>
+      <span>Fed Chairman</span>
     </div>
     <div class="game-meta">
       <div class="meta-item">
@@ -104,10 +104,25 @@
       </div>
       <div class="meta-item">
         <span class="meta-label">SCORE</span>
-        <span class="meta-value" id="hdr-score">—</span>
+        <span class="meta-value" id="hdr-score">&mdash;</span>
       </div>
     </div>
   </header>
+
+  <section class="quarter-progress-panel" aria-label="Term timeline">
+    <div class="quarter-progress-meta">
+      <span class="quarter-progress-caption">Term Timeline</span>
+      <span class="quarter-progress-current" id="timeline-current-label">Q1 2014</span>
+    </div>
+    <div class="quarter-progress-track" aria-hidden="true">
+      <div class="quarter-progress-line" id="timeline-progress-line"></div>
+      <div class="quarter-progress-marker" id="timeline-progress-marker"></div>
+    </div>
+    <div class="quarter-progress-labels">
+      <span id="timeline-start-label">Q1 2014</span>
+      <span id="timeline-end-label">Q4 2017</span>
+    </div>
+  </section>
 
   <!-- Main content area -->
   <div class="game-body">
@@ -119,21 +134,21 @@
       <div class="indicator-group">
         <div class="indicator" id="ind-inflation">
           <div class="indicator-label">Inflation Rate</div>
-          <div class="indicator-value" id="val-inflation">—</div>
+          <div class="indicator-value" id="val-inflation">&mdash;</div>
           <div class="indicator-target">Target: 2.0%</div>
           <canvas id="chart-inflation" width="200" height="48" title="Inflation history"></canvas>
         </div>
 
         <div class="indicator" id="ind-unemployment">
           <div class="indicator-label">Unemployment Rate</div>
-          <div class="indicator-value" id="val-unemployment">—</div>
+          <div class="indicator-value" id="val-unemployment">&mdash;</div>
           <div class="indicator-target">Target: 5.0%</div>
           <canvas id="chart-unemployment" width="200" height="48" title="Unemployment history"></canvas>
         </div>
 
         <div class="indicator" id="ind-rate">
           <div class="indicator-label">Fed Funds Rate</div>
-          <div class="indicator-value" id="val-rate">—</div>
+          <div class="indicator-value" id="val-rate">&mdash;</div>
           <div class="indicator-target">Your policy lever</div>
           <canvas id="chart-rate" width="200" height="48" title="Fed rate history"></canvas>
         </div>
@@ -145,12 +160,19 @@
 
       <!-- News / Event card -->
       <div class="panel panel-news">
+        <div class="news-alert hidden" id="news-alert">
+          <div class="news-alert-label">Breaking News</div>
+          <div class="news-alert-copy">
+            <div class="news-alert-headline" id="news-alert-headline"></div>
+            <div class="news-alert-text" id="news-alert-text"></div>
+          </div>
+        </div>
         <div class="news-header">
-          <h3 class="panel-title" id="news-quarter-label">Q1 — Economic Outlook</h3>
+          <h3 class="panel-title" id="news-quarter-label">Q1 2014 &mdash; Economic Outlook</h3>
           <span class="news-badge" id="news-badge"></span>
         </div>
         <div class="news-body" id="news-body">
-          <p>Preparing economic briefing…</p>
+          <p>Preparing economic briefing...</p>
         </div>
       </div>
 
@@ -164,7 +186,7 @@
         <div id="result-body" class="result-body"></div>
         <div class="result-footer">
           <div class="quarter-score-display">
-            Quarter score: <span id="result-quarter-score">—</span>
+            Quarter score: <span id="result-quarter-score">&mdash;</span>
           </div>
           <button class="btn-primary" id="btn-next" onclick="nextQuarter()">Next Quarter &rarr;</button>
         </div>
@@ -196,8 +218,8 @@
 
   <footer class="cc-attribution cc-attribution--game">
     <p>
-      &ldquo;Simulation: Chair the Fed&rdquo; by Linda Williams and
-      <a href="https://lumenlearning.com" target="_blank" rel="noopener">Lumen Learning</a>
+      &ldquo;<a href="https://courses.lumenlearning.com/wmintrobusinessx51xmaster/chapter/chair-the-fed-achieve-low-unemployment-and-low-inflation-rates/" target="_blank" rel="noopener">Simulation: Chair the Fed</a>&rdquo;
+      by Linda Williams and <a href="https://lumenlearning.com" target="_blank" rel="noopener">Lumen Learning</a>
       &mdash; <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a>.
       Changes were made.
     </p>
@@ -217,27 +239,27 @@
     </header>
 
     <div class="end-verdict-card" id="end-verdict-card">
-      <div class="verdict-title" id="end-verdict-title">—</div>
+      <div class="verdict-title" id="end-verdict-title">&mdash;</div>
       <div class="verdict-score-label">Final Score</div>
-      <div class="verdict-score" id="end-score">—</div>
-      <div class="verdict-text" id="end-verdict-text">—</div>
+      <div class="verdict-score" id="end-score">&mdash;</div>
+      <div class="verdict-text" id="end-verdict-text">&mdash;</div>
     </div>
 
     <div class="end-stats">
       <div class="end-stat-box">
         <div class="end-stat-label">Average Inflation</div>
-        <div class="end-stat-value" id="end-avg-infl">—</div>
+        <div class="end-stat-value" id="end-avg-infl">&mdash;</div>
         <div class="end-stat-target">Target: 2.0%</div>
       </div>
       <div class="end-stat-box">
         <div class="end-stat-label">Average Unemployment</div>
-        <div class="end-stat-value" id="end-avg-unemp">—</div>
+        <div class="end-stat-value" id="end-avg-unemp">&mdash;</div>
         <div class="end-stat-target">Target: 5.0%</div>
       </div>
       <div class="end-stat-box">
         <div class="end-stat-label">Final Fed Rate</div>
-        <div class="end-stat-value" id="end-final-rate">—</div>
-        <div class="end-stat-target">Started: 2.25%</div>
+        <div class="end-stat-value" id="end-final-rate">&mdash;</div>
+        <div class="end-stat-target" id="end-final-rate-start">Started: 4.25%</div>
       </div>
     </div>
 
@@ -284,7 +306,7 @@
 
     <footer class="cc-attribution">
       <p>
-        &ldquo;<a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">Simulation: Chair the Fed</a>&rdquo;
+        &ldquo;<a href="https://courses.lumenlearning.com/wmintrobusinessx51xmaster/chapter/chair-the-fed-achieve-low-unemployment-and-low-inflation-rates/" target="_blank" rel="noopener">Simulation: Chair the Fed</a>&rdquo;
         by Linda Williams and <a href="https://lumenlearning.com" target="_blank" rel="noopener">Lumen Learning</a>
         is licensed under <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a>.
         Changes were made to the original material.
