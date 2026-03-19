@@ -1490,3 +1490,406 @@ document.addEventListener('DOMContentLoaded', () => {
     `;
   }
 });
+
+/* ==========================================================================
+   MAIN SHARED CHART OVERRIDES
+   Keep the existing rate selector behavior, but move the primary history view
+   to one large overlaid graph in the center of the game screen.
+   ========================================================================== */
+
+const MAIN_CHART_Y_MIN = 0;
+const MAIN_CHART_Y_MAX = 10;
+const MAIN_CHART_COLORS = {
+  inflation: '#b22222',
+  unemployment: '#1a2a4a',
+  rate: '#c8a400',
+  grid: '#d8d1c3',
+  axis: '#5b564b',
+  plotBg: '#fcfbf7',
+  frame: '#cfc7b8'
+};
+
+function buildChartPoint(completedQuarter, inflation, unemployment, rate) {
+  return {
+    completedQuarter,
+    inflation,
+    unemployment,
+    rate
+  };
+}
+
+function createInitialState() {
+  const shockSchedule = buildShockSchedule();
+
+  return {
+    quarter: 1,
+    inflation: INIT_INFLATION,
+    unemployment: INIT_UNEMPLOYMENT,
+    fedRate: INIT_RATE,
+    pendingRate: INIT_RATE,
+    lagInflEffect: 0,
+    lagUnempEffect: 0,
+    history: [],
+    shockSchedule,
+    cumulativePenalty: 0,
+    phase: 'decision',
+    chartPoints: [buildChartPoint(0, INIT_INFLATION, INIT_UNEMPLOYMENT, INIT_RATE)],
+    chartAnimation: null,
+    animationFrameId: 0
+  };
+}
+
+function stopMainChartAnimation() {
+  if (state.animationFrameId) {
+    cancelAnimationFrame(state.animationFrameId);
+    state.animationFrameId = 0;
+  }
+  state.chartAnimation = null;
+}
+
+function syncCanvasSize(canvas) {
+  if (!canvas) return null;
+
+  const rect = canvas.getBoundingClientRect();
+  if (rect.width < 4 || rect.height < 4) return null;
+
+  const dpr = window.devicePixelRatio || 1;
+  const width = Math.round(rect.width * dpr);
+  const height = Math.round(rect.height * dpr);
+
+  if (canvas.width !== width || canvas.height !== height) {
+    canvas.width = width;
+    canvas.height = height;
+  }
+
+  const ctx = canvas.getContext('2d');
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+  return { ctx, width: rect.width, height: rect.height };
+}
+
+function getWorkingChartPoints() {
+  const points = (state.chartPoints || [buildChartPoint(0, INIT_INFLATION, INIT_UNEMPLOYMENT, INIT_RATE)])
+    .map(point => ({ ...point }));
+
+  if (!state.chartAnimation) return points;
+
+  const from = state.chartAnimation.from;
+  const to = state.chartAnimation.to;
+  const progress = state.chartAnimation.progress;
+
+  points.push({
+    completedQuarter: interpolateValue(from.completedQuarter, to.completedQuarter, progress),
+    inflation: interpolateValue(from.inflation, to.inflation, progress),
+    unemployment: interpolateValue(from.unemployment, to.unemployment, progress),
+    rate: interpolateValue(from.rate, to.rate, progress)
+  });
+
+  return points;
+}
+
+function getQuarterAxisLabel(quarterNumber) {
+  const info = getQuarterInfo(quarterNumber);
+  return quarterNumber % 4 === 1
+    ? `Q${info.qNum} '${String(info.year).slice(-2)}`
+    : `Q${info.qNum}`;
+}
+
+function drawSharedSeries(ctx, points, accessor, color, toX, toY) {
+  if (!points.length) return;
+
+  ctx.save();
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 3;
+  ctx.lineJoin = 'round';
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+
+  points.forEach((point, index) => {
+    const x = toX(point.completedQuarter);
+    const y = toY(accessor(point));
+    if (index === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  });
+
+  ctx.stroke();
+
+  const lastPoint = points[points.length - 1];
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.arc(toX(lastPoint.completedQuarter), toY(accessor(lastPoint)), 4, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
+
+function renderMainChart() {
+  const canvas = document.getElementById('main-chart');
+  const synced = syncCanvasSize(canvas);
+  if (!synced) return;
+
+  const { ctx, width, height } = synced;
+  const plot = {
+    left: 54,
+    top: 18,
+    right: width - 18,
+    bottom: height - 54
+  };
+  plot.width = plot.right - plot.left;
+  plot.height = plot.bottom - plot.top;
+
+  const points = getWorkingChartPoints();
+  const toX = value => plot.left + (value / TOTAL_QUARTERS) * plot.width;
+  const toY = value => {
+    const bounded = Math.max(MAIN_CHART_Y_MIN, Math.min(MAIN_CHART_Y_MAX, value));
+    const pct = (bounded - MAIN_CHART_Y_MIN) / (MAIN_CHART_Y_MAX - MAIN_CHART_Y_MIN);
+    return plot.bottom - pct * plot.height;
+  };
+
+  ctx.clearRect(0, 0, width, height);
+  ctx.fillStyle = MAIN_CHART_COLORS.plotBg;
+  ctx.fillRect(plot.left, plot.top, plot.width, plot.height);
+  ctx.strokeStyle = MAIN_CHART_COLORS.frame;
+  ctx.lineWidth = 1;
+  ctx.strokeRect(plot.left, plot.top, plot.width, plot.height);
+
+  ctx.font = '11px Arial';
+  ctx.fillStyle = MAIN_CHART_COLORS.axis;
+  ctx.textAlign = 'right';
+  ctx.textBaseline = 'middle';
+
+  for (let value = MAIN_CHART_Y_MIN; value <= MAIN_CHART_Y_MAX; value += 1) {
+    const y = toY(value);
+    ctx.strokeStyle = value === 0 ? MAIN_CHART_COLORS.frame : MAIN_CHART_COLORS.grid;
+    ctx.lineWidth = value % 2 === 0 ? 1 : 0.6;
+    ctx.beginPath();
+    ctx.moveTo(plot.left, y);
+    ctx.lineTo(plot.right, y);
+    ctx.stroke();
+    ctx.fillText(String(value), plot.left - 10, y);
+  }
+
+  for (let quarter = 0; quarter <= TOTAL_QUARTERS; quarter += 1) {
+    const x = toX(quarter);
+    ctx.strokeStyle = quarter === 0 ? MAIN_CHART_COLORS.frame : '#e6dfd2';
+    ctx.lineWidth = quarter % 4 === 0 ? 1 : 0.6;
+    ctx.beginPath();
+    ctx.moveTo(x, plot.top);
+    ctx.lineTo(x, plot.bottom);
+    ctx.stroke();
+  }
+
+  ctx.save();
+  ctx.setLineDash([4, 4]);
+  ctx.lineWidth = 1.2;
+  ctx.strokeStyle = 'rgba(178, 34, 34, 0.65)';
+  ctx.beginPath();
+  ctx.moveTo(plot.left, toY(TARGET_INFLATION));
+  ctx.lineTo(plot.right, toY(TARGET_INFLATION));
+  ctx.stroke();
+
+  ctx.strokeStyle = 'rgba(26, 42, 74, 0.55)';
+  ctx.beginPath();
+  ctx.moveTo(plot.left, toY(TARGET_UNEMPLOYMENT));
+  ctx.lineTo(plot.right, toY(TARGET_UNEMPLOYMENT));
+  ctx.stroke();
+  ctx.restore();
+
+  ctx.font = '10px Arial';
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'bottom';
+  ctx.fillStyle = 'rgba(178, 34, 34, 0.8)';
+  ctx.fillText('Inflation Target 2%', plot.left + 8, toY(TARGET_INFLATION) - 4);
+  ctx.fillStyle = 'rgba(26, 42, 74, 0.8)';
+  ctx.fillText('Unemployment Target 5%', plot.left + 8, toY(TARGET_UNEMPLOYMENT) - 4);
+
+  drawSharedSeries(ctx, points, point => point.inflation, MAIN_CHART_COLORS.inflation, toX, toY);
+  drawSharedSeries(ctx, points, point => point.unemployment, MAIN_CHART_COLORS.unemployment, toX, toY);
+  drawSharedSeries(ctx, points, point => point.rate, MAIN_CHART_COLORS.rate, toX, toY);
+
+  ctx.font = '11px Arial';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'top';
+  ctx.fillStyle = MAIN_CHART_COLORS.axis;
+  for (let quarter = 1; quarter <= TOTAL_QUARTERS; quarter += 1) {
+    ctx.fillText(getQuarterAxisLabel(quarter), toX(quarter), plot.bottom + 10);
+  }
+
+  ctx.save();
+  ctx.translate(16, plot.top + plot.height / 2);
+  ctx.rotate(-Math.PI / 2);
+  ctx.font = '12px Arial';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'top';
+  ctx.fillText('Percent', 0, 0);
+  ctx.restore();
+}
+
+function renderSparklines() {
+  renderMainChart();
+}
+
+function renderEndCharts() {
+  const points = (state.chartPoints || []).slice(1);
+  drawEndChart('end-chart-inflation', points.map(point => point.inflation), TARGET_INFLATION, '#b22222', 0, 8);
+  drawEndChart('end-chart-unemployment', points.map(point => point.unemployment), TARGET_UNEMPLOYMENT, '#1a2a4a', 2, 12);
+  drawEndChart('end-chart-rate', points.map(point => point.rate), INIT_RATE, '#c8a400', 0, 10);
+}
+
+function finishMainChartAnimation() {
+  if (!state.chartAnimation) return;
+
+  const animation = state.chartAnimation;
+  stopMainChartAnimation();
+
+  state.chartPoints.push(animation.to);
+  state.inflation = animation.to.inflation;
+  state.unemployment = animation.to.unemployment;
+  state.fedRate = animation.to.rate;
+  state.lagInflEffect = animation.nextLagInfl;
+  state.lagUnempEffect = animation.nextLagUnemp;
+  state.cumulativePenalty += animation.qPenalty;
+  state.phase = 'result';
+
+  renderIndicators();
+  renderHeader();
+  renderMainChart();
+  renderRateSelector();
+
+  const nextBtn = document.getElementById('btn-next');
+  if (nextBtn) nextBtn.disabled = false;
+}
+
+function startMainChartAnimation(animation) {
+  stopMainChartAnimation();
+  state.chartAnimation = { ...animation, progress: 0 };
+
+  const nextBtn = document.getElementById('btn-next');
+  if (nextBtn) nextBtn.disabled = true;
+
+  renderMainChart();
+
+  const startedAt = performance.now();
+  function step(now) {
+    if (!state.chartAnimation) return;
+
+    const rawProgress = Math.min(1, (now - startedAt) / GRAPH_ANIMATION_MS);
+    state.chartAnimation.progress = easeSparklineProgress(rawProgress);
+    renderMainChart();
+
+    if (rawProgress < 1) {
+      state.animationFrameId = requestAnimationFrame(step);
+      return;
+    }
+
+    finishMainChartAnimation();
+  }
+
+  state.animationFrameId = requestAnimationFrame(step);
+}
+
+function startGame() {
+  stopMainChartAnimation();
+  state = createInitialState();
+  document.getElementById('history-tbody').innerHTML = '';
+  document.getElementById('end-history-tbody').innerHTML = '';
+  document.getElementById('end-verdict-card').querySelectorAll('.end-shock-note').forEach(note => note.remove());
+  showScreen('screen-game');
+  beginQuarter();
+}
+
+function beginQuarter() {
+  stopMainChartAnimation();
+  state.phase = 'decision';
+  state.pendingRate = state.fedRate;
+
+  renderHeader();
+  renderIndicators();
+  renderNews();
+  renderMainChart();
+  renderRateSelector();
+
+  document.getElementById('panel-decision').classList.remove('hidden');
+  document.getElementById('panel-result').classList.add('hidden');
+}
+
+function makeDecision() {
+  if (state.phase !== 'decision') return;
+
+  const previousPoint = state.chartPoints[state.chartPoints.length - 1];
+  const nextRate = state.pendingRate;
+  const rateDelta = Math.round((nextRate - state.fedRate) * 100) / 100;
+  const result = advanceEconomy(rateDelta);
+  const qPenalty = calcQuarterPenalty(state.inflation, state.unemployment);
+
+  let decisionLabel = 'Hold';
+  if (rateDelta > 0) decisionLabel = 'Raise +' + fmt(rateDelta) + '%';
+  if (rateDelta < 0) decisionLabel = 'Lower -' + fmt(Math.abs(rateDelta)) + '%';
+
+  const shock = state.shockSchedule[state.quarter - 1];
+  const record = {
+    quarter: state.quarter,
+    inflation: state.inflation,
+    unemployment: state.unemployment,
+    rate: nextRate,
+    decision: decisionLabel,
+    eventTitle: shock ? shock.title : null
+  };
+
+  state.phase = 'animating';
+  state.fedRate = nextRate;
+  state.history.push(record);
+  appendHistoryRow(record);
+
+  renderResult(rateDelta, result.newInflation, result.newUnemployment, qPenalty);
+  document.getElementById('panel-decision').classList.add('hidden');
+  document.getElementById('panel-result').classList.remove('hidden');
+
+  const nextBtn = document.getElementById('btn-next');
+  if (nextBtn) nextBtn.disabled = true;
+
+  renderIndicators();
+  renderRateSelector();
+
+  startMainChartAnimation({
+    from: previousPoint,
+    to: buildChartPoint(state.quarter, result.newInflation, result.newUnemployment, nextRate),
+    nextLagInfl: result.nextLagInfl,
+    nextLagUnemp: result.nextLagUnemp,
+    qPenalty
+  });
+}
+
+function nextQuarter() {
+  if (state.phase !== 'result') return;
+
+  if (state.quarter >= TOTAL_QUARTERS) {
+    renderEndScreen();
+    showScreen('screen-end');
+    return;
+  }
+
+  state.quarter += 1;
+  beginQuarter();
+}
+
+function resetGame() {
+  stopMainChartAnimation();
+  state = {};
+  document.getElementById('history-tbody').innerHTML = '';
+  document.getElementById('end-history-tbody').innerHTML = '';
+  document.getElementById('end-verdict-card').querySelectorAll('.end-shock-note').forEach(note => note.remove());
+  showScreen('screen-intro');
+}
+
+window.addEventListener('resize', () => {
+  const gameScreen = document.getElementById('screen-game');
+  const endScreen = document.getElementById('screen-end');
+
+  if (gameScreen && gameScreen.classList.contains('active')) {
+    renderMainChart();
+  }
+
+  if (endScreen && endScreen.classList.contains('active')) {
+    renderEndCharts();
+  }
+});
