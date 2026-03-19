@@ -335,17 +335,44 @@ html, body {
 /* Game Body */
 .game-body {
   display: grid;
-  grid-template-columns: 240px 1fr;
+  grid-template-columns: 220px minmax(0, 1fr) 260px;
   gap: 12px;
   padding: 12px 16px;
   flex: 1;
 }
 
-@media (max-width: 760px) {
+@media (max-width: 1100px) {
+  .game-body {
+    grid-template-columns: 220px minmax(0, 1fr);
+  }
+
+  .panel-indicators {
+    grid-row: 1 / span 2;
+  }
+
+  .panel-center {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .panel-side {
+    grid-column: 2;
+    grid-row: 2;
+  }
+}
+
+@media (max-width: 860px) {
   .game-body { grid-template-columns: 1fr; }
   .quarter-progress-meta,
   .quarter-progress-labels {
     gap: 8px;
+  }
+
+  .panel-indicators,
+  .panel-center,
+  .panel-side {
+    grid-column: auto;
+    grid-row: auto;
   }
 }
 
@@ -415,16 +442,14 @@ html, body {
   margin-bottom: 6px;
 }
 
-canvas {
-  display: block;
-  width: 100%;
-  height: 48px;
-  background: #f9f7f3;
-  border: 1px solid #e0dcd0;
+/* Center and side columns */
+.panel-center {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
-/* Right column */
-.panel-right {
+.panel-side {
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -540,6 +565,87 @@ canvas {
   font-size: 0.83rem;
 }
 
+/* Main chart */
+.panel-chart {
+  display: flex;
+  flex-direction: column;
+}
+
+.chart-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 10px;
+}
+
+.chart-header .panel-title {
+  margin-bottom: 0;
+}
+
+.chart-legend {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px 16px;
+  font-family: Arial, sans-serif;
+  font-size: 0.76rem;
+  color: #4a433a;
+}
+
+.legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  white-space: nowrap;
+}
+
+.legend-line {
+  width: 20px;
+  border-top: 3px solid;
+}
+
+.legend-line--inflation {
+  border-color: #b22222;
+}
+
+.legend-line--unemployment {
+  border-color: #1a2a4a;
+}
+
+.legend-line--rate {
+  border-color: #c8a400;
+}
+
+.chart-frame {
+  background: linear-gradient(180deg, #faf8f4 0%, #f2ece1 100%);
+  border: 1px solid #d8d1c3;
+  padding: 10px;
+}
+
+.chart-frame canvas {
+  display: block;
+  width: 100%;
+  height: 380px;
+  background: #fdfcf9;
+  border: 1px solid #ded7ca;
+}
+
+@media (max-width: 860px) {
+  .chart-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .chart-legend {
+    justify-content: flex-start;
+  }
+
+  .chart-frame canvas {
+    height: 320px;
+  }
+}
+
 /* Decision panel */
 .decision-prompt {
   font-size: 0.85rem;
@@ -640,6 +746,52 @@ canvas {
   transition: background 0.15s;
 }
 .btn-go:hover { background: #2a3e6e; }
+
+.panel-side .panel {
+  padding: 12px 12px 14px;
+}
+
+.panel-side .decision-prompt {
+  font-size: 0.78rem;
+  margin-bottom: 10px;
+}
+
+.panel-side .rate-selector-wrapper {
+  gap: 8px;
+}
+
+.panel-side .rate-selector-scroll {
+  max-height: 186px;
+}
+
+.panel-side .rate-option {
+  padding: 5px 8px;
+  font-size: 0.78rem;
+  gap: 6px;
+}
+
+.panel-side .rate-val {
+  min-width: 44px;
+}
+
+.panel-side .rate-tag {
+  font-size: 0.55rem;
+}
+
+.panel-side .rate-selector-controls {
+  min-width: 108px;
+  gap: 6px;
+}
+
+.panel-side .rate-change-summary {
+  font-size: 0.7rem;
+  padding: 5px 6px;
+}
+
+.panel-side .btn-go {
+  padding: 10px 10px;
+  font-size: 0.84rem;
+}
 
 /* Result panel */
 .hidden { display: none !important; }
@@ -878,9 +1030,11 @@ canvas {
 }
 
 .end-chart-wrap canvas {
+  display: block;
   width: 100%;
   height: 80px;
   background: #f9f7f3;
+  border: 1px solid #e0dcd0;
 }
 
 /* End history */

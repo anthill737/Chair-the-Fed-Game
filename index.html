@@ -127,7 +127,7 @@
   <!-- Main content area -->
   <div class="game-body">
 
-    <!-- LEFT COLUMN: Indicators + sparklines -->
+    <!-- LEFT COLUMN: Indicators -->
     <aside class="panel panel-indicators">
       <h3 class="panel-title">Economic Indicators</h3>
 
@@ -136,27 +136,24 @@
           <div class="indicator-label">Inflation Rate</div>
           <div class="indicator-value" id="val-inflation">&mdash;</div>
           <div class="indicator-target">Target: 2.0%</div>
-          <canvas id="chart-inflation" width="200" height="48" title="Inflation history"></canvas>
         </div>
 
         <div class="indicator" id="ind-unemployment">
           <div class="indicator-label">Unemployment Rate</div>
           <div class="indicator-value" id="val-unemployment">&mdash;</div>
           <div class="indicator-target">Target: 5.0%</div>
-          <canvas id="chart-unemployment" width="200" height="48" title="Unemployment history"></canvas>
         </div>
 
         <div class="indicator" id="ind-rate">
           <div class="indicator-label">Fed Funds Rate</div>
           <div class="indicator-value" id="val-rate">&mdash;</div>
           <div class="indicator-target">Your policy lever</div>
-          <canvas id="chart-rate" width="200" height="48" title="Fed rate history"></canvas>
         </div>
       </div>
     </aside>
 
-    <!-- RIGHT COLUMN: News + Decision -->
-    <main class="panel-right">
+    <!-- CENTER COLUMN: News + Shared Chart -->
+    <main class="panel-center">
 
       <!-- News / Event card -->
       <div class="panel panel-news">
@@ -176,6 +173,33 @@
         </div>
       </div>
 
+      <section class="panel panel-chart">
+        <div class="chart-header">
+          <h3 class="panel-title">Economic Trends</h3>
+          <div class="chart-legend" aria-label="Chart legend">
+            <span class="legend-item">
+              <span class="legend-line legend-line--inflation"></span>
+              Inflation
+            </span>
+            <span class="legend-item">
+              <span class="legend-line legend-line--unemployment"></span>
+              Unemployment
+            </span>
+            <span class="legend-item">
+              <span class="legend-line legend-line--rate"></span>
+              Fed Funds Rate
+            </span>
+          </div>
+        </div>
+        <div class="chart-frame">
+          <canvas id="main-chart" width="760" height="380" title="Economic trends over time"></canvas>
+        </div>
+      </section>
+    </main>
+
+    <!-- RIGHT COLUMN: Rate Control + Result -->
+    <aside class="panel-side">
+
       <!-- Decision panel (shown before player acts) -->
       <!-- Content injected by app.js DOMContentLoaded handler -->
       <div class="panel panel-decision" id="panel-decision"></div>
@@ -192,7 +216,7 @@
         </div>
       </div>
 
-    </main>
+    </aside>
   </div>
 
   <!-- History table -->
