@@ -1369,7 +1369,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (decisionPanel) {
     decisionPanel.innerHTML = `
       <h3 class="panel-title">Set Monetary Policy</h3>
-      <p class="decision-prompt">Adjust the federal funds rate, then press <strong>GO</strong> to apply your decision.</p>
+      <p class="decision-prompt">Adjust the federal funds rate, then press <strong>GO</strong> to let the quarter unfold on the chart.</p>
       <div class="rate-selector-wrapper">
         <div class="rate-selector-scroll" id="rate-selector-list">
           <!-- Rate options injected by renderRateSelector() -->
@@ -1381,4 +1381,569 @@ document.addEventListener('DOMContentLoaded', () => {
       </div>
     `;
   }
+});
+
+/* ==========================================================================
+   CLASSIC FLOW OVERRIDES
+   These overrides keep the existing economic model but make the chart and
+   quarter loop behave more like the original educational simulation.
+   ========================================================================== */
+
+// Graph animation timing is controlled here.
+const ADVANCE_ANIMATION_MS = 1400;
+const ADVANCE_SETTLE_MS = 450;
+const MAIN_CHART_Y_MIN = -1;
+const MAIN_CHART_Y_MAX = 10;
+
+const GRAPH_COLORS = {
+  inflation: '#b13f3f',
+  unemployment: '#456a9c',
+  rate: '#4f8a52',
+  axis: '#5d5a54',
+  grid: '#d7d2c8',
+  background: '#fdfcf9',
+  inflationTarget: 'rgba(177, 63, 63, 0.75)',
+  unemploymentTarget: 'rgba(69, 106, 156, 0.75)'
+};
+
+function buildChartPoint(completedQuarter, inflation, unemployment, rate) {
+  // Quarter-to-quarter graph points are generated here.
+  const info = completedQuarter === 0 ? getQuarterInfo(1) : getQuarterInfo(completedQuarter);
+  return {
+    completedQuarter,
+    inflation,
+    unemployment,
+    rate,
+    label: completedQuarter === 0 ? 'Start' : info.fullLabel
+  };
+}
+
+function createInitialState() {
+  return {
+    quarter: 1,
+    inflation: INIT_INFLATION,
+    unemployment: INIT_UNEMPLOYMENT,
+    fedRate: INIT_RATE,
+    pendingRate: INIT_RATE,
+    lagInflEffect: 0,
+    lagUnempEffect: 0,
+    history: [],
+    chartPoints: [buildChartPoint(0, INIT_INFLATION, INIT_UNEMPLOYMENT, INIT_RATE)],
+    shockSchedule: buildShockSchedule(),
+    cumulativePenalty: 0,
+    phase: 'decision',
+    pendingAdvance: null,
+    animationFrameId: 0,
+    settleTimerId: 0
+  };
+}
+
+function clearAdvanceTimers() {
+  if (state.animationFrameId) {
+    cancelAnimationFrame(state.animationFrameId);
+    state.animationFrameId = 0;
+  }
+  if (state.settleTimerId) {
+    clearTimeout(state.settleTimerId);
+    state.settleTimerId = 0;
+  }
+}
+
+function syncCanvasSize(canvas) {
+  const rect = canvas.getBoundingClientRect();
+  if (rect.width < 4 || rect.height < 4) {
+    return null;
+  }
+
+  const dpr = window.devicePixelRatio || 1;
+  const width = Math.max(1, Math.round(rect.width * dpr));
+  const height = Math.max(1, Math.round(rect.height * dpr));
+
+  if (canvas.width !== width || canvas.height !== height) {
+    canvas.width = width;
+    canvas.height = height;
+  }
+
+  const ctx = canvas.getContext('2d');
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+  return { ctx, width: rect.width, height: rect.height };
+}
+
+function lerpValue(start, end, progress) {
+  return start + (end - start) * progress;
+}
+
+function easeInOutQuad(progress) {
+  return progress < 0.5
+    ? 2 * progress * progress
+    : 1 - Math.pow(-2 * progress + 2, 2) / 2;
+}
+
+function getWorkingChartPoints() {
+  const committed = state.chartPoints.map(point => ({ ...point }));
+  if (!state.pendingAdvance) return committed;
+
+  const last = state.chartPoints[state.chartPoints.length - 1];
+  const target = state.pendingAdvance.targetPoint;
+  const progress = state.pendingAdvance.progress;
+
+  committed.push({
+    completedQuarter: lerpValue(last.completedQuarter, target.completedQuarter, progress),
+    inflation: lerpValue(last.inflation, target.inflation, progress),
+    unemployment: lerpValue(last.unemployment, target.unemployment, progress),
+    rate: lerpValue(last.rate, target.rate, progress)
+  });
+
+  return committed;
+}
+
+function renderQuarterProgress() {
+  const progress = (state.history.length / TOTAL_QUARTERS) * 100;
+  const currentInfo = getQuarterInfo(Math.min(state.quarter || 1, TOTAL_QUARTERS));
+
+  document.getElementById('timeline-start-label').textContent = getQuarterInfo(1).fullLabel;
+  document.getElementById('timeline-end-label').textContent = getQuarterInfo(TOTAL_QUARTERS).fullLabel;
+  document.getElementById('timeline-current-label').textContent = currentInfo.fullLabel;
+  document.getElementById('timeline-progress-line').style.width = progress + '%';
+  document.getElementById('timeline-progress-marker').style.left = progress + '%';
+}
+
+function renderHeader() {
+  document.getElementById('hdr-quarter').textContent = state.quarter + ' / ' + TOTAL_QUARTERS;
+
+  if (state.history.length > 0) {
+    const projectedPenalty = state.cumulativePenalty * (TOTAL_QUARTERS / state.history.length);
+    document.getElementById('hdr-score').textContent = calcFinalScore(projectedPenalty);
+  } else {
+    document.getElementById('hdr-score').textContent = '\u2014';
+  }
+
+  renderQuarterProgress();
+}
+
+function renderNews() {
+  const shock = state.shockSchedule[state.quarter - 1];
+  const info = getQuarterInfo(state.quarter);
+  const label = document.getElementById('news-quarter-label');
+  const badge = document.getElementById('news-badge');
+  const body = document.getElementById('news-body');
+  const strip = document.getElementById('news-strip');
+  const headline = document.getElementById('news-strip-headline');
+  const subheadline = document.getElementById('news-strip-subheadline');
+
+  label.textContent = info.fullLabel + ' - Economic Briefing';
+
+  if (shock) {
+    badge.textContent = shock.badge;
+    badge.className = 'news-badge shock';
+    strip.classList.remove('hidden');
+    headline.textContent = shock.title;
+    subheadline.textContent = shock.subheadline || shock.text;
+    body.innerHTML =
+      '<p class="event-title">' + shock.title + '</p>' +
+      '<p>' + shock.text + '</p>';
+  } else {
+    badge.textContent = 'Routine';
+    badge.className = 'news-badge routine';
+    strip.classList.add('hidden');
+    headline.textContent = '';
+    subheadline.textContent = '';
+    body.innerHTML = '<p>' + ROUTINE_NEWS[(state.quarter - 1) % ROUTINE_NEWS.length] + '</p>';
+  }
+
+  const inflNote = state.inflation > TARGET_INFLATION + 0.5
+    ? 'Inflation is running above the Fed\'s 2% target.'
+    : state.inflation < TARGET_INFLATION - 0.5
+    ? 'Inflation is below the Fed\'s 2% target.'
+    : 'Inflation is near the Fed\'s 2% target.';
+
+  const unempNote = state.unemployment > TARGET_UNEMPLOYMENT + 0.5
+    ? 'Unemployment is above the natural rate of 5%.'
+    : state.unemployment < TARGET_UNEMPLOYMENT - 0.5
+    ? 'Unemployment is below the natural rate of 5%.'
+    : 'Unemployment is near its natural rate of 5%.';
+
+  body.innerHTML += '<p class="news-context">' + inflNote + ' ' + unempNote + '</p>';
+}
+
+function renderResult(rateDelta, newInfl, newUnemp, qPenalty) {
+  const body = document.getElementById('result-body');
+  const score = document.getElementById('result-quarter-score');
+  const status = document.getElementById('advance-status');
+  const nextInfo = state.quarter < TOTAL_QUARTERS ? getQuarterInfo(state.quarter + 1) : null;
+
+  const decisionText = Math.abs(rateDelta) < 0.001
+    ? 'You held the federal funds rate steady at ' + fmt(state.fedRate) + '%.'
+    : rateDelta > 0
+    ? 'You raised the federal funds rate by ' + fmt(rateDelta) + '% to ' + fmt(state.fedRate) + '%.'
+    : 'You lowered the federal funds rate by ' + fmt(Math.abs(rateDelta)) + '% to ' + fmt(state.fedRate) + '%.';
+
+  body.innerHTML =
+    '<p style="margin-bottom:10px;">' + decisionText + '</p>' +
+    '<div class="result-stat"><span class="label">Inflation</span><span>' + fmt(state.inflation) + '% -> <strong>' + fmt(newInfl) + '%</strong></span></div>' +
+    '<div class="result-stat"><span class="label">Unemployment</span><span>' + fmt(state.unemployment) + '% -> <strong>' + fmt(newUnemp) + '%</strong></span></div>' +
+    '<div class="result-stat"><span class="label">Timeline</span><span>' +
+      (nextInfo ? 'Graph advancing toward ' + nextInfo.fullLabel : 'Graph advancing to the end of the term') +
+      '</span></div>';
+
+  score.textContent = fmt(qPenalty, 2) + ' deviation pts';
+  score.style.color = qPenalty < 1.0 ? '#1a6b1a' : qPenalty < 2.5 ? '#c8a400' : '#b22222';
+  status.textContent = 'Advancing through the quarter...';
+}
+
+function drawGuideLine(ctx, toX, toY, leftX, rightX, value, color, label) {
+  ctx.save();
+  ctx.setLineDash([4, 4]);
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 1.1;
+  ctx.beginPath();
+  ctx.moveTo(leftX, toY(value));
+  ctx.lineTo(rightX, toY(value));
+  ctx.stroke();
+  ctx.restore();
+
+  ctx.fillStyle = color;
+  ctx.font = '11px Arial';
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'bottom';
+  ctx.fillText(label, leftX + 6, toY(value) - 4);
+}
+
+function drawGraphSeries(ctx, points, toX, toY, accessor, color) {
+  if (!points.length) return;
+
+  ctx.save();
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 3;
+  ctx.lineJoin = 'round';
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+
+  points.forEach((point, index) => {
+    const x = toX(point.completedQuarter);
+    const y = toY(accessor(point));
+    if (index === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  });
+
+  ctx.stroke();
+
+  points.forEach((point, index) => {
+    const x = toX(point.completedQuarter);
+    const y = toY(accessor(point));
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.arc(x, y, index === points.length - 1 ? 4 : 2.8, 0, Math.PI * 2);
+    ctx.fill();
+  });
+
+  ctx.restore();
+}
+
+function renderQuarterGraph() {
+  const canvas = document.getElementById('main-chart');
+  if (!canvas) return;
+
+  const synced = syncCanvasSize(canvas);
+  if (!synced) return;
+
+  const { ctx, width, height } = synced;
+  ctx.clearRect(0, 0, width, height);
+
+  const plot = {
+    left: 58,
+    top: 18,
+    right: width - 18,
+    bottom: height - 62
+  };
+  plot.width = plot.right - plot.left;
+  plot.height = plot.bottom - plot.top;
+
+  const toX = value => plot.left + (value / TOTAL_QUARTERS) * plot.width;
+  const toY = value => plot.top + (1 - (clamp(value, MAIN_CHART_Y_MIN, MAIN_CHART_Y_MAX) - MAIN_CHART_Y_MIN) / (MAIN_CHART_Y_MAX - MAIN_CHART_Y_MIN)) * plot.height;
+
+  ctx.fillStyle = GRAPH_COLORS.background;
+  ctx.fillRect(plot.left, plot.top, plot.width, plot.height);
+
+  ctx.strokeStyle = '#c9c3b8';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(plot.left, plot.top, plot.width, plot.height);
+
+  ctx.font = '12px Arial';
+  ctx.fillStyle = GRAPH_COLORS.axis;
+  ctx.textAlign = 'right';
+  ctx.textBaseline = 'middle';
+
+  for (let y = MAIN_CHART_Y_MIN; y <= MAIN_CHART_Y_MAX; y += 1) {
+    const py = toY(y);
+    ctx.strokeStyle = GRAPH_COLORS.grid;
+    ctx.lineWidth = y % 2 === 0 ? 1 : 0.5;
+    ctx.beginPath();
+    ctx.moveTo(plot.left, py);
+    ctx.lineTo(plot.right, py);
+    ctx.stroke();
+    ctx.fillText(String(y), plot.left - 10, py);
+  }
+
+  for (let q = 0; q <= TOTAL_QUARTERS; q += 1) {
+    const px = toX(q);
+    ctx.strokeStyle = q === 0 ? '#b9b1a4' : '#e1dbcf';
+    ctx.lineWidth = q === 0 ? 1 : 0.8;
+    ctx.beginPath();
+    ctx.moveTo(px, plot.top);
+    ctx.lineTo(px, plot.bottom);
+    ctx.stroke();
+  }
+
+  drawGuideLine(ctx, toX, toY, plot.left, plot.right, TARGET_INFLATION, GRAPH_COLORS.inflationTarget, 'Inflation target');
+  drawGuideLine(ctx, toX, toY, plot.left, plot.right, TARGET_UNEMPLOYMENT, GRAPH_COLORS.unemploymentTarget, 'Unemployment target');
+
+  const points = getWorkingChartPoints();
+  drawGraphSeries(ctx, points, toX, toY, point => point.inflation, GRAPH_COLORS.inflation);
+  drawGraphSeries(ctx, points, toX, toY, point => point.unemployment, GRAPH_COLORS.unemployment);
+  drawGraphSeries(ctx, points, toX, toY, point => point.rate, GRAPH_COLORS.rate);
+
+  ctx.font = '11px Arial';
+  ctx.fillStyle = GRAPH_COLORS.axis;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'top';
+
+  for (let q = 1; q <= TOTAL_QUARTERS; q += 1) {
+    const info = getQuarterInfo(q);
+    const px = toX(q);
+    ctx.fillText(info.shortLabel, px, plot.bottom + 12);
+    if (info.qNum === 1) {
+      ctx.fillText(String(info.year), px, plot.bottom + 28);
+    }
+  }
+
+  ctx.save();
+  ctx.translate(18, plot.top + plot.height / 2);
+  ctx.rotate(-Math.PI / 2);
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('Percent', 0, 0);
+  ctx.restore();
+
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('Quarter progression', plot.left + plot.width / 2, height - 12);
+}
+
+function drawMiniChart(canvasId, values, target, color, yMin, yMax) {
+  const canvas = document.getElementById(canvasId);
+  if (!canvas || !values.length) return;
+
+  const synced = syncCanvasSize(canvas);
+  if (!synced) return;
+
+  const { ctx, width, height } = synced;
+  ctx.clearRect(0, 0, width, height);
+
+  const pad = 4;
+  const toX = index => pad + (index / Math.max(values.length - 1, 1)) * (width - pad * 2);
+  const toY = value => pad + (1 - (clamp(value, yMin, yMax) - yMin) / (yMax - yMin)) * (height - pad * 2);
+
+  ctx.strokeStyle = '#d5d0c6';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(0.5, 0.5, width - 1, height - 1);
+
+  ctx.save();
+  ctx.setLineDash([3, 3]);
+  ctx.strokeStyle = '#b8b2a7';
+  ctx.beginPath();
+  ctx.moveTo(pad, toY(target));
+  ctx.lineTo(width - pad, toY(target));
+  ctx.stroke();
+  ctx.restore();
+
+  ctx.save();
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 2;
+  ctx.lineJoin = 'round';
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+
+  values.forEach((value, index) => {
+    const x = toX(index);
+    const y = toY(value);
+    if (index === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  });
+
+  ctx.stroke();
+
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.arc(toX(values.length - 1), toY(values[values.length - 1]), 3, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
+
+function renderSparklines() {
+  const points = getWorkingChartPoints();
+  drawMiniChart('chart-inflation', points.map(point => point.inflation), TARGET_INFLATION, GRAPH_COLORS.inflation, 0, 8);
+  drawMiniChart('chart-unemployment', points.map(point => point.unemployment), TARGET_UNEMPLOYMENT, GRAPH_COLORS.unemployment, 2, 12);
+  drawMiniChart('chart-rate', points.map(point => point.rate), INIT_RATE, GRAPH_COLORS.rate, 0, 10);
+}
+
+function renderEndCharts() {
+  const points = (state.chartPoints || []).slice(1);
+  drawMiniChart('end-chart-inflation', points.map(point => point.inflation), TARGET_INFLATION, GRAPH_COLORS.inflation, 0, 8);
+  drawMiniChart('end-chart-unemployment', points.map(point => point.unemployment), TARGET_UNEMPLOYMENT, GRAPH_COLORS.unemployment, 2, 12);
+  drawMiniChart('end-chart-rate', points.map(point => point.rate), INIT_RATE, GRAPH_COLORS.rate, 0, 10);
+}
+
+function beginQuarter() {
+  state.phase = 'decision';
+  state.pendingRate = state.fedRate;
+  state.pendingAdvance = null;
+
+  document.getElementById('panel-decision').classList.remove('hidden');
+  document.getElementById('panel-result').classList.add('hidden');
+
+  renderHeader();
+  renderIndicators();
+  renderNews();
+  renderQuarterGraph();
+  renderRateSelector();
+  renderSparklines();
+}
+
+function startGame() {
+  clearAdvanceTimers();
+  state = createInitialState();
+  document.getElementById('history-tbody').innerHTML = '';
+  document.getElementById('end-history-tbody').innerHTML = '';
+  document.getElementById('end-verdict-card').querySelectorAll('.end-shock-note').forEach(note => note.remove());
+  showScreen('screen-game');
+  beginQuarter();
+}
+
+function finalizeQuarterAdvance() {
+  if (!state.pendingAdvance) return;
+
+  const advance = state.pendingAdvance;
+  state.pendingAdvance = null;
+  state.history.push(advance.record);
+  state.chartPoints.push(advance.targetPoint);
+  state.cumulativePenalty += advance.qPenalty;
+
+  state.inflation = advance.result.newInflation;
+  state.unemployment = advance.result.newUnemployment;
+  state.lagInflEffect = advance.result.nextLagInfl;
+  state.lagUnempEffect = advance.result.nextLagUnemp;
+
+  appendHistoryRow(advance.record);
+  renderHeader();
+  renderIndicators();
+  renderQuarterGraph();
+  renderSparklines();
+
+  const status = document.getElementById('advance-status');
+  status.textContent = state.quarter >= TOTAL_QUARTERS
+    ? 'Final quarter complete. Closing the term...'
+    : 'Quarter complete. Preparing the next briefing...';
+
+  state.settleTimerId = setTimeout(() => {
+    state.settleTimerId = 0;
+    if (state.quarter >= TOTAL_QUARTERS) {
+      renderEndScreen();
+      showScreen('screen-end');
+      return;
+    }
+
+    state.quarter += 1;
+    beginQuarter();
+  }, ADVANCE_SETTLE_MS);
+}
+
+function animateQuarterAdvance() {
+  const startTime = performance.now();
+
+  function tick(now) {
+    const raw = clamp((now - startTime) / ADVANCE_ANIMATION_MS, 0, 1);
+    state.pendingAdvance.progress = easeInOutQuad(raw);
+    renderQuarterGraph();
+    renderSparklines();
+
+    if (raw < 1) {
+      state.animationFrameId = requestAnimationFrame(tick);
+      return;
+    }
+
+    state.animationFrameId = 0;
+    finalizeQuarterAdvance();
+  }
+
+  state.animationFrameId = requestAnimationFrame(tick);
+}
+
+function makeDecision() {
+  if (state.phase !== 'decision') return;
+
+  const rateDelta = Math.round((state.pendingRate - state.fedRate) * 100) / 100;
+  state.phase = 'advancing';
+  state.fedRate = state.pendingRate;
+
+  const result = advanceEconomy(rateDelta);
+  const qPenalty = calcQuarterPenalty(state.inflation, state.unemployment);
+
+  let decisionLabel = 'Hold';
+  if (rateDelta > 0) decisionLabel = 'Raise +' + fmt(rateDelta) + '%';
+  if (rateDelta < 0) decisionLabel = 'Lower -' + fmt(Math.abs(rateDelta)) + '%';
+
+  const shock = state.shockSchedule[state.quarter - 1];
+  state.pendingAdvance = {
+    progress: 0,
+    result,
+    qPenalty,
+    record: {
+      quarter: state.quarter,
+      inflation: state.inflation,
+      unemployment: state.unemployment,
+      rate: state.fedRate,
+      decision: decisionLabel,
+      eventTitle: shock ? shock.title : null
+    },
+    targetPoint: buildChartPoint(state.quarter, result.newInflation, result.newUnemployment, state.fedRate)
+  };
+
+  document.getElementById('panel-decision').classList.add('hidden');
+  document.getElementById('panel-result').classList.remove('hidden');
+
+  renderResult(rateDelta, result.newInflation, result.newUnemployment, qPenalty);
+  renderRateSelector();
+  renderQuarterGraph();
+  renderSparklines();
+  animateQuarterAdvance();
+}
+
+function resetGame() {
+  clearAdvanceTimers();
+  state = {};
+  document.getElementById('history-tbody').innerHTML = '';
+  document.getElementById('end-history-tbody').innerHTML = '';
+  document.getElementById('end-verdict-card').querySelectorAll('.end-shock-note').forEach(note => note.remove());
+  showScreen('screen-intro');
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  state = createInitialState();
+  renderQuarterProgress();
+
+  window.addEventListener('resize', () => {
+    const gameScreen = document.getElementById('screen-game');
+    const endScreen = document.getElementById('screen-end');
+
+    if (gameScreen.classList.contains('active')) {
+      renderQuarterGraph();
+      renderSparklines();
+    }
+
+    if (endScreen.classList.contains('active')) {
+      renderEndCharts();
+    }
+  });
 });

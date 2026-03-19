@@ -42,7 +42,7 @@
       <div class="intro-column">
         <section class="intro-section">
           <h2>The Tradeoff</h2>
-          <p>Monetary policy involves a fundamental tension. Raising rates fights inflation but risks slowing the economy and raising unemployment. Lowering rates stimulates hiring but can push inflation higher. Holding rates steady lets prior policy continue to work &mdash; but the economy doesn't always cooperate.</p>
+          <p>Monetary policy involves a fundamental tension. Raising rates fights inflation but risks slowing the economy and raising unemployment. Lowering rates stimulates hiring but can push inflation higher. Holding rates steady lets prior policy continue to work &mdash; but the economy does not always cooperate.</p>
           <p>Real-world events &mdash; oil shocks, financial crises, productivity booms &mdash; will force you to react quickly and sometimes accept imperfect outcomes.</p>
         </section>
 
@@ -50,11 +50,11 @@
           <h2>How to Play</h2>
           <ul class="how-to-list">
             <li>The simulation runs for <strong>16 quarters</strong> from <strong>2014 through 2017</strong>.</li>
-            <li>Each quarter, review current economic conditions and news.</li>
+            <li>Each quarter begins with an economic briefing and, when applicable, breaking news.</li>
             <li>Choose to <strong>raise</strong>, <strong>lower</strong>, or <strong>hold</strong> the federal funds rate.</li>
-            <li>Rate changes take effect with a lag &mdash; policy doesn't work overnight.</li>
+            <li>After your decision, the economy advances and the line graph moves forward through time.</li>
             <li>Your goal: keep inflation near <strong>2%</strong> and unemployment near <strong>5%</strong>.</li>
-            <li>At the end, you'll be evaluated and either <strong>reappointed or removed</strong>.</li>
+            <li>At the end, you will be evaluated and either <strong>reappointed or removed</strong>.</li>
           </ul>
         </section>
 
@@ -90,8 +90,6 @@
      SCREEN: MAIN GAME
      ===================================================================== -->
 <div id="screen-game" class="screen">
-
-  <!-- Top header bar -->
   <header class="game-header">
     <div class="game-title">
       <span class="fed-seal-sm">&#9670;</span>
@@ -99,11 +97,11 @@
     </div>
     <div class="game-meta">
       <div class="meta-item">
-        <span class="meta-label">QUARTER</span>
+        <span class="meta-label">Quarter</span>
         <span class="meta-value" id="hdr-quarter">1 / 16</span>
       </div>
       <div class="meta-item">
-        <span class="meta-label">SCORE</span>
+        <span class="meta-label">Score</span>
         <span class="meta-value" id="hdr-score">&mdash;</span>
       </div>
     </div>
@@ -124,10 +122,7 @@
     </div>
   </section>
 
-  <!-- Main content area -->
   <div class="game-body">
-
-    <!-- LEFT COLUMN: Indicators + sparklines -->
     <aside class="panel panel-indicators">
       <h3 class="panel-title">Economic Indicators</h3>
 
@@ -136,66 +131,75 @@
           <div class="indicator-label">Inflation Rate</div>
           <div class="indicator-value" id="val-inflation">&mdash;</div>
           <div class="indicator-target">Target: 2.0%</div>
-          <canvas id="chart-inflation" width="200" height="48" title="Inflation history"></canvas>
+          <canvas id="chart-inflation" width="220" height="56" title="Inflation trend"></canvas>
         </div>
 
         <div class="indicator" id="ind-unemployment">
           <div class="indicator-label">Unemployment Rate</div>
           <div class="indicator-value" id="val-unemployment">&mdash;</div>
           <div class="indicator-target">Target: 5.0%</div>
-          <canvas id="chart-unemployment" width="200" height="48" title="Unemployment history"></canvas>
+          <canvas id="chart-unemployment" width="220" height="56" title="Unemployment trend"></canvas>
         </div>
 
         <div class="indicator" id="ind-rate">
           <div class="indicator-label">Fed Funds Rate</div>
           <div class="indicator-value" id="val-rate">&mdash;</div>
-          <div class="indicator-target">Your policy lever</div>
-          <canvas id="chart-rate" width="200" height="48" title="Fed rate history"></canvas>
+          <div class="indicator-target">Policy lever</div>
+          <canvas id="chart-rate" width="220" height="56" title="Fed funds rate trend"></canvas>
         </div>
       </div>
     </aside>
 
-    <!-- RIGHT COLUMN: News + Decision -->
     <main class="panel-right">
-
-      <!-- News / Event card -->
       <div class="panel panel-news">
-        <div class="news-alert hidden" id="news-alert">
-          <div class="news-alert-label">Breaking News</div>
-          <div class="news-alert-copy">
-            <div class="news-alert-headline" id="news-alert-headline"></div>
-            <div class="news-alert-text" id="news-alert-text"></div>
+        <div class="news-strip hidden" id="news-strip">
+          <div class="news-strip-badge">Breaking News</div>
+          <div class="news-strip-copy">
+            <div class="news-strip-headline" id="news-strip-headline"></div>
+            <div class="news-strip-subheadline" id="news-strip-subheadline"></div>
           </div>
         </div>
+
         <div class="news-header">
-          <h3 class="panel-title" id="news-quarter-label">Q1 2014 &mdash; Economic Outlook</h3>
-          <span class="news-badge" id="news-badge"></span>
+          <h3 class="panel-title" id="news-quarter-label">Q1 2014 - Economic Briefing</h3>
+          <span class="news-badge" id="news-badge">Routine</span>
         </div>
+
         <div class="news-body" id="news-body">
           <p>Preparing economic briefing...</p>
         </div>
       </div>
 
-      <!-- Decision panel (shown before player acts) -->
-      <!-- Content injected by app.js DOMContentLoaded handler -->
+      <div class="panel panel-chart">
+        <div class="chart-header">
+          <h3 class="panel-title">Quarterly Economic Timeline</h3>
+          <div class="chart-legend" aria-hidden="true">
+            <span class="legend-item"><span class="legend-line legend-line--inflation"></span>Inflation</span>
+            <span class="legend-item"><span class="legend-line legend-line--unemployment"></span>Unemployment</span>
+            <span class="legend-item"><span class="legend-line legend-line--rate"></span>Fed Funds Rate</span>
+          </div>
+        </div>
+        <div class="chart-frame">
+          <canvas id="main-chart" width="960" height="420" aria-label="Shared economic line graph"></canvas>
+        </div>
+        <div class="chart-caption">Dotted guide lines mark the 2% inflation target and 5% unemployment target.</div>
+      </div>
+
       <div class="panel panel-decision" id="panel-decision"></div>
 
-      <!-- Result panel (shown after player acts, before next quarter) -->
       <div class="panel panel-result hidden" id="panel-result">
-        <h3 class="panel-title">Economic Update</h3>
+        <h3 class="panel-title">Quarter Update</h3>
         <div id="result-body" class="result-body"></div>
         <div class="result-footer">
           <div class="quarter-score-display">
             Quarter score: <span id="result-quarter-score">&mdash;</span>
           </div>
-          <button class="btn-primary" id="btn-next" onclick="nextQuarter()">Next Quarter &rarr;</button>
+          <div class="advance-status" id="advance-status">Advancing through the quarter...</div>
         </div>
       </div>
-
     </main>
   </div>
 
-  <!-- History table -->
   <section class="panel panel-history">
     <h3 class="panel-title">History</h3>
     <div class="history-scroll">
@@ -210,8 +214,7 @@
             <th>Event</th>
           </tr>
         </thead>
-        <tbody id="history-tbody">
-        </tbody>
+        <tbody id="history-tbody"></tbody>
       </table>
     </div>
   </section>
@@ -224,8 +227,7 @@
       Changes were made.
     </p>
   </footer>
-
-</div><!-- /screen-game -->
+</div>
 
 <!-- =====================================================================
      SCREEN: END GAME / RESULTS
@@ -263,7 +265,6 @@
       </div>
     </div>
 
-    <!-- End-game sparklines -->
     <div class="end-charts">
       <div class="end-chart-wrap">
         <div class="end-chart-label">Inflation (16 quarters)</div>
@@ -279,7 +280,6 @@
       </div>
     </div>
 
-    <!-- Full history on end screen -->
     <section class="end-history">
       <h3>Full Term History</h3>
       <div class="history-scroll">
@@ -294,8 +294,7 @@
               <th>Event</th>
             </tr>
           </thead>
-          <tbody id="end-history-tbody">
-          </tbody>
+          <tbody id="end-history-tbody"></tbody>
         </table>
       </div>
     </section>
@@ -313,7 +312,7 @@
       </p>
     </footer>
   </div>
-</div><!-- /screen-end -->
+</div>
 
 <script src="app.js"></script>
 </body>
