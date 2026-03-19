@@ -69,6 +69,7 @@ const SCORE_POOR         = 40;
 
 // Total quarters in the simulation
 const TOTAL_QUARTERS = 16;
+const START_YEAR     = 2014;
 
 
 /* ==========================================================================
@@ -999,6 +1000,369 @@ function resetGame() {
 /* ==========================================================================
    DOM READY — inject rate selector markup into the decision panel
    ========================================================================== */
+function getQuarterInfo(quarterNumber) {
+  const quarterIndex = quarterNumber - 1;
+  const qNum = (quarterIndex % 4) + 1;
+  const year = START_YEAR + Math.floor(quarterIndex / 4);
+  return {
+    qNum,
+    year,
+    label: 'Q' + qNum + ' ' + year
+  };
+}
+
+function renderQuarterProgress() {
+  const current = getQuarterInfo(state.quarter || 1);
+  const start = getQuarterInfo(1);
+  const end = getQuarterInfo(TOTAL_QUARTERS);
+  const progress = TOTAL_QUARTERS === 1
+    ? 100
+    : ((state.quarter || 1) - 1) / (TOTAL_QUARTERS - 1) * 100;
+
+  const currentLabel = document.getElementById('timeline-current-label');
+  const startLabel = document.getElementById('timeline-start-label');
+  const endLabel = document.getElementById('timeline-end-label');
+  const progressLine = document.getElementById('timeline-progress-line');
+  const progressMarker = document.getElementById('timeline-progress-marker');
+
+  if (currentLabel) currentLabel.textContent = current.label;
+  if (startLabel) startLabel.textContent = start.label;
+  if (endLabel) endLabel.textContent = end.label;
+  if (progressLine) progressLine.style.width = progress + '%';
+  if (progressMarker) progressMarker.style.left = progress + '%';
+}
+
+function getVerdict(score) {
+  if (score >= SCORE_EXCELLENT) {
+    return {
+      cssClass: 'excellent',
+      title: 'Reappointed with Distinction',
+      text: 'The Federal Open Market Committee has voted unanimously to recommend your reappointment. ' +
+            'You successfully navigated the economy through a challenging period, keeping both inflation ' +
+            'and unemployment close to their targets. Your steady hand and sound judgment have earned ' +
+            'the confidence of the Committee and the public.'
+    };
+  }
+  if (score >= SCORE_GOOD) {
+    return {
+      cssClass: 'good',
+      title: 'Reappointed',
+      text: 'The Senate has confirmed you for another term as Fed Chairman. ' +
+            'While there were periods when the economy drifted from its targets, your overall management ' +
+            'of monetary policy was sound. The Committee acknowledged the difficult conditions you faced ' +
+            'and expressed confidence in your continued leadership.'
+    };
+  }
+  if (score >= SCORE_POOR) {
+    return {
+      cssClass: 'poor',
+      title: 'Not Reappointed',
+      text: 'The President has nominated a new Fed Chairman. ' +
+            'Inflation and unemployment strayed too far from their targets during your tenure. ' +
+            'Economists and policymakers have questioned whether your rate decisions responded ' +
+            'quickly enough to changing economic conditions. Your term ends without a second appointment.'
+    };
+  }
+  return {
+    cssClass: 'fired',
+    title: 'Removed from Office',
+    text: 'Congress has passed a resolution calling for your removal, and the President has acted on it. ' +
+          'Your management of monetary policy was judged to have caused significant harm to the economy. ' +
+          'Both inflation and unemployment reached levels that the public and policymakers found unacceptable. ' +
+          'This outcome will be studied in economics courses for years to come.'
+  };
+}
+
+function renderHeader() {
+  document.getElementById('hdr-quarter').textContent =
+    state.quarter + ' / ' + TOTAL_QUARTERS;
+
+  if (state.history.length > 0) {
+    const currentScore = calcFinalScore(state.cumulativePenalty * (TOTAL_QUARTERS / state.history.length));
+    document.getElementById('hdr-score').textContent = currentScore;
+  } else {
+    document.getElementById('hdr-score').textContent = '\u2014';
+  }
+
+  renderQuarterProgress();
+}
+
+function renderNews() {
+  const shock = state.shockSchedule[state.quarter - 1];
+  const quarterInfo = getQuarterInfo(state.quarter);
+  const label = document.getElementById('news-quarter-label');
+  const badge = document.getElementById('news-badge');
+  const body = document.getElementById('news-body');
+  const alert = document.getElementById('news-alert');
+  const alertHeadline = document.getElementById('news-alert-headline');
+  const alertText = document.getElementById('news-alert-text');
+
+  label.textContent = quarterInfo.label + ' - Economic Briefing';
+
+  if (shock) {
+    badge.textContent = shock.badge;
+    badge.className = 'news-badge shock';
+    body.innerHTML = '<p class="event-title">' + shock.title + '</p><p>' + shock.text + '</p>';
+
+    if (alert && alertHeadline && alertText) {
+      alertHeadline.textContent = shock.title;
+      alertText.textContent = shock.text;
+      alert.classList.remove('hidden');
+      alert.classList.remove('news-alert--flash');
+      void alert.offsetWidth;
+      alert.classList.add('news-alert--flash');
+    }
+  } else {
+    badge.textContent = 'ROUTINE';
+    badge.className = 'news-badge routine';
+    body.innerHTML = '<p>' + ROUTINE_NEWS[(state.quarter - 1) % ROUTINE_NEWS.length] + '</p>';
+
+    if (alert && alertHeadline && alertText) {
+      alert.classList.add('hidden');
+      alert.classList.remove('news-alert--flash');
+      alertHeadline.textContent = '';
+      alertText.textContent = '';
+    }
+  }
+
+  const inflNote = state.inflation > TARGET_INFLATION + 0.5
+    ? 'Inflation is running above the Fed\'s 2% target.'
+    : state.inflation < TARGET_INFLATION - 0.5
+    ? 'Inflation is below the Fed\'s 2% target.'
+    : 'Inflation is near the Fed\'s 2% target.';
+
+  const unempNote = state.unemployment > TARGET_UNEMPLOYMENT + 0.5
+    ? 'Unemployment is above the natural rate of 5%.'
+    : state.unemployment < TARGET_UNEMPLOYMENT - 0.5
+    ? 'Unemployment is below the natural rate of 5%.'
+    : 'Unemployment is near its natural rate of 5%.';
+
+  body.innerHTML += '<p class="news-context">' + inflNote + ' ' + unempNote + '</p>';
+}
+
+function appendHistoryRow(record) {
+  const tbody = document.getElementById('history-tbody');
+  if (!tbody) return;
+
+  const quarterInfo = getQuarterInfo(record.quarter);
+  const inflClass = getDeviationClass(record.inflation, TARGET_INFLATION, 0.5);
+  const unempClass = getDeviationClass(record.unemployment, TARGET_UNEMPLOYMENT, 0.5);
+
+  const row = document.createElement('tr');
+  row.innerHTML = `
+    <td>${quarterInfo.label}</td>
+    <td class="${inflClass}">${fmt(record.inflation)}%</td>
+    <td class="${unempClass}">${fmt(record.unemployment)}%</td>
+    <td>${fmt(record.rate)}%</td>
+    <td>${record.decision}</td>
+    <td>${record.eventTitle || '\u2014'}</td>
+  `;
+  tbody.appendChild(row);
+
+  const histDiv = tbody.closest('.history-scroll');
+  if (histDiv) histDiv.scrollTop = histDiv.scrollHeight;
+}
+
+function renderResult(rateDelta, newInfl, newUnemp, qPenalty) {
+  const body = document.getElementById('result-body');
+
+  const prevInfl = state.history.length > 0
+    ? state.history[state.history.length - 1].inflation : INIT_INFLATION;
+  const prevUnemp = state.history.length > 0
+    ? state.history[state.history.length - 1].unemployment : INIT_UNEMPLOYMENT;
+
+  const inflSign = newInfl >= prevInfl ? '&uarr;' : '&darr;';
+  const unempSign = newUnemp >= prevUnemp ? '&uarr;' : '&darr;';
+
+  const decisionText = Math.abs(rateDelta) < 0.001
+    ? 'You held the rate steady at ' + fmt(state.fedRate) + '%.'
+    : rateDelta > 0
+    ? 'You raised the rate by ' + fmt(rateDelta) + '% to ' + fmt(state.fedRate) + '%.'
+    : 'You lowered the rate by ' + fmt(Math.abs(rateDelta)) + '% to ' + fmt(state.fedRate) + '%.';
+
+  body.innerHTML = `
+    <p style="margin-bottom:10px;">${decisionText}</p>
+    <div class="result-stat">
+      <span class="label">Inflation</span>
+      <span>${inflSign} ${fmt(prevInfl)}% &rarr; <strong>${fmt(newInfl)}%</strong>
+        &nbsp;<span style="color:#888;font-size:0.78rem;">(target 2.0%)</span></span>
+    </div>
+    <div class="result-stat">
+      <span class="label">Unemployment</span>
+      <span>${unempSign} ${fmt(prevUnemp)}% &rarr; <strong>${fmt(newUnemp)}%</strong>
+        &nbsp;<span style="color:#888;font-size:0.78rem;">(target 5.0%)</span></span>
+    </div>
+    <div class="result-stat">
+      <span class="label">Fed Funds Rate</span>
+      <span>${fmt(state.fedRate)}%</span>
+    </div>
+  `;
+
+  const qs = document.getElementById('result-quarter-score');
+  if (qs) {
+    qs.textContent = fmt(qPenalty, 2) + ' deviation pts';
+    qs.style.color = qPenalty < 1.0 ? '#1a6b1a' : qPenalty < 2.5 ? '#c8a400' : '#b22222';
+  }
+
+  const nextBtn = document.getElementById('btn-next');
+  if (nextBtn) {
+    nextBtn.textContent = state.quarter >= TOTAL_QUARTERS
+      ? 'View Final Results ->'
+      : 'Next Quarter ->';
+  }
+}
+
+function renderEndHistory() {
+  const tbody = document.getElementById('end-history-tbody');
+  if (!tbody) return;
+  tbody.innerHTML = '';
+  state.history.forEach(record => {
+    const quarterInfo = getQuarterInfo(record.quarter);
+    const inflClass = getDeviationClass(record.inflation, TARGET_INFLATION, 0.5);
+    const unempClass = getDeviationClass(record.unemployment, TARGET_UNEMPLOYMENT, 0.5);
+    const row = document.createElement('tr');
+    row.innerHTML = `
+      <td>${quarterInfo.label}</td>
+      <td class="${inflClass}">${fmt(record.inflation)}%</td>
+      <td class="${unempClass}">${fmt(record.unemployment)}%</td>
+      <td>${fmt(record.rate)}%</td>
+      <td>${record.decision}</td>
+      <td>${record.eventTitle || '\u2014'}</td>
+    `;
+    tbody.appendChild(row);
+  });
+}
+
+function renderEndScreen() {
+  const finalScore = calcFinalScore(state.cumulativePenalty);
+  const verdict = getVerdict(finalScore);
+
+  const card = document.getElementById('end-verdict-card');
+  card.className = 'end-verdict-card ' + verdict.cssClass;
+  card.querySelectorAll('.end-shock-note').forEach(note => note.remove());
+
+  document.getElementById('end-verdict-title').textContent = verdict.title;
+  document.getElementById('end-score').textContent = finalScore + ' / 100';
+  document.getElementById('end-verdict-text').textContent = verdict.text;
+
+  const avgInfl = state.history.reduce((sum, record) => sum + record.inflation, 0) / state.history.length;
+  const avgUnemp = state.history.reduce((sum, record) => sum + record.unemployment, 0) / state.history.length;
+
+  document.getElementById('end-avg-infl').textContent = fmt(avgInfl) + '%';
+  document.getElementById('end-avg-unemp').textContent = fmt(avgUnemp) + '%';
+  document.getElementById('end-final-rate').textContent = fmt(state.fedRate) + '%';
+  document.getElementById('end-final-rate-start').textContent = 'Started: ' + fmt(INIT_RATE) + '%';
+
+  setIndicatorClass(document.getElementById('end-avg-infl'), avgInfl, TARGET_INFLATION, 0.5, 1.5);
+  setIndicatorClass(document.getElementById('end-avg-unemp'), avgUnemp, TARGET_UNEMPLOYMENT, 0.5, 1.5);
+
+  renderEndCharts();
+  renderEndHistory();
+
+  const shocksOccurred = state.history
+    .filter(record => record.eventTitle)
+    .map(record => record.eventTitle);
+
+  if (shocksOccurred.length > 0) {
+    const shockNote = document.createElement('p');
+    shockNote.className = 'end-shock-note';
+    shockNote.style.cssText = 'font-size:0.83rem;color:#555;text-align:center;margin:8px 0 0;font-style:italic;';
+    shockNote.textContent = 'Events during your term: ' + [...new Set(shocksOccurred)].join(', ') + '.';
+    card.appendChild(shockNote);
+  }
+}
+
+function startGame() {
+  state = createInitialState();
+  document.getElementById('history-tbody').innerHTML = '';
+  document.getElementById('end-history-tbody').innerHTML = '';
+  showScreen('screen-game');
+  beginQuarter();
+}
+
+function beginQuarter() {
+  state.phase = 'decision';
+  state.pendingRate = state.fedRate;
+
+  renderHeader();
+  renderIndicators();
+  renderNews();
+  renderSparklines();
+  renderRateSelector();
+
+  document.getElementById('panel-decision').classList.remove('hidden');
+  document.getElementById('panel-result').classList.add('hidden');
+}
+
+function makeDecision() {
+  if (state.phase !== 'decision') return;
+  state.phase = 'result';
+
+  const rateDelta = Math.round((state.pendingRate - state.fedRate) * 100) / 100;
+  state.fedRate = state.pendingRate;
+
+  const result = advanceEconomy(rateDelta);
+  const qPenalty = calcQuarterPenalty(state.inflation, state.unemployment);
+  state.cumulativePenalty += qPenalty;
+
+  let decisionLabel = 'Hold';
+  if (rateDelta > 0) {
+    decisionLabel = 'Raise +' + fmt(rateDelta) + '%';
+  } else if (rateDelta < 0) {
+    decisionLabel = 'Lower -' + fmt(Math.abs(rateDelta)) + '%';
+  }
+
+  const shock = state.shockSchedule[state.quarter - 1];
+  const record = {
+    quarter: state.quarter,
+    inflation: state.inflation,
+    unemployment: state.unemployment,
+    rate: state.fedRate,
+    decision: decisionLabel,
+    eventTitle: shock ? shock.title : null
+  };
+  state.history.push(record);
+  appendHistoryRow(record);
+
+  state.inflation = result.newInflation;
+  state.unemployment = result.newUnemployment;
+  state.lagInflEffect = result.nextLagInfl;
+  state.lagUnempEffect = result.nextLagUnemp;
+
+  renderResult(rateDelta, result.newInflation, result.newUnemployment, qPenalty);
+  renderIndicators();
+  renderSparklines();
+  renderHeader();
+
+  document.getElementById('panel-decision').classList.add('hidden');
+  document.getElementById('panel-result').classList.remove('hidden');
+}
+
+function nextQuarter() {
+  if (state.quarter >= TOTAL_QUARTERS) {
+    renderEndScreen();
+    showScreen('screen-end');
+    return;
+  }
+
+  state.quarter++;
+  beginQuarter();
+}
+
+function resetGame() {
+  state = {};
+  document.getElementById('history-tbody').innerHTML = '';
+  document.getElementById('end-history-tbody').innerHTML = '';
+  document.getElementById('end-verdict-card').querySelectorAll('.end-shock-note').forEach(note => note.remove());
+  showScreen('screen-intro');
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  renderQuarterProgress();
+  const endStart = document.getElementById('end-final-rate-start');
+  if (endStart) endStart.textContent = 'Started: ' + fmt(INIT_RATE) + '%';
+});
+
 document.addEventListener('DOMContentLoaded', () => {
   // Build the rate selector HTML inside the decision panel
   const decisionPanel = document.getElementById('panel-decision');
