@@ -2233,12 +2233,12 @@ html:has(#screen-game.active) body {
   overflow: hidden;
 }
 
-/* Chart panel: fixed 180px */
+/* Chart panel: fixed 360px — reduced from original ~700px but readable */
 .panel-chart {
-  flex: 0 0 180px;
-  height: 180px;
-  min-height: 180px;
-  max-height: 180px;
+  flex: 0 0 360px;
+  height: 360px;
+  min-height: 360px;
+  max-height: 360px;
   overflow: hidden;
   display: flex;
   flex-direction: column;
