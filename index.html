@@ -151,6 +151,20 @@
     <div class="sandbox-banner" id="sandbox-banner" style="display:none;" aria-live="polite">
       SANDBOX MODE &mdash; Extended Play
     </div>
+
+    <!-- Hamburger menu -->
+    <div class="hdr-menu-wrap" id="hdr-menu-wrap">
+      <button class="hdr-menu-btn" id="hdr-menu-btn" onclick="toggleGameMenu()" aria-label="Game menu" aria-haspopup="true" aria-expanded="false">
+        <span></span><span></span><span></span>
+      </button>
+      <div class="hdr-menu-dropdown hidden" id="hdr-menu-dropdown" role="menu">
+        <button class="hdr-menu-item" onclick="closeGameMenu(); startNewRun()">&#9654; New Run</button>
+        <button class="hdr-menu-item" onclick="closeGameMenu(); replayWithSameSeed()">&#8635; Replay Same Seed</button>
+        <button class="hdr-menu-item" onclick="closeGameMenu(); startSandboxMode()">&#9645; Sandbox Mode</button>
+        <div class="hdr-menu-divider"></div>
+        <button class="hdr-menu-item" onclick="closeGameMenu(); resetGame()">&#8962; Return to Menu</button>
+      </div>
+    </div>
   </header>
 
   <section class="quarter-progress-panel" aria-label="Term timeline">
@@ -194,6 +208,7 @@
           <div class="indicator-target">Your policy lever</div>
         </div>
       </div>
+
     </aside>
 
     <!-- CENTER COLUMN: News + Shared Chart -->
@@ -268,38 +283,29 @@
         </div>
       </div>
 
+      <!-- History table — inside side column so it doesn't push the page below viewport -->
+      <section class="panel panel-history">
+        <h3 class="panel-title">History</h3>
+        <div class="history-scroll">
+          <table class="history-table" id="history-table">
+            <thead>
+              <tr>
+                <th>Qtr</th>
+                <th>Inflation</th>
+                <th>Unemployment</th>
+                <th>Fed Rate</th>
+                <th>Decision</th>
+                <th>Event</th>
+              </tr>
+            </thead>
+            <tbody id="history-tbody">
+            </tbody>
+          </table>
+        </div>
+      </section>
+
     </aside>
   </div>
-
-  <!-- History table -->
-  <section class="panel panel-history">
-    <h3 class="panel-title">History</h3>
-    <div class="history-scroll">
-      <table class="history-table" id="history-table">
-        <thead>
-          <tr>
-            <th>Qtr</th>
-            <th>Inflation</th>
-            <th>Unemployment</th>
-            <th>Fed Rate</th>
-            <th>Decision</th>
-            <th>Event</th>
-          </tr>
-        </thead>
-        <tbody id="history-tbody">
-        </tbody>
-      </table>
-    </div>
-  </section>
-
-  <footer class="cc-attribution cc-attribution--game">
-    <p>
-      &ldquo;<a href="https://courses.lumenlearning.com/wmintrobusinessx51xmaster/chapter/chair-the-fed-achieve-low-unemployment-and-low-inflation-rates/" target="_blank" rel="noopener">Simulation: Chair the Fed</a>&rdquo;
-      by Linda Williams and <a href="https://lumenlearning.com" target="_blank" rel="noopener">Lumen Learning</a>
-      &mdash; <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a>.
-      Changes were made.
-    </p>
-  </footer>
 
 </div><!-- /screen-game -->
 

@@ -1169,10 +1169,21 @@ function getVerdict(score) {
    ========================================================================== */
 
 /** Toggle between named screens */
-function showScreen(id) {
+function showScreen(id, scrollTarget) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-  document.getElementById(id).classList.add('active');
-  window.scrollTo(0, 0);
+  var target = document.getElementById(id);
+  target.classList.add('active');
+  target.scrollTop = 0;  // reset any per-screen scroll position
+  // Remove scroll lock first so window.scrollTo actually works
+  document.documentElement.classList.toggle('game-screen-active', id === 'screen-game');
+  // Scroll after layout settles
+  requestAnimationFrame(() => {
+    if (scrollTarget) {
+      const el = document.getElementById(scrollTarget);
+      if (el) { el.scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
+    }
+    window.scrollTo(0, 0);
+  });
 }
 
 /** Format a number to fixed decimal places, with sign option */
@@ -1311,9 +1322,12 @@ function renderNews() {
 }
 
 /** Build and render the rate selector panel */
-function renderRateSelector() {
+function renderRateSelector(preserveScroll) {
   const container = document.getElementById('rate-selector-list');
   if (!container) return;
+
+  // Save scroll position before rebuilding innerHTML (innerHTML wipe resets scrollTop to 0)
+  const savedScrollTop = container.scrollTop;
 
   // Generate rate options from min to max in steps of RATE_STEP
   let html = '';
@@ -1331,18 +1345,21 @@ function renderRateSelector() {
   }
   container.innerHTML = html;
 
-  // Always center the selected rate in view. Uses getBoundingClientRect (viewport-relative)
-  // so the calculation is correct regardless of the element's position in the DOM tree.
-  // This prevents the list from jumping to the bottom when the selected rate changes.
-  requestAnimationFrame(() => {
-    const sel = container.querySelector('.selected');
-    if (!sel || container.clientHeight === 0) return;
-    const cr = container.getBoundingClientRect();
-    const sr = sel.getBoundingClientRect();
-    container.scrollTop = Math.max(0,
-      sr.top - cr.top + container.scrollTop - (container.clientHeight - sel.clientHeight) / 2
-    );
-  });
+  if (preserveScroll) {
+    // User clicked a rate — restore their scroll position so the view doesn't jump
+    container.scrollTop = savedScrollTop;
+  } else {
+    // New quarter start — center the selected (current) rate in the list
+    requestAnimationFrame(() => {
+      const sel = container.querySelector('.selected');
+      if (!sel || container.clientHeight === 0) return;
+      const cr = container.getBoundingClientRect();
+      const sr = sel.getBoundingClientRect();
+      container.scrollTop = Math.max(0,
+        sr.top - cr.top + container.scrollTop - (container.clientHeight - sel.clientHeight) / 2
+      );
+    });
+  }
 
   // Show rate change summary
   const delta = Math.round((state.pendingRate - state.fedRate) * 100) / 100;
@@ -1370,7 +1387,7 @@ function renderRateSelector() {
 function selectRate(rate) {
   if (state.phase !== 'decision') return;
   state.pendingRate = Math.round(rate * 100) / 100;
-  renderRateSelector();
+  renderRateSelector(true); // Preserve scroll position — don't jump to center
 }
 
 /** Append one row to the in-game history table */
@@ -2695,6 +2712,9 @@ function beginQuarter() {
   // This ensures getBoundingClientRect() returns correct coords for scroll centering.
   document.getElementById('panel-decision').classList.remove('hidden');
   document.getElementById('panel-result').classList.add('hidden');
+  // Restore advisors panel (was hidden during result phase)
+  const advisorsPanel = document.getElementById('panel-advisors');
+  if (advisorsPanel) advisorsPanel.classList.remove('hidden');
 
   renderRateSelector();
 }
@@ -2733,6 +2753,12 @@ function makeDecision() {
   renderResult(rateDelta, result.newInflation, result.newUnemployment, qPenalty);
   document.getElementById('panel-decision').classList.add('hidden');
   document.getElementById('panel-result').classList.remove('hidden');
+  // Hide advisors during result phase so the result panel + Next button are visible
+  const advisorsPanel = document.getElementById('panel-advisors');
+  if (advisorsPanel) advisorsPanel.classList.add('hidden');
+  // Scroll the right column to the top so result panel is immediately visible
+  const sideEl = document.querySelector('.panel-side');
+  if (sideEl) sideEl.scrollTop = 0;
 
   const nextBtn = document.getElementById('btn-next');
   if (nextBtn) nextBtn.disabled = true;
@@ -2757,7 +2783,7 @@ function nextQuarter() {
   const limit = (state.totalQuarters != null) ? state.totalQuarters : TOTAL_QUARTERS;
   if (state.quarter >= limit) {
     renderEndScreen();
-    showScreen('screen-end');
+    showScreen('screen-end', 'end-score-breakdown');
     return;
   }
 
@@ -2765,8 +2791,48 @@ function nextQuarter() {
   beginQuarter();
 }
 
+/** Hamburger menu toggle */
+function toggleGameMenu() {
+  var drop = document.getElementById('hdr-menu-dropdown');
+  var btn  = document.getElementById('hdr-menu-btn');
+  if (!drop) return;
+  var isOpen = !drop.classList.contains('hidden');
+  if (isOpen) {
+    drop.classList.add('hidden');
+    if (btn) btn.setAttribute('aria-expanded', 'false');
+  } else {
+    drop.classList.remove('hidden');
+    if (btn) btn.setAttribute('aria-expanded', 'true');
+    // Close when clicking outside or pressing Escape
+    setTimeout(function() {
+      function outsideClick(e) {
+        var wrap = document.getElementById('hdr-menu-wrap');
+        if (wrap && !wrap.contains(e.target)) { closeAndClean(); }
+      }
+      function escKey(e) {
+        if (e.key === 'Escape') { closeAndClean(); }
+      }
+      function closeAndClean() {
+        closeGameMenu();
+        document.removeEventListener('click', outsideClick);
+        document.removeEventListener('keydown', escKey);
+      }
+      document.addEventListener('click', outsideClick);
+      document.addEventListener('keydown', escKey);
+    }, 0);
+  }
+}
+
+function closeGameMenu() {
+  var drop = document.getElementById('hdr-menu-dropdown');
+  var btn  = document.getElementById('hdr-menu-btn');
+  if (drop) drop.classList.add('hidden');
+  if (btn) btn.setAttribute('aria-expanded', 'false');
+}
+
 function resetGame() {
   stopMainChartAnimation();
+  closeGameMenu();
   const lastSeed = (state && state.lastSeed != null) ? state.lastSeed : null;
   state = { lastSeed };
   document.getElementById('history-tbody').innerHTML = '';
@@ -2998,19 +3064,29 @@ function renderEndScreen() {
   const breakdown = calcScoreBreakdown(state.history);
   const breakdownEl = document.getElementById('end-score-breakdown');
   if (breakdownEl) {
-    breakdownEl.innerHTML = [
+    const bdItems = [
       { label: 'Inflation Control',     score: breakdown.inflScore },
       { label: 'Employment Stability',  score: breakdown.unempScore },
       { label: 'Policy Consistency',    score: breakdown.consistencyScore },
       { label: 'Crisis Handling',       score: breakdown.crisisScore }
-    ].map(({ label, score }) => {
+    ];
+    // Render bars at 0% width first so the CSS transition animates them into view
+    breakdownEl.innerHTML = bdItems.map(({ label, score }) => {
       const fillClass = score >= 75 ? 'bd-fill--good' : score >= 50 ? 'bd-fill--ok' : 'bd-fill--poor';
       return '<div class="bd-row">' +
         '<span class="bd-label">' + label + '</span>' +
-        '<span class="bd-track"><span class="bd-fill ' + fillClass + '" style="width:' + score + '%;"></span></span>' +
+        '<span class="bd-track"><span class="bd-fill ' + fillClass + '" style="width:0%" data-score="' + score + '"></span></span>' +
         '<span class="bd-value">' + score + '</span>' +
         '</div>';
     }).join('');
+    // Double-rAF: first frame paints elements at 0%, second triggers the CSS transition
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        breakdownEl.querySelectorAll('.bd-fill[data-score]').forEach(el => {
+          el.style.width = el.dataset.score + '%';
+        });
+      });
+    });
   }
 
   // Events summary
