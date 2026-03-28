@@ -2791,20 +2791,28 @@ html:has(#screen-game.active) body {
    Fix: 180px panel (152px usable), 1-line alert-text, 2-line news body.
    Offset: reduce chart from 310px to 280px (history panel absorbs same space). */
 
-/* News panel: 180px fits both normal and breaking-news content */
+/* News panel: 200px accommodates worst-case breaking-news layout.
+   Height budget (from panel top border, alert bleeds flush to top):
+     alert (headline 1-line + text 1-line + padding): ~48px
+     alert margin-bottom: 6px  → y=54
+     news-header: ~25px        → y=79
+     header margin: 4px        → y=83
+     body (event-title 19 + shock-text 2-line 42 + sub 21 + ctx 21): ~103px → y=186
+   Available: 200px - 14px bottom-padding = 186px. Content fills exactly. */
 .panel-news {
-  flex: 0 0 180px;
-  height: 180px;
-  min-height: 180px;
-  max-height: 180px;
+  flex: 0 0 200px;
+  height: 200px;
+  min-height: 200px;
+  max-height: 200px;
 }
 
-/* Chart: 30px shorter to offset news panel growth (310→280) */
+/* Chart: 50px shorter to offset news panel growth (310→260).
+   History (flex:1) absorbs same space — net zero change to history height. */
 .panel-chart {
-  flex: 0 0 280px;
-  height: 280px;
-  min-height: 280px;
-  max-height: 280px;
+  flex: 0 0 260px;
+  height: 260px;
+  min-height: 260px;
+  max-height: 260px;
 }
 
 /* Alert supplementary text: 1 line max — headline IS the news */
@@ -2817,9 +2825,9 @@ html:has(#screen-game.active) body {
   -webkit-box-orient: vertical;
 }
 
-/* News body: 2-line max in all states.
-   Normal state: header(28) + body(39) + padding(28) = 95px << 180px ✓
-   Breaking news: alert(67) + margin(6) + header(28) + body(39) = 140px < 152px usable ✓ */
+/* News body paragraphs: 2-line max in all states.
+   Normal state (no alert): header(25) + body(2×22+3=47) + padding(28) = 100px << 200px ✓
+   Breaking news: see height budget comment above — fits at 186px exactly ✓ */
 .panel-news .news-body p {
   margin-bottom: 3px;
   overflow: hidden;
