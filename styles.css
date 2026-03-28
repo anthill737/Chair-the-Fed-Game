@@ -2376,3 +2376,9 @@ html:has(#screen-game.active) body {
 .meta-value {
   white-space: nowrap;
 }
+
+/* --- Left sidebar stability: indicators must never shift height between states ---
+   flex-shrink:0 prevents the group from compressing under flex pressure.
+   overflow:hidden on each card stops unexpected content-driven height growth. */
+.indicator-group { flex-shrink: 0; }
+.indicator       { overflow: hidden; }
