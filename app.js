@@ -2023,14 +2023,13 @@ function renderNews() {
     } else if (tier === 'minor') {
       // Minor events: appear as informational update, no dramatic breaking-news treatment
       badge.textContent = 'ECONOMIC UPDATE';
-      badge.className   = 'news-badge shock shock--minor';
+      badge.className   = 'news-badge shock news-badge--minor';
       body.innerHTML = '<p class="event-title">' + shock.title + '</p>'
         + '<p>' + shock.text + '</p>';
     } else {
-      // moderate or major (including legacy events without a tier)
-      var badgeLabel = tier === 'moderate' ? 'ECONOMIC ALERT' : shock.badge;
-      badge.textContent = badgeLabel;
-      badge.className   = 'news-badge shock shock--' + tier
+      // Tier 2 (moderate/breaking) and tier 3 (major/crisis), plus legacy events
+      badge.textContent = shock.badge;
+      badge.className   = 'news-badge shock'
         + (shock.badge === 'CRISIS' ? ' crisis-badge' : '')
         + (shock.badge === 'BOOM'   ? ' boom-badge'   : '');
 
@@ -2396,10 +2395,10 @@ function createInitialState(seed) {
 
   const d   = currentDifficulty;
   const mag = d.shockMagnitudeMultiplier;
-  const rng = (seed != null) ? seededRandom(seed) : Math.random.bind(Math);
 
-  // Build shock schedule then adjust count and scale magnitudes for difficulty.
-  let schedule = buildShockSchedule(seed).map(entry =>
+  // Build probabilistic schedule using this difficulty's per-quarter event chance,
+  // then scale each event's magnitudes for the active difficulty.
+  const schedule = buildShockSchedule(seed, d.eventChance).map(entry =>
     entry == null ? null : {
       ...entry,
       inflEffect:  entry.inflEffect  * mag,
@@ -2408,34 +2407,6 @@ function createInitialState(seed) {
       unempLag:    (entry.unempLag || 0) * mag
     }
   );
-
-  const targetCount  = Math.min(d.shocksPerRun, SHOCK_EVENTS.length);
-  const currentCount = schedule.filter(e => e !== null).length;
-
-  if (targetCount < currentCount) {
-    // Remove excess shocks (Textbook: fewer shocks)
-    let toRemove = currentCount - targetCount;
-    schedule = schedule.map(entry => {
-      if (entry !== null && toRemove > 0) { toRemove--; return null; }
-      return entry;
-    });
-  } else if (targetCount > currentCount) {
-    // Add more shocks (Crisis: replace nulls with extra scaled shocks)
-    const extras = [...SHOCK_EVENTS]
-      .sort(() => rng() - 0.5)
-      .slice(0, targetCount - currentCount)
-      .map(s => ({
-        ...s,
-        inflEffect:  s.inflEffect  * mag,
-        unempEffect: s.unempEffect * mag,
-        inflLag:     (s.inflLag  || 0) * mag,
-        unempLag:    (s.unempLag || 0) * mag
-      }));
-    let addIdx = 0;
-    schedule = schedule.map(entry =>
-      (entry === null && addIdx < extras.length) ? extras[addIdx++] : entry
-    );
-  }
 
   // Use difficulty-specific starting conditions if defined
   const initInflation    = d.initInflation    != null ? d.initInflation    : INIT_INFLATION;
@@ -2459,6 +2430,8 @@ function createInitialState(seed) {
     // Multi-turn shock tracking
     activeShock:               null,  // shock object persisting across quarters (or null)
     activeShockTurnsRemaining: 0,     // quarters remaining for active shock
+    // Runtime cooldown counter — mirrors schedule-generation cooldown for advanceEconomy
+    eventCooldownQuarters:     0,
     seed:                      seed != null ? seed : null,
     // Seeded noise RNG — separate derivation from shock-schedule RNG so sequences don't overlap.
     // Gives deterministic per-quarter noise when replaying the same seed.

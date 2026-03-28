@@ -2023,14 +2023,8 @@ html:has(#screen-game.active) body {
 /* --- BOOM badge: positive economic shock (green, not red) --- */
 .news-badge.shock.boom-badge { background: #1a6b1a; color: #fff; }
 
-/* --- Tier-based shock severity styles ---
-   minor:    amber/informational — no alarm, appears like an enhanced briefing
-   moderate: orange/alert — noticeable but manageable
-   major:    red/crisis — inherits base .shock red color, reserved for rare major shocks
-*/
-.news-badge.shock--minor    { background: #7a5c00; color: #fff; }
-.news-badge.shock--moderate { background: #b85c00; color: #fff; }
-.news-badge.shock--major    { background: #b22222; color: #fff; }
+/* --- Tier 1 (minor) badge: subtle gray-blue, no alarm — appears like an enhanced briefing --- */
+.news-badge--minor { background: #4a5a78; color: #fff; }
 
 /* --- End screen seed display --- */
 .end-seed-display {
