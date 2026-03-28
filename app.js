@@ -56,8 +56,8 @@ let UNEMP_MEAN_REVERT = 0.02;   // pull toward TARGET_UNEMPLOYMENT (weakened —
 // Persistent per-quarter pressure that prevents a stable "hold and win" equilibrium.
 // Without active policy the economy drifts: inflation creeps up, unemployment rises.
 // Set via difficulty profile through applyDifficultyToConstants().
-let INFL_DRIFT_BIAS  = 0.08;   // upward inflationary pressure per quarter (Real World default)
-let UNEMP_DRIFT_BIAS = -0.03;  // natural employment growth at neutral rates (Real World default; negative = falls slightly)
+let INFL_DRIFT_BIAS  = 0.14;   // upward inflationary pressure per quarter (Real World default; increased from 0.08 — 0.08 was nearly cancelled by rate-level offset at 4.25%, leaving only +0.042/q net drift, yielding hold-steady score 61 GOOD instead of POOR)
+let UNEMP_DRIFT_BIAS = -0.06;  // natural employment growth at neutral rates (Real World default; increased magnitude from -0.03 — pulls unemp below target faster, increasing penalty when player holds steady)
 
 // === TUNING: Rate-level effect
 // Holding rates above/below the neutral rate exerts continuous, ongoing pressure.
@@ -81,7 +81,7 @@ const UNEMP_MAX = 15.0;
 // === TUNING: Scoring weights and thresholds ===
 const INFL_WEIGHT        = 1.0;   // relative importance of inflation in scoring
 const UNEMP_WEIGHT       = 1.0;   // relative importance of unemployment in scoring
-let MAX_AVG_PENALTY    = 2.5;   // penalty at which score hits 0 (was 5.0 — hold-steady scored ~66, not POOR)
+let MAX_AVG_PENALTY    = 2.0;   // penalty at which score hits 0 (tightened from 2.5 — hold-steady now scores POOR <40; active management rewarded; perfect play ~0.1–0.3 avg penalty still scores 85–95)
 let SCORE_EXCELLENT    = 80;
 let SCORE_GOOD         = 60;
 let SCORE_POOR         = 40;
@@ -111,10 +111,10 @@ const DIFFICULTY_PROFILES = {
     rateUnempSensitivity:     0.22,   // policy more effective at influencing employment (was 0.18)
     inflNoise:                0.10,   // low randomness — economy behaves predictably
     unempNoise:               0.08,
-    inflMeanRevert:           0.08,   // mild self-correction — easier for learners (was 0.12)
-    unempMeanRevert:          0.06,
-    inflDriftBias:            0.05,   // mild upward inflation pressure — manageable
-    unempDriftBias:           -0.02,  // natural employment growth at low/neutral rates (negative = unemployment falls)
+    inflMeanRevert:           0.04,   // self-correction relaxed from 0.08 — was too strong, nearly cancelled drift bias and allowed hold-steady to score GOOD
+    unempMeanRevert:          0.03,   // relaxed from 0.06 — same reason; player must still intervene
+    inflDriftBias:            0.14,   // upward inflation pressure increased from 0.05 — hold-steady scores POOR (~36); coord suggested 0.12 but simulation showed 0.12 only scores 44 (ACCEPTABLE) due to stronger textbook mean-reversion partially offsetting drift
+    unempDriftBias:           -0.06,  // increased magnitude from -0.02 — pulls unemp below target, increasing penalty when player holds steady
     eventChance:              0.20,   // 20% chance of any event per quarter (~3 events/run)
     shockMagnitudeMultiplier: 0.7     // shocks are smaller
   },
@@ -128,8 +128,8 @@ const DIFFICULTY_PROFILES = {
     unempNoise:               0.15,   // (was 0.12)
     inflMeanRevert:           0.03,   // weak pull — does not create free equilibrium (was 0.08)
     unempMeanRevert:          0.02,
-    inflDriftBias:            0.08,   // persistent upward inflation pressure — requires active rate management (was 0.12)
-    unempDriftBias:           -0.03,  // natural employment growth at neutral rates; level effect handles tight-money unemployment
+    inflDriftBias:            0.14,   // persistent upward inflation pressure increased from 0.08 — forces active rate management; hold-steady scores POOR (~32)
+    unempDriftBias:           -0.06,  // increased magnitude from -0.03 — pulls unemp below target faster, penalising inaction
     eventChance:              0.30,   // 30% chance of any event per quarter (~4-5 events/run)
     shockMagnitudeMultiplier: 1.0
   },
@@ -143,8 +143,8 @@ const DIFFICULTY_PROFILES = {
     unempNoise:               0.22,   // (was 0.20)
     inflMeanRevert:           0.01,   // economy barely self-corrects (was 0.04)
     unempMeanRevert:          0.01,
-    inflDriftBias:            0.16,   // severe upward pressure — Volcker-level challenge
-    unempDriftBias:           -0.05,  // natural employment growth overwhelmed by high-rate level effects in crisis
+    inflDriftBias:            0.20,   // severe upward pressure increased from 0.16 — Volcker-level challenge; hold-steady scores POOR (0/100)
+    unempDriftBias:           -0.08,  // increased magnitude from -0.05 — unemployment collapses without active tightening, amplifying penalty
     eventChance:              0.40,   // 40% chance of any event per quarter (~6-7 events/run)
     shockMagnitudeMultiplier: 1.5,    // shocks are larger
     initInflation:            4.5,    // economy already running hot at game start
@@ -1519,57 +1519,6 @@ function getDeviationClass(val, target, thresh) {
   return '';
 }
 
-/** Render the result panel after a decision */
-function renderResult(rateDelta, newInfl, newUnemp, qPenalty) {
-  const body = document.getElementById('result-body');
-
-  const prevInfl  = state.history.length > 0
-    ? state.history[state.history.length - 1].inflation    : INIT_INFLATION;
-  const prevUnemp = state.history.length > 0
-    ? state.history[state.history.length - 1].unemployment : INIT_UNEMPLOYMENT;
-
-  const inflSign  = newInfl  >= prevInfl  ? '▲' : '▼';
-  const unempSign = newUnemp >= prevUnemp ? '▲' : '▼';
-
-  const decisionText = Math.abs(rateDelta) < 0.001
-    ? 'You held the rate steady at ' + fmt(state.fedRate) + '%.'
-    : rateDelta > 0
-    ? 'You raised the rate by ' + fmt(rateDelta) + '% to ' + fmt(state.fedRate) + '%.'
-    : 'You lowered the rate by ' + fmt(Math.abs(rateDelta)) + '% to ' + fmt(state.fedRate) + '%.';
-
-  body.innerHTML = `
-    <p style="margin-bottom:10px;">${decisionText}</p>
-    <div class="result-stat">
-      <span class="label">Inflation</span>
-      <span>${inflSign} ${fmt(prevInfl)}% &rarr; <strong>${fmt(newInfl)}%</strong>
-        &nbsp;<span style="color:#888;font-size:0.78rem;">(target 2.0%)</span></span>
-    </div>
-    <div class="result-stat">
-      <span class="label">Unemployment</span>
-      <span>${unempSign} ${fmt(prevUnemp)}% &rarr; <strong>${fmt(newUnemp)}%</strong>
-        &nbsp;<span style="color:#888;font-size:0.78rem;">(target 5.0%)</span></span>
-    </div>
-    <div class="result-stat">
-      <span class="label">Fed Funds Rate</span>
-      <span>${fmt(state.fedRate)}%</span>
-    </div>
-  `;
-
-  // Quarter score display
-  const qs = document.getElementById('result-quarter-score');
-  if (qs) {
-    qs.textContent = fmt(qPenalty, 2) + ' deviation pts';
-    qs.style.color = qPenalty < 1.0 ? '#1a6b1a' : qPenalty < 2.5 ? '#c8a400' : '#b22222';
-  }
-
-  // Adjust next-button text on final quarter
-  const nextBtn = document.getElementById('btn-next');
-  if (nextBtn) {
-    nextBtn.textContent = state.quarter > (state.totalQuarters || TOTAL_QUARTERS)
-      ? 'View Final Results →'
-      : 'Next Quarter →';
-  }
-}
 
 /* ---- Sparkline chart drawing ---- */
 
@@ -1779,44 +1728,6 @@ function renderEndHistory() {
   });
 }
 
-/** Render the full end screen */
-function renderEndScreen() {
-  const finalScore = calcFinalScore(state.cumulativePenalty);
-  const verdict    = getVerdict(finalScore);
-
-  // Verdict card
-  const card = document.getElementById('end-verdict-card');
-  card.className = 'end-verdict-card ' + verdict.cssClass;
-  document.getElementById('end-verdict-title').textContent = verdict.title;
-  document.getElementById('end-score').textContent         = finalScore + ' / 100';
-  document.getElementById('end-verdict-text').textContent  = verdict.text;
-
-  // Stats
-  const avgInfl  = state.history.reduce((s, r) => s + r.inflation,    0) / state.history.length;
-  const avgUnemp = state.history.reduce((s, r) => s + r.unemployment, 0) / state.history.length;
-
-  document.getElementById('end-avg-infl').textContent   = fmt(avgInfl)  + '%';
-  document.getElementById('end-avg-unemp').textContent  = fmt(avgUnemp) + '%';
-  document.getElementById('end-final-rate').textContent = fmt(state.fedRate) + '%';
-
-  // Color end stats
-  setIndicatorClass(document.getElementById('end-avg-infl'),  avgInfl,  TARGET_INFLATION,    0.5, 1.5);
-  setIndicatorClass(document.getElementById('end-avg-unemp'), avgUnemp, TARGET_UNEMPLOYMENT, 0.5, 1.5);
-
-  renderEndCharts();
-  renderEndHistory();
-
-  // List shock events that occurred
-  const shocksOccurred = state.history
-    .filter(r => r.eventTitle && r.eventTitle !== '—')
-    .map(r => r.eventTitle);
-  if (shocksOccurred.length > 0) {
-    const shockNote = document.createElement('p');
-    shockNote.style.cssText = 'font-size:0.83rem;color:#555;text-align:center;margin:8px 0 0;font-style:italic;';
-    shockNote.textContent   = 'Events during your term: ' + [...new Set(shocksOccurred)].join(', ') + '.';
-    document.getElementById('end-verdict-card').appendChild(shockNote);
-  }
-}
 
 function finishSparklineAnimation() {
   if (!state.sparklineAnimation) return;
@@ -1875,98 +1786,6 @@ function startGame() {
   beginQuarter();
 }
 
-/** Set up a new quarter (show news, decision panel, reset rate selector) */
-function beginQuarter() {
-  state.phase       = 'decision';
-  state.pendingRate = state.fedRate;   // default: hold current rate
-
-  renderHeader();
-  renderIndicators();
-  renderNews();
-  renderSparklines();
-  renderRateSelector();
-
-  // Show decision panel, hide result panel
-  document.getElementById('panel-decision').classList.remove('hidden');
-  document.getElementById('panel-result').classList.add('hidden');
-}
-
-/** Called when the player clicks "Confirm Decision" */
-function makeDecision() {
-  if (state.phase !== 'decision') return;
-  state.phase = 'result';
-
-  const rateDelta = Math.round((state.pendingRate - state.fedRate) * 100) / 100;
-  state.fedRate   = state.pendingRate;
-
-  // Advance economy
-  const result = advanceEconomy(rateDelta);
-
-  // Calculate penalty BEFORE updating state (measure conditions this quarter)
-  const qPenalty = calcQuarterPenalty(state.inflation, state.unemployment);
-  state.cumulativePenalty += qPenalty;
-
-  // Build decision label for history
-  let decisionLabel;
-  if (Math.abs(rateDelta) < 0.001) {
-    decisionLabel = 'Hold';
-  } else if (rateDelta > 0) {
-    decisionLabel = '▲ +' + fmt(rateDelta) + '%';
-  } else {
-    decisionLabel = '▼ ' + fmt(rateDelta) + '%';
-  }
-
-  const shock = state.shockSchedule[state.quarter - 1];
-
-  // Log history record (conditions AT START of this quarter)
-  const record = {
-    quarter:      state.quarter,
-    inflation:    state.inflation,
-    unemployment: state.unemployment,
-    rate:         state.fedRate,
-    decision:     decisionLabel,
-    eventTitle:   shock ? shock.title : null
-  };
-  state.history.push(record);
-  appendHistoryRow(record);
-
-  // Update economy state
-  state.inflation    = result.newInflation;
-  state.unemployment = result.newUnemployment;
-  state.lagInflEffect  = result.nextLagInfl;
-  state.lagUnempEffect = result.nextLagUnemp;
-
-  // Render result panel
-  renderResult(rateDelta, result.newInflation, result.newUnemployment, qPenalty);
-  renderIndicators();
-  renderSparklines();
-  renderHeader();
-
-  // Show result panel, hide decision panel
-  document.getElementById('panel-decision').classList.add('hidden');
-  document.getElementById('panel-result').classList.remove('hidden');
-}
-
-/** Called when player clicks "Next Quarter" */
-function nextQuarter() {
-  if (state.quarter >= TOTAL_QUARTERS) {
-    // Game over — show end screen
-    renderEndScreen();
-    showScreen('screen-end');
-    return;
-  }
-
-  state.quarter++;
-  beginQuarter();
-}
-
-/** Reset and return to intro screen */
-function resetGame() {
-  state = {};
-  document.getElementById('history-tbody').innerHTML    = '';
-  document.getElementById('end-history-tbody').innerHTML = '';
-  showScreen('screen-intro');
-}
 
 
 /* ==========================================================================
@@ -2207,7 +2026,7 @@ function renderResult(rateDelta, newInfl, newUnemp, qPenalty) {
   const qs = document.getElementById('result-quarter-score');
   if (qs) {
     qs.textContent = fmt(qPenalty, 2) + ' deviation pts';
-    qs.style.color = qPenalty < 1.0 ? '#1a6b1a' : qPenalty < 2.5 ? '#c8a400' : '#b22222';
+    qs.style.color = qPenalty < 1.0 ? '#1a6b1a' : qPenalty < MAX_AVG_PENALTY ? '#c8a400' : '#b22222';
   }
 
   const nextBtn = document.getElementById('btn-next');
@@ -2239,44 +2058,6 @@ function renderEndHistory() {
   });
 }
 
-function renderEndScreen() {
-  const finalScore = calcFinalScore(state.cumulativePenalty);
-  const verdict = getVerdict(finalScore);
-
-  const card = document.getElementById('end-verdict-card');
-  card.className = 'end-verdict-card ' + verdict.cssClass;
-  card.querySelectorAll('.end-shock-note').forEach(note => note.remove());
-
-  document.getElementById('end-verdict-title').textContent = verdict.title;
-  document.getElementById('end-score').textContent = finalScore + ' / 100';
-  document.getElementById('end-verdict-text').textContent = verdict.text;
-
-  const avgInfl = state.history.reduce((sum, record) => sum + record.inflation, 0) / state.history.length;
-  const avgUnemp = state.history.reduce((sum, record) => sum + record.unemployment, 0) / state.history.length;
-
-  document.getElementById('end-avg-infl').textContent = fmt(avgInfl) + '%';
-  document.getElementById('end-avg-unemp').textContent = fmt(avgUnemp) + '%';
-  document.getElementById('end-final-rate').textContent = fmt(state.fedRate) + '%';
-  document.getElementById('end-final-rate-start').textContent = 'Started: ' + fmt(INIT_RATE) + '%';
-
-  setIndicatorClass(document.getElementById('end-avg-infl'), avgInfl, TARGET_INFLATION, 0.5, 1.5);
-  setIndicatorClass(document.getElementById('end-avg-unemp'), avgUnemp, TARGET_UNEMPLOYMENT, 0.5, 1.5);
-
-  renderEndCharts();
-  renderEndHistory();
-
-  const shocksOccurred = state.history
-    .filter(record => record.eventTitle)
-    .map(record => record.eventTitle);
-
-  if (shocksOccurred.length > 0) {
-    const shockNote = document.createElement('p');
-    shockNote.className = 'end-shock-note';
-    shockNote.style.cssText = 'font-size:0.83rem;color:#555;text-align:center;margin:8px 0 0;font-style:italic;';
-    shockNote.textContent = 'Events during your term: ' + [...new Set(shocksOccurred)].join(', ') + '.';
-    card.appendChild(shockNote);
-  }
-}
 
 function startGame() {
   stopSparklineAnimation();
@@ -2287,95 +2068,6 @@ function startGame() {
   beginQuarter();
 }
 
-function beginQuarter() {
-  stopSparklineAnimation();
-  state.phase = 'decision';
-  state.pendingRate = state.fedRate;
-
-  renderHeader();
-  renderIndicators();
-  renderNews();
-  renderSparklines();
-  renderRateSelector();
-
-  document.getElementById('panel-decision').classList.remove('hidden');
-  document.getElementById('panel-result').classList.add('hidden');
-}
-
-function makeDecision() {
-  if (state.phase !== 'decision') return;
-
-  const previousRate = state.fedRate;
-  const nextRate = state.pendingRate;
-  const rateDelta = Math.round((nextRate - previousRate) * 100) / 100;
-
-  const result = advanceEconomy(rateDelta);
-  const qPenalty = calcQuarterPenalty(state.inflation, state.unemployment);
-
-  let decisionLabel = 'Hold';
-  if (rateDelta > 0) {
-    decisionLabel = 'Raise +' + fmt(rateDelta) + '%';
-  } else if (rateDelta < 0) {
-    decisionLabel = 'Lower -' + fmt(Math.abs(rateDelta)) + '%';
-  }
-
-  const shock = state.shockSchedule[state.quarter - 1];
-  const record = {
-    quarter: state.quarter,
-    inflation: state.inflation,
-    unemployment: state.unemployment,
-    rate: nextRate,
-    decision: decisionLabel,
-    eventTitle: shock ? shock.title : null
-  };
-
-  state.phase = 'animating';
-  state.fedRate = nextRate;
-  state.history.push(record);
-  appendHistoryRow(record);
-
-  renderResult(rateDelta, result.newInflation, result.newUnemployment, qPenalty);
-
-  document.getElementById('panel-decision').classList.add('hidden');
-  document.getElementById('panel-result').classList.remove('hidden');
-
-  startSparklineAnimation({
-    from: {
-      inflation: record.inflation,
-      unemployment: record.unemployment,
-      rate: previousRate
-    },
-    to: {
-      inflation: result.newInflation,
-      unemployment: result.newUnemployment,
-      rate: nextRate
-    },
-    nextLagInfl: result.nextLagInfl,
-    nextLagUnemp: result.nextLagUnemp,
-    qPenalty
-  });
-}
-
-function nextQuarter() {
-  if (state.phase !== 'result') return;
-  if (state.quarter >= TOTAL_QUARTERS) {
-    renderEndScreen();
-    showScreen('screen-end');
-    return;
-  }
-
-  state.quarter++;
-  beginQuarter();
-}
-
-function resetGame() {
-  stopSparklineAnimation();
-  state = {};
-  document.getElementById('history-tbody').innerHTML = '';
-  document.getElementById('end-history-tbody').innerHTML = '';
-  document.getElementById('end-verdict-card').querySelectorAll('.end-shock-note').forEach(note => note.remove());
-  showScreen('screen-intro');
-}
 
 document.addEventListener('DOMContentLoaded', () => {
   renderQuarterProgress();
