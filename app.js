@@ -969,6 +969,9 @@ function selectDifficulty(key) {
   if (descEl) descEl.textContent = 'All difficulty modes use the same static economy in this version.';
 }
 
+/** Stub — daily seed not used in static shell, but called from index.html buttons */
+function getDailySeed() { return null; }
+
 /** Reads #seed-input — seeds are not used in static shell */
 function startGameWithSeedInput() {
   startGame();
