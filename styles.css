@@ -883,7 +883,7 @@ html:has(#screen-game.active) body {
 }
 
 .panel-side .rate-selector-scroll {
-  max-height: 186px;
+  max-height: 120px;
   min-width: 118px;
   padding-right: 6px;
   scrollbar-gutter: stable;
@@ -2094,11 +2094,11 @@ html:has(#screen-game.active) body {
 
 /* Right column: flex column — fixed-height slices, history fills remainder */
 .panel-side { display: flex; flex-direction: column; min-height: 0; overflow: hidden; gap: 8px; }
-/* Advisor briefing: compact fixed height so it never crowds the policy controls */
-.panel-side .panel-advisors { flex: 0 0 auto; max-height: 120px; overflow: hidden; }
-/* Decision / result panels: fixed-size slice (mutually exclusive via .hidden toggle) */
+/* Advisor briefing: fixed 140px — enough for 2 advisor cards, rest clipped */
+.panel-side .panel-advisors { flex: 0 0 140px; height: 140px; overflow: hidden; }
+/* Decision / result panels: fixed 230px — same height for both so swapping never shifts history */
 .panel-side #panel-decision,
-.panel-side #panel-result { flex: 0 0 auto; }
+.panel-side #panel-result { flex: 0 0 230px; height: 230px; overflow: hidden; }
 /* History panel: expands to fill all remaining vertical space */
 .panel-side .panel-history { flex: 1; min-height: 0; margin: 0; overflow: hidden; }
 /* History scroll area: fills the panel, scrolls internally */
@@ -2153,14 +2153,16 @@ html:has(#screen-game.active) body {
   flex: 0 0 150px;
 }
 
-/* --- Enforce fixed right-column panel heights at 120px / 258px -------------
-   Also needs fixed flex-basis (not auto) to prevent shrink. */
+/* --- Enforce fixed right-column panel heights: advisor 140px, decision/result 230px --- */
 .panel-side .panel-advisors {
-  flex: 0 0 120px;
+  flex: 0 0 140px;
+  height: 140px;
 }
 .panel-side #panel-decision,
 .panel-side #panel-result {
-  flex: 0 0 258px;
+  flex: 0 0 230px;
+  height: 230px;
+  overflow: hidden;
 }
 
 /* --- No-wrap for all single-line UI labels ---------------------------------
