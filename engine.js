@@ -215,16 +215,41 @@ function penaltyToScore(avgPenalty) {
 
 
 /* --------------------------------------------------------------------------
-   5. INITIAL CONDITIONS per difficulty
-   Starting economic state handed to app.js for createInitialState().
+   5. INITIAL CONDITIONS
+   All difficulties start near their policy targets with slight randomness.
+   When rng is provided (seeded PRNG from mulberry32), values are randomized
+   within the realistic near-target ranges below so every seed feels fresh.
+   When rng is omitted, midpoint defaults are returned (used for display labels).
+
+   Ranges:
+     Inflation    [1.8, 2.4]  % — near 2% target
+     Unemployment [4.8, 5.6]  % — near 5% natural rate
+     Fed Funds    [3.0, 5.0]  % — rounded to nearest 0.25 step
    -------------------------------------------------------------------------- */
-function getInitialConditions(difficulty) {
-  var presets = {
-    textbook:  { inflation: 2.0, unemployment: 5.0, fedRate: 2.5  },
-    realworld: { inflation: 1.5, unemployment: 6.5, fedRate: 0.25 },
-    crisis:    { inflation: 4.5, unemployment: 7.5, fedRate: 1.0  }
-  };
-  return presets[difficulty] || presets.realworld;
+function getInitialConditions(difficulty, rng) {
+  // Midpoint defaults (used when rng is not provided)
+  var INFL_MID  = 2.1;
+  var UNEMP_MID = 5.2;
+  var RATE_MID  = 4.0;
+
+  var infl, unemp, rate;
+
+  if (rng) {
+    // Randomize within near-target ranges
+    infl  = 1.8 + rng() * 0.6;        // [1.8, 2.4]
+    unemp = 4.8 + rng() * 0.8;        // [4.8, 5.6]
+    rate  = 3.0 + rng() * 2.0;        // [3.0, 5.0]
+    // Round to clean display values
+    infl  = Math.round(infl  * 10) / 10;                  // nearest 0.1%
+    unemp = Math.round(unemp * 10) / 10;                  // nearest 0.1%
+    rate  = Math.round(rate  * 4)  / 4;                   // nearest 0.25%
+  } else {
+    infl  = INFL_MID;
+    unemp = UNEMP_MID;
+    rate  = RATE_MID;
+  }
+
+  return { inflation: infl, unemployment: unemp, fedRate: rate };
 }
 
 
@@ -385,8 +410,8 @@ function resolveDifficulty(key) {
  */
 function engineCreateState(seed, difficulty) {
   var diff  = resolveDifficulty(difficulty || 'realworld');
-  var ic    = getInitialConditions(difficulty || 'realworld');
   var rng   = mulberry32(seed || getDailySeed());
+  var ic    = getInitialConditions(difficulty || 'realworld', rng);  // rng consumed for starting values
   return {
     quarter:       0,
     inflation:     ic.inflation,
