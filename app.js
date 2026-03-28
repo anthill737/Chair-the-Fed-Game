@@ -1944,6 +1944,9 @@ function renderNews() {
 
   label.textContent = quarterInfo.label + ' - Economic Briefing';
 
+  // Determine severity tier: use shock.tier if present, fall back to 'major' for legacy events
+  var tier = shock ? (shock.tier || 'major') : null;
+
   if (shock) {
     if (continuingShock) {
       badge.textContent = 'ONGOING';
@@ -1953,9 +1956,17 @@ function renderNews() {
         + '<span style="color:#8f6a00;font-weight:bold">Event ongoing</span> \u2014 '
         + state.activeShockTurnsRemaining + ' quarter'
         + (state.activeShockTurnsRemaining === 1 ? '' : 's') + ' remaining.</p>';
+    } else if (tier === 'minor') {
+      // Minor events: appear as informational update, no dramatic breaking-news treatment
+      badge.textContent = 'ECONOMIC UPDATE';
+      badge.className   = 'news-badge shock shock--minor';
+      body.innerHTML = '<p class="event-title">' + shock.title + '</p>'
+        + '<p>' + shock.text + '</p>';
     } else {
-      badge.textContent = shock.badge;
-      badge.className   = 'news-badge shock'
+      // moderate or major (including legacy events without a tier)
+      var badgeLabel = tier === 'moderate' ? 'ECONOMIC ALERT' : shock.badge;
+      badge.textContent = badgeLabel;
+      badge.className   = 'news-badge shock shock--' + tier
         + (shock.badge === 'CRISIS' ? ' crisis-badge' : '')
         + (shock.badge === 'BOOM'   ? ' boom-badge'   : '');
 
@@ -1965,15 +1976,16 @@ function renderNews() {
         + '<p class="news-sub-headline">' + subHeadline + '</p>';
     }
 
-    // Only flash the alert banner on the first quarter of a new shock, not on continuing turns
-    if (!continuingShock && alert && alertHeadline && alertText) {
+    // Flash the alert banner only for moderate/major events on their first quarter
+    if (!continuingShock && tier !== 'minor' && alert && alertHeadline && alertText) {
       alertHeadline.textContent = shock.title;
       alertText.textContent     = '';  // details are already in the body below
       alert.classList.remove('hidden', 'news-alert--flash', 'news-alert--panic');
       void alert.offsetWidth;
       alert.classList.add('news-alert--flash');
-      if (shock.badge === 'CRISIS') alert.classList.add('news-alert--panic');
-    } else if (continuingShock && alert) {
+      if (shock.badge === 'CRISIS' || tier === 'major') alert.classList.add('news-alert--panic');
+    } else if (alert) {
+      // minor events and continuing shocks: hide alert banner
       alert.classList.add('hidden');
       alert.classList.remove('news-alert--flash', 'news-alert--panic');
     }
