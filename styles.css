@@ -2023,6 +2023,9 @@ html:has(#screen-game.active) body {
 /* --- BOOM badge: positive economic shock (green, not red) --- */
 .news-badge.shock.boom-badge { background: #1a6b1a; color: #fff; }
 
+/* --- Tier 1 (minor) badge: subtle gray-blue, no alarm — appears like an enhanced briefing --- */
+.news-badge--minor { background: #4a5a78; color: #fff; }
+
 /* --- End screen seed display --- */
 .end-seed-display {
   text-align: center;
