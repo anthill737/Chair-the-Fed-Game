@@ -45,13 +45,21 @@ const LAG_IMMEDIATE = 0.45;
 const LAG_DEFERRED  = 0.55;
 
 // === TUNING: Momentum / mean-reversion
-// How strongly the economy drifts back toward "normal" each quarter
-let INFL_MEAN_REVERT  = 0.08;   // pull toward TARGET_INFLATION
-let UNEMP_MEAN_REVERT = 0.07;   // pull toward TARGET_UNEMPLOYMENT
+// Weak stabilising pull — intentionally small so it does NOT create a free equilibrium.
+// Economy does not self-heal; player must actively manage policy.
+let INFL_MEAN_REVERT  = 0.03;   // pull toward TARGET_INFLATION (weakened — was 0.08)
+let UNEMP_MEAN_REVERT = 0.02;   // pull toward TARGET_UNEMPLOYMENT (weakened — was 0.07)
+
+// === TUNING: Structural drift bias
+// Persistent per-quarter pressure that prevents a stable "hold and win" equilibrium.
+// Without active policy the economy drifts: inflation creeps up, unemployment rises.
+// Set via difficulty profile through applyDifficultyToConstants().
+let INFL_DRIFT_BIAS  = 0.12;   // upward inflationary pressure per quarter
+let UNEMP_DRIFT_BIAS = 0.06;   // upward unemployment pressure per quarter
 
 // === TUNING: Random noise magnitude
-let INFL_NOISE  = 0.15;   // max random ± on inflation each quarter
-let UNEMP_NOISE = 0.12;   // max random ± on unemployment each quarter
+let INFL_NOISE  = 0.20;   // max random ± on inflation each quarter (was 0.15)
+let UNEMP_NOISE = 0.15;   // max random ± on unemployment each quarter (was 0.12)
 
 // === TUNING: Value bounds (hard clamps)
 const INFL_MIN  = -1.0;
@@ -88,12 +96,14 @@ const DIFFICULTY_PROFILES = {
     name:                     'Textbook',
     subtitle:                 'Academic / Easy',
     description:              'Forgiving economy. Good for learning the basics.',
-    rateInflSensitivity:      0.24,   // policy more effective at controlling inflation
-    rateUnempSensitivity:     0.18,   // policy more effective at influencing employment
-    inflNoise:                0.08,   // low randomness — economy behaves predictably
-    unempNoise:               0.06,
-    inflMeanRevert:           0.12,   // economy corrects toward targets quickly
-    unempMeanRevert:          0.10,
+    rateInflSensitivity:      0.28,   // policy more effective at controlling inflation (was 0.24)
+    rateUnempSensitivity:     0.22,   // policy more effective at influencing employment (was 0.18)
+    inflNoise:                0.10,   // low randomness — economy behaves predictably
+    unempNoise:               0.08,
+    inflMeanRevert:           0.08,   // mild self-correction — easier for learners (was 0.12)
+    unempMeanRevert:          0.06,
+    inflDriftBias:            0.06,   // mild upward inflation pressure — manageable
+    unempDriftBias:           0.03,   // mild upward unemployment pressure
     eventChance:              0.20,   // 20% chance of any event per quarter (~3 events/run)
     shockMagnitudeMultiplier: 0.7     // shocks are smaller
   },
@@ -101,12 +111,14 @@ const DIFFICULTY_PROFILES = {
     name:                     'Real World',
     subtitle:                 'Realistic / Default',
     description:              'Calibrated to historical Fed data. The intended experience.',
-    rateInflSensitivity:      0.18,
-    rateUnempSensitivity:     0.14,
-    inflNoise:                0.15,
-    unempNoise:               0.12,
-    inflMeanRevert:           0.08,
-    unempMeanRevert:          0.07,
+    rateInflSensitivity:      0.26,   // stronger policy impact (was 0.18)
+    rateUnempSensitivity:     0.20,   // stronger policy impact (was 0.14)
+    inflNoise:                0.20,   // (was 0.15)
+    unempNoise:               0.15,   // (was 0.12)
+    inflMeanRevert:           0.03,   // weak pull — does not create free equilibrium (was 0.08)
+    unempMeanRevert:          0.02,
+    inflDriftBias:            0.12,   // persistent upward inflation pressure — requires active rate management
+    unempDriftBias:           0.06,   // persistent upward unemployment pressure
     eventChance:              0.30,   // 30% chance of any event per quarter (~4-5 events/run)
     shockMagnitudeMultiplier: 1.0
   },
@@ -114,12 +126,14 @@ const DIFFICULTY_PROFILES = {
     name:                     'Crisis Mode',
     subtitle:                 'Volcker-Style Brutal',
     description:              'Volatile economy. Policy lags hurt more. Not for the faint of heart.',
-    rateInflSensitivity:      0.13,   // policy less effective — economy resists correction
-    rateUnempSensitivity:     0.10,
-    inflNoise:                0.25,   // high volatility, frequent surprises
-    unempNoise:               0.20,
-    inflMeanRevert:           0.04,   // economy barely self-corrects
-    unempMeanRevert:          0.03,
+    rateInflSensitivity:      0.18,   // policy less effective — economy resists correction (was 0.13)
+    rateUnempSensitivity:     0.14,   // (was 0.10)
+    inflNoise:                0.28,   // high volatility, frequent surprises (was 0.25)
+    unempNoise:               0.22,   // (was 0.20)
+    inflMeanRevert:           0.01,   // economy barely self-corrects (was 0.04)
+    unempMeanRevert:          0.01,
+    inflDriftBias:            0.20,   // severe upward pressure — Volcker-level challenge
+    unempDriftBias:           0.10,   // severe upward unemployment pressure
     eventChance:              0.40,   // 40% chance of any event per quarter (~6-7 events/run)
     shockMagnitudeMultiplier: 1.5,    // shocks are larger
     initInflation:            4.5,    // economy already running hot at game start
@@ -157,6 +171,8 @@ function applyDifficultyToConstants() {
   UNEMP_NOISE            = d.unempNoise;
   INFL_MEAN_REVERT       = d.inflMeanRevert;
   UNEMP_MEAN_REVERT      = d.unempMeanRevert;
+  INFL_DRIFT_BIAS        = d.inflDriftBias;
+  UNEMP_DRIFT_BIAS       = d.unempDriftBias;
 }
 
 
@@ -982,9 +998,15 @@ function advanceEconomy(rateDelta) {
   const lagInfl  = state.lagInflEffect;
   const lagUnemp = state.lagUnempEffect;
 
-  // --- Mean reversion (economy drifts toward targets) ---
-  const meanRevertInfl  = (TARGET_INFLATION    - state.inflation)    * INFL_MEAN_REVERT;
-  const meanRevertUnemp = (TARGET_UNEMPLOYMENT - state.unemployment) * UNEMP_MEAN_REVERT;
+  // --- Structural drift: persistent pressure that prevents a stable "hold and win" state ---
+  // Without active policy the economy naturally creeps: inflation rises, unemployment drifts up.
+  // The player must keep adjusting rates to counteract these forces.
+  const driftInfl  = INFL_DRIFT_BIAS;
+  const driftUnemp = UNEMP_DRIFT_BIAS;
+
+  // --- Weak mean reversion (does NOT create free equilibrium — just softens extreme values) ---
+  const pullInfl  = (TARGET_INFLATION    - state.inflation)    * INFL_MEAN_REVERT;
+  const pullUnemp = (TARGET_UNEMPLOYMENT - state.unemployment) * UNEMP_MEAN_REVERT;
 
   // --- Random noise (seeded when replaying a seed, random otherwise) ---
   const _rng = (state.noiseRng || Math.random.bind(Math));
@@ -992,8 +1014,8 @@ function advanceEconomy(rateDelta) {
   const noiseUnemp = (_rng() * 2 - 1) * UNEMP_NOISE;
 
   // --- Combine all effects ---
-  const inflDelta  = directInfl  + lagInfl  + shockInfl  + meanRevertInfl  + noiseInfl;
-  const unempDelta = directUnemp + lagUnemp + shockUnemp + meanRevertUnemp + noiseUnemp;
+  const inflDelta  = directInfl  + lagInfl  + shockInfl  + pullInfl  + driftInfl  + noiseInfl;
+  const unempDelta = directUnemp + lagUnemp + shockUnemp + pullUnemp + driftUnemp + noiseUnemp;
 
   // --- Compute new values and clamp to bounds ---
   let newInflation    = Math.max(INFL_MIN,  Math.min(INFL_MAX,  state.inflation    + inflDelta));
