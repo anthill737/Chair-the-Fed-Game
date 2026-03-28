@@ -23,7 +23,7 @@ html, body {
   font-family: 'Georgia', 'Times New Roman', serif;
   background: #ddd8cc;
   color: #1a1a1a;
-  font-size: 15px;
+  font-size: 16px;
   line-height: 1.5;
 }
 
@@ -38,9 +38,9 @@ html, body {
 
 /* ---------- INTRO SCREEN ---------- */
 .intro-wrapper {
-  max-width: 960px;
+  max-width: min(1400px, 96vw);
   margin: 0 auto;
-  padding: 32px 20px 48px;
+  padding: 32px 24px 48px;
 }
 
 .intro-header {
@@ -76,8 +76,8 @@ html, body {
 .intro-body {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 24px;
-  margin-bottom: 32px;
+  gap: 32px;
+  margin-bottom: 36px;
 }
 
 @media (max-width: 700px) {
@@ -94,11 +94,11 @@ html, body {
   background: #fff;
   border: 1px solid #c8c0b0;
   border-left: 4px solid #1a2a4a;
-  padding: 16px 18px;
+  padding: 20px 22px;
 }
 
 .intro-section h2 {
-  font-size: 0.85rem;
+  font-size: 1.05rem;
   text-transform: uppercase;
   letter-spacing: 0.12em;
   color: #1a2a4a;
@@ -108,9 +108,10 @@ html, body {
 }
 
 .intro-section p {
-  font-size: 0.88rem;
+  font-size: 1.0rem;
   color: #2a2a2a;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
+  line-height: 1.6;
 }
 .intro-section p:last-child { margin-bottom: 0; }
 
@@ -118,7 +119,7 @@ html, body {
   background: #f5f0e8;
   border-left: 3px solid #c8a400;
   padding: 6px 10px;
-  font-size: 0.82rem !important;
+  font-size: 0.9rem !important;
   color: #444 !important;
   font-style: italic;
 }
@@ -128,11 +129,12 @@ html, body {
   padding: 0;
 }
 .how-to-list li {
-  font-size: 0.88rem;
-  padding: 4px 0 4px 18px;
+  font-size: 1.0rem;
+  padding: 5px 0 5px 18px;
   position: relative;
   border-bottom: 1px solid #eee;
   color: #2a2a2a;
+  line-height: 1.5;
 }
 .how-to-list li::before {
   content: '▸';
@@ -146,7 +148,7 @@ html, body {
 .score-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.83rem;
+  font-size: 1.0rem;
   font-family: Arial, sans-serif;
   margin-top: 8px;
 }
@@ -833,6 +835,8 @@ html, body {
 
 .history-scroll {
   overflow-x: auto;
+  overflow-y: auto;
+  max-height: 260px;
 }
 
 .history-table {
@@ -875,9 +879,9 @@ html, body {
 
 /* ---------- END SCREEN ---------- */
 .end-wrapper {
-  max-width: 900px;
+  max-width: min(1300px, 96vw);
   margin: 0 auto;
-  padding: 32px 20px 48px;
+  padding: 32px 24px 48px;
 }
 
 .end-header {
@@ -908,7 +912,7 @@ html, body {
 .end-verdict-card.fired     { border-color: #b22222; background: #fdf0f0; }
 
 .verdict-title {
-  font-size: 1.6rem;
+  font-size: 1.8rem;
   color: #1a2a4a;
   font-weight: bold;
   letter-spacing: 0.05em;
@@ -934,10 +938,10 @@ html, body {
 }
 
 .verdict-text {
-  font-size: 0.9rem;
+  font-size: 1.0rem;
   color: #444;
-  line-height: 1.6;
-  max-width: 560px;
+  line-height: 1.65;
+  max-width: 680px;
   margin: 0 auto;
 }
 
@@ -1746,7 +1750,7 @@ html, body {
 }
 
 /* ---- End-Screen Achievements Panel ---- */
-.end-achievements-panel { margin: 20px auto 8px; max-width: 680px; text-align: center; }
+.end-achievements-panel { margin: 20px auto 8px; max-width: min(900px, 90vw); text-align: center; }
 .achievements-heading {
   font-family: 'Georgia', serif;
   font-size: 1rem;
@@ -1763,31 +1767,55 @@ html, body {
   justify-content: center;
 }
 .achievement-badge {
+  position: relative;
+  cursor: help;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 4px;
-  width: 90px;
-  padding: 10px 6px 8px;
+  width: 120px;
+  padding: 12px 8px 10px;
   background: #f5f0e4;
   border: 1.5px solid #c9a227;
   border-radius: 8px;
-  cursor: default;
 }
-.achievement-badge-icon { font-size: 1.6rem; line-height: 1; }
+.achievement-badge::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: 220px;
+  background: #1a2a4a;
+  color: #fff;
+  font-family: Arial, sans-serif;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  padding: 8px 10px;
+  border-radius: 4px;
+  white-space: normal;
+  text-align: left;
+  z-index: 100;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+  box-shadow: 0 3px 10px rgba(0,0,0,0.3);
+}
+.achievement-badge:hover::after { opacity: 1; }
+.achievement-badge-icon { font-size: 2.5rem; line-height: 1; }
 .achievement-badge-title {
   font-family: Arial, sans-serif;
-  font-size: 0.65rem;
+  font-size: 0.8rem;
   font-weight: 700;
   color: #1a2a4a;
   text-align: center;
-  line-height: 1.2;
+  line-height: 1.25;
 }
 .achievements-empty { font-family: Arial, sans-serif; font-size: 0.8rem; color: #888; font-style: italic; margin: 0; }
 
 @media (max-width: 600px) {
   .achievement-toast { bottom: 12px; right: 12px; max-width: calc(100vw - 24px); }
-  .achievement-badge { width: 76px; }
+  .achievement-badge { width: 100px; }
 }
 
 /* ============================================================
@@ -1855,3 +1883,85 @@ html, body {
 .news-badge.shock--ongoing { background: #8f6a00; color: #fff; }
 .news-alert--panic .news-alert-label { background: linear-gradient(135deg, #8f1717, #600e0e); }
 .news-alert--calm  .news-alert-label { background: linear-gradient(135deg, #1a6b1a, #145214); }
+
+/* --- End screen seed display --- */
+.end-seed-display {
+  text-align: center;
+  font-family: Arial, sans-serif;
+  font-size: 0.82rem;
+  color: #666;
+  margin: 0 0 12px;
+}
+.end-seed-value {
+  font-family: 'Courier New', monospace;
+  font-weight: bold;
+  color: #1a2a4a;
+  background: #f0f3f7;
+  padding: 1px 6px;
+  border: 1px solid #bbb;
+  border-radius: 2px;
+}
+
+/* --- Achievement badge custom tooltip (works in Electron / Steam) --- */
+.achievement-badge {
+  position: relative;
+}
+.achievement-badge::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: calc(100% + 7px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: #1a2a4a;
+  color: #fff;
+  font-family: Arial, sans-serif;
+  font-size: 0.78rem;
+  font-weight: normal;
+  line-height: 1.4;
+  padding: 6px 10px;
+  border-radius: 5px;
+  width: 180px;
+  text-align: center;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s;
+  z-index: 200;
+  white-space: normal;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+}
+.achievement-badge:hover::after {
+  opacity: 1;
+}
+
+/* --- UI sizing: larger intro text and end-screen elements --- */
+.intro-section h2    { font-size: 1.08rem; }
+.intro-section p,
+.how-to-list li      { font-size: 1.05rem; }
+.score-table         { font-size: 1.0rem; }
+.score-table td      { padding: 7px 10px; }
+
+/* Bigger achievement badges on end screen */
+.achievement-badge        { width: 130px; padding: 14px 10px 12px; }
+.achievement-badge-icon   { font-size: 2.8rem; }
+.achievement-badge-title  { font-size: 0.9rem; }
+.achievements-grid        { gap: 16px; }
+.end-achievements-panel   { max-width: 1000px; }
+@media (max-width: 600px) {
+  .achievement-badge { width: 92px; }
+}
+
+/* ============================================================
+   ADDITIONAL UI SIZING — wrappers, verdict card, end screen
+   ============================================================ */
+
+/* Widen the end wrapper to use more screen space */
+.end-wrapper { max-width: min(1300px, 96vw); }
+
+/* Larger verdict card text */
+.verdict-title  { font-size: 2.2rem; }
+.verdict-score  { font-size: 4rem; }
+.verdict-text   { font-size: 1.1rem; max-width: 800px; }
+
+/* Intro body uses more horizontal space */
+.intro-body { gap: 32px; }
+.intro-section { padding: 20px 22px; }

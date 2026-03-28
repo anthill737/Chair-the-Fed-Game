@@ -884,9 +884,10 @@ function advanceEconomy(rateDelta) {
   const meanRevertInfl  = (TARGET_INFLATION    - state.inflation)    * INFL_MEAN_REVERT;
   const meanRevertUnemp = (TARGET_UNEMPLOYMENT - state.unemployment) * UNEMP_MEAN_REVERT;
 
-  // --- Random noise ---
-  const noiseInfl  = (Math.random() * 2 - 1) * INFL_NOISE;
-  const noiseUnemp = (Math.random() * 2 - 1) * UNEMP_NOISE;
+  // --- Random noise (seeded when replaying a seed, random otherwise) ---
+  const _rng = (state.noiseRng || Math.random.bind(Math));
+  const noiseInfl  = (_rng() * 2 - 1) * INFL_NOISE;
+  const noiseUnemp = (_rng() * 2 - 1) * UNEMP_NOISE;
 
   // --- Combine all effects ---
   const inflDelta  = directInfl  + lagInfl  + shockInfl  + meanRevertInfl  + noiseInfl;
@@ -1110,6 +1111,7 @@ function getVerdict(score) {
 function showScreen(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
+  window.scrollTo(0, 0);
 }
 
 /** Format a number to fixed decimal places, with sign option */
@@ -1238,10 +1240,13 @@ function renderRateSelector() {
   }
   container.innerHTML = html;
 
-  // Scroll the selected rate into view
+  // Scroll the selected rate into view within its container (not the whole page)
   setTimeout(() => {
     const sel = container.querySelector('.selected');
-    if (sel) sel.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    if (sel) {
+      const top = sel.offsetTop - container.clientHeight / 2 + sel.clientHeight / 2;
+      container.scrollTop = Math.max(0, top);
+    }
   }, 50);
 
   // Show rate change summary
@@ -1294,9 +1299,7 @@ function appendHistoryRow(record) {
   `;
   tbody.appendChild(row);
 
-  // Auto-scroll history table
-  const histDiv = tbody.closest('.history-scroll');
-  if (histDiv) histDiv.scrollTop = histDiv.scrollHeight;
+  // Do not auto-scroll history — would cause page to scroll unexpectedly
 }
 
 function getDeviationClass(val, target, thresh) {
@@ -2262,6 +2265,11 @@ function createInitialState(seed) {
     activeShock:               null,  // shock object persisting across quarters (or null)
     activeShockTurnsRemaining: 0,     // quarters remaining for active shock
     seed:                      seed != null ? seed : null,
+    // Seeded noise RNG — separate derivation from shock-schedule RNG so sequences don't overlap.
+    // Gives deterministic per-quarter noise when replaying the same seed.
+    noiseRng: seed != null
+      ? seededRandom(((seed >>> 0) ^ 0xdeadbeef) >>> 0 || 0xdeadbeef)
+      : Math.random.bind(Math),
     // Achievement tracking
     unlockedAchievements: [],
     achievementStats: {
@@ -2575,6 +2583,8 @@ function beginQuarter() {
   state.phase = 'decision';
   state.pendingRate = state.fedRate;
 
+  window.scrollTo(0, 0);
+
   renderHeader();
   renderIndicators();
   renderNews();
@@ -2780,9 +2790,13 @@ window.addEventListener('resize', () => {
  */
 function startGame(seed) {
   stopMainChartAnimation();
+  // Always use a seed so every run can be replayed. Generate one if not supplied.
+  if (seed == null) {
+    seed = Math.floor(Math.random() * 1000000000) + 1;
+  }
   state = createInitialState(seed);
-  state.lastSeed = (seed != null) ? seed : null;
-  state.isDailyChallenge = (seed != null && seed === getDailySeed());
+  state.lastSeed = seed;
+  state.isDailyChallenge = (seed === getDailySeed());
 
   document.getElementById('history-tbody').innerHTML = '';
   document.getElementById('end-history-tbody').innerHTML = '';
@@ -2792,16 +2806,12 @@ function startGame(seed) {
   const sandboxBannerEl = document.getElementById('sandbox-banner');
   if (sandboxBannerEl) sandboxBannerEl.style.display = 'none';
 
-  // Show seed badge in header if seeded run
+  // Always show seed in header so players can note it for replay
   const seedContainer = document.getElementById('hdr-seed-container');
   const seedEl = document.getElementById('hdr-seed');
   if (seedContainer && seedEl) {
-    if (seed != null) {
-      seedEl.textContent = String(seed);
-      seedContainer.style.display = '';
-    } else {
-      seedContainer.style.display = 'none';
-    }
+    seedEl.textContent = String(seed);
+    seedContainer.style.display = '';
   }
 
   showScreen('screen-game');
@@ -2918,6 +2928,23 @@ function renderEndScreen() {
   // --- Achievements panel ---
   // Render any achievements earned this run into the end screen
   renderEndAchievements();
+
+  // --- Seed display on end screen ---
+  // Ensure the player can always note their seed for future replay
+  let endSeedEl = document.getElementById('end-seed-display');
+  if (!endSeedEl) {
+    endSeedEl = document.createElement('p');
+    endSeedEl.id = 'end-seed-display';
+    endSeedEl.className = 'end-seed-display';
+    const actionsEl = document.querySelector('.end-actions');
+    if (actionsEl) actionsEl.parentNode.insertBefore(endSeedEl, actionsEl);
+  }
+  if (state.lastSeed != null) {
+    endSeedEl.innerHTML = 'Run seed: <span class="end-seed-value">' + state.lastSeed + '</span> — use this to replay the exact same run';
+    endSeedEl.style.display = '';
+  } else {
+    endSeedEl.style.display = 'none';
+  }
 }
 
 
@@ -3135,7 +3162,7 @@ function renderEndAchievements() {
     '<h3 class="achievements-heading">Achievements Earned</h3>' +
     '<div class="achievements-grid">' +
     earned.map(a =>
-      '<div class="achievement-badge" title="' + a.desc + '">' +
+      '<div class="achievement-badge" title="' + a.title + ': ' + a.desc.replace(/"/g, '&quot;') + '" data-tooltip="' + a.title + ': ' + a.desc.replace(/"/g, '&quot;') + '">' +
         '<div class="achievement-badge-icon">' + a.icon + '</div>' +
         '<div class="achievement-badge-title">' + a.title + '</div>' +
       '</div>'
