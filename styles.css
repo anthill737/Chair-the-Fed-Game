@@ -2226,19 +2226,19 @@ html:has(#screen-game.active) body {
 
 /* News panel: fixed 100px — state-invariant */
 .panel-news {
-  flex: 0 0 155px;
-  height: 155px;
-  min-height: 155px;
-  max-height: 155px;
+  flex: 0 0 180px;
+  height: 180px;
+  min-height: 180px;
+  max-height: 180px;
   overflow: hidden;
 }
 
-/* Chart panel: 310px — reclaimed 45px to give briefing panel enough room */
+/* Chart panel: 285px — reclaimed 25px to give briefing panel more room */
 .panel-chart {
-  flex: 0 0 310px;
-  height: 310px;
-  min-height: 310px;
-  max-height: 310px;
+  flex: 0 0 285px;
+  height: 285px;
+  min-height: 285px;
+  max-height: 285px;
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -2345,21 +2345,24 @@ html:has(#screen-game.active) body {
   flex-shrink: 0;
 }
 
-/* rate-selector-wrapper grows to fill remaining panel height after title+prompt */
+/* rate-selector-wrapper: stacked column — selector on top, controls below.
+   Stacking lets the selector span the full column width and lets the summary
+   text wrap freely without being squeezed into a narrow side column. */
 .panel-side .rate-selector-wrapper {
-  gap: 10px;
+  flex-direction: column;
+  gap: 8px;
   flex: 1;
   min-height: 0;
-  align-items: stretch;
 }
 
-/* Rate list fills available height — no fixed max-height cap */
+/* Rate list fills available height at full column width */
 .panel-side .rate-selector-scroll {
   flex: 1;
-  min-height: 0;
+  min-height: 80px;
   max-height: none;
   overflow-y: auto;
   min-width: 0;
+  width: 100%;
   padding-right: 6px;
   scrollbar-gutter: stable;
 }
@@ -2380,22 +2383,31 @@ html:has(#screen-game.active) body {
   font-size: 0.62rem;
 }
 
-/* Controls column: fixed width, stacked vertically, pinned to top of its space */
+/* Controls: full-width row at the bottom — summary + button side by side */
 .panel-side .rate-selector-controls {
-  min-width: 120px;
+  flex-direction: row;
+  align-items: stretch;
   flex-shrink: 0;
   gap: 8px;
-  align-self: flex-start;
+  width: 100%;
+  min-width: 0;
 }
 
+/* Summary takes available width; text fits in one line at full column width */
 .panel-side .rate-change-summary {
+  flex: 1;
+  min-width: 0;
   font-size: 0.75rem;
-  padding: 6px 8px;
+  padding: 8px 10px;
+  white-space: normal;
 }
 
+/* GO button: fixed width, never wraps */
 .panel-side .btn-go {
-  padding: 12px 12px;
+  flex-shrink: 0;
+  padding: 0 18px;
   font-size: 0.92rem;
+  white-space: nowrap;
 }
 
 /* Result panel internals: body scrolls, footer stays pinned at bottom */
@@ -2415,7 +2427,7 @@ html:has(#screen-game.active) body {
   flex-shrink: 0;
 }
 
-/* === NEWS PANEL INTERNALS — fit at 155px === */
+/* === NEWS PANEL INTERNALS — fit at 180px === */
 
 .panel-news .news-header {
   margin-bottom: 5px;
@@ -2571,44 +2583,42 @@ html:has(#screen-game.active) body {
   align-items: stretch;
 }
 
-/* Rate list: fills available column height, scrolls internally */
+/* Rate list: natural height up to 200px, scrolls if needed */
 .panel-side .rate-selector-scroll {
-  flex: 1;
+  flex: 0 0 auto;
   min-height: 80px;
-  max-height: none;
+  max-height: 200px;
   width: 100%;
   min-width: 0;
   padding-right: 0;
   scrollbar-gutter: stable;
 }
 
-/* Controls: below the list, full width, horizontal row */
+/* Controls: stacked column below the list — summary above GO button */
 .panel-side .rate-selector-controls {
   flex-shrink: 0;
-  flex-direction: row;
+  flex-direction: column;
   min-width: 0;
   width: 100%;
   gap: 8px;
   align-items: stretch;
 }
 
-/* Summary fills row, button fixed width */
+/* Summary: full width, wraps freely, never clipped */
 .panel-side .rate-change-summary {
-  flex: 1;
   white-space: normal;
-  overflow: hidden;
-  font-size: 0.75rem;
-  padding: 6px 8px;
-  line-height: 1.3;
+  overflow: visible;
+  font-size: 0.78rem;
+  padding: 8px 10px;
+  line-height: 1.4;
 }
 
-/* GO button: fixed, never wraps */
+/* GO button: full width, prominent, never wraps */
 .panel-side .btn-go {
-  flex-shrink: 0;
   white-space: nowrap;
-  padding: 10px 16px;
-  font-size: 0.88rem;
-  width: auto;
+  padding: 12px 16px;
+  font-size: 0.92rem;
+  width: 100%;
 }
 
 /* Decision prompt: normal wrap, never clipped */
@@ -2619,27 +2629,27 @@ html:has(#screen-game.active) body {
 }
 
 /* --- Area 2: Breaking news / briefing panel ---------------------------
-   Root cause: 100px is too short for breaking news state which requires
-   badge (grid row) + news-header + news-body. Increase to 150px and trim
-   50px from chart (360 → 310). History (flex:1) absorbs the difference. */
+   Root cause: fixed height too short for breaking news state (badge + headline
+   + briefing body + news-header). 180px gives clean fit; chart reduced to 285px
+   to offset (net zero). History (flex:1) absorbs remaining space. */
 
-/* News panel: taller shell normalizes both briefing and breaking-news */
+/* News panel: 180px — enough for breaking-news badge+headline+briefing body */
 .panel-news {
-  flex: 0 0 150px;
-  height: 150px;
-  min-height: 150px;
-  max-height: 150px;
+  flex: 0 0 180px;
+  height: 180px;
+  min-height: 180px;
+  max-height: 180px;
 }
 
-/* Chart: 50px shorter to offset news panel growth */
+/* Chart: 285px — reclaimed 25px from previous 310px to give news panel more room */
 .panel-chart {
-  flex: 0 0 310px;
-  height: 310px;
-  min-height: 310px;
-  max-height: 310px;
+  flex: 0 0 285px;
+  height: 285px;
+  min-height: 285px;
+  max-height: 285px;
 }
 
-/* Breaking news alert fits cleanly in 150px panel */
+/* Breaking news alert fits cleanly in 180px panel */
 .panel-news .news-alert {
   margin: -14px -16px 6px;
 }
@@ -2671,12 +2681,12 @@ html:has(#screen-game.active) body {
   -webkit-box-orient: vertical;
 }
 
-/* Normal briefing body: allow 3 lines at 150px */
+/* Briefing body: 2 lines max — breaking news badge+headline+body all fit in 180px */
 .panel-news .news-body p {
   margin-bottom: 3px;
   overflow: hidden;
   display: -webkit-box;
-  -webkit-line-clamp: 3;
+  -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
 }
 
