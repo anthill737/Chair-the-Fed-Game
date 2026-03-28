@@ -432,12 +432,12 @@ html, body {
   color: #1a2a4a;
   line-height: 1.1;
   margin: 2px 0;
-  transition: color 0.4s ease;
 }
 
-.indicator-value.over-target { color: #b22222; }
-.indicator-value.under-target { color: #1a5c1a; }
-.indicator-value.near-target { color: #1a6b1a; }
+/* Status shown via superscript symbol — no color change to avoid conflicting with chart line colors */
+.indicator-value.over-target::after  { content: ' ▲'; font-size: 0.65em; color: #b45309; vertical-align: super; }
+.indicator-value.under-target::after { content: ' ▼'; font-size: 0.65em; color: #4338ca; vertical-align: super; }
+.indicator-value.near-target::after  { content: ' ✓'; font-size: 0.65em; color: #0b7c6c; vertical-align: super; }
 
 .indicator-target {
   font-size: 0.72rem;
@@ -1823,9 +1823,10 @@ html, body {
    ============================================================ */
 
 /* Running score in game header — color-coded by performance */
-.hdr-score--good    { color: #1a6b1a; }
-.hdr-score--ok      { color: #c8a400; }
-.hdr-score--poor    { color: #b22222; }
+/* Header score: teal/amber/magenta — distinct from chart line colors (red/navy/gold) */
+.hdr-score--good    { color: #0b7c6c; }
+.hdr-score--ok      { color: #b45309; }
+.hdr-score--poor    { color: #9b1f7a; }
 
 /* CRISIS badge pulse — draws attention to high-severity shocks */
 @keyframes crisisPulse {
@@ -1842,9 +1843,10 @@ html, body {
   transition: border-color 0.4s ease;
   padding-left: 8px;
 }
-.indicator.state-over  { border-left-color: #b22222; }
-.indicator.state-under { border-left-color: #1a5c1a; }
-.indicator.state-near  { border-left-color: #1a6b1a; }
+/* Border uses distinct colors: amber (over), indigo (under), teal (near) — none match chart lines */
+.indicator.state-over  { border-left-color: #b45309; }
+.indicator.state-under { border-left-color: #4338ca; }
+.indicator.state-near  { border-left-color: #0b7c6c; }
 
 /* Quarter progress marker — prevent clipping at position 0% */
 .quarter-progress-marker {
@@ -1883,6 +1885,9 @@ html, body {
 .news-badge.shock--ongoing { background: #8f6a00; color: #fff; }
 .news-alert--panic .news-alert-label { background: linear-gradient(135deg, #8f1717, #600e0e); }
 .news-alert--calm  .news-alert-label { background: linear-gradient(135deg, #1a6b1a, #145214); }
+
+/* --- BOOM badge: positive economic shock (green, not red) --- */
+.news-badge.shock.boom-badge { background: #1a6b1a; color: #fff; }
 
 /* --- End screen seed display --- */
 .end-seed-display {

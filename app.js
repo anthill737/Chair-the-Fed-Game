@@ -441,6 +441,67 @@ const SHOCK_EVENTS = [
     unempEffect: 0.05,
     inflLag:     0.25,
     unempLag:    0.05
+  },
+  // ── POSITIVE supply / structural shocks ────────────────────────────────────
+  {
+    id: 'trade_deal',
+    title: 'Major Trade Agreement Reached',
+    badge: 'UPDATE',
+    category: 'global',
+    duration: 2,
+    text: 'A landmark trade agreement with key trading partners has eliminated tariffs on a wide range of goods. Cheaper imports are pulling down consumer prices while new export markets are opening up hiring across manufacturing and agriculture.',
+    inflEffect: -0.30,
+    unempEffect:-0.30,
+    inflLag:    -0.15,
+    unempLag:   -0.15
+  },
+  {
+    id: 'reshoring_boom',
+    title: 'Manufacturing Reshoring Wave',
+    badge: 'UPDATE',
+    category: 'supply',
+    duration: 2,
+    text: 'A surge of domestic factory investment is bringing production back to the United States. Companies are hiring rapidly across the industrial heartland, pushing unemployment lower, while competition is keeping a lid on goods prices.',
+    inflEffect: -0.10,
+    unempEffect:-0.40,
+    inflLag:     0.05,
+    unempLag:   -0.20
+  },
+  {
+    id: 'food_prices_drop',
+    title: 'Global Food Price Decline',
+    badge: 'UPDATE',
+    category: 'supply',
+    duration: 1,
+    text: 'Bumper harvests worldwide and improved agricultural logistics have sent food commodity prices sharply lower. Grocery store prices are falling for the first time in years, providing direct relief to household budgets.',
+    inflEffect: -0.35,
+    unempEffect:-0.05,
+    inflLag:    -0.15,
+    unempLag:    0.00
+  },
+  {
+    id: 'hiring_boom',
+    title: 'Sector Hiring Boom',
+    badge: 'BOOM',
+    category: 'labor',
+    duration: 2,
+    text: 'A major expansion across construction, clean energy, and infrastructure is driving rapid job creation. Unemployment is falling sharply as firms compete aggressively for workers. Rising wage pressures add a mild inflationary undertone — a tricky balance for the Fed.',
+    inflEffect:   0.15,
+    unempEffect: -0.40,
+    inflLag:      0.05,
+    unempLag:    -0.15
+  },
+  {
+    id: 'ai_productivity_surge',
+    title: 'Technology Productivity Surge',
+    badge: 'BOOM',
+    category: 'supply',
+    duration: 2,
+    text: 'A broad wave of automation and AI adoption is dramatically boosting output across sectors. Firms are producing more with the same workforce, easing cost pressures and lifting real wages simultaneously. Policymakers must decide how much to accommodate the expansion.',
+    inflEffect:  -0.35,
+    unempEffect: -0.25,
+    inflLag:     -0.15,
+    unempLag:    -0.10
   }
 ];
 
@@ -1135,7 +1196,7 @@ function renderHeader() {
   }
 }
 
-/** Update the three economic indicators and their status colors */
+/** Update the three economic indicators and their status tags */
 function renderIndicators() {
   const inflEl   = document.getElementById('val-inflation');
   const unempEl  = document.getElementById('val-unemployment');
@@ -1145,9 +1206,13 @@ function renderIndicators() {
   unempEl.textContent = fmt(state.unemployment) + '%';
   rateEl.textContent  = fmt(state.fedRate)      + '%';
 
-  // Color-code distance from target
-  setIndicatorClass(inflEl,  state.inflation,    TARGET_INFLATION,    0.5, 1.5);
-  setIndicatorClass(unempEl, state.unemployment, TARGET_UNEMPLOYMENT, 0.5, 1.5);
+  // Clear any old color classes so the number stays neutral (avoids clash with chart line colors)
+  inflEl.classList.remove('near-target', 'over-target', 'under-target');
+  unempEl.classList.remove('near-target', 'over-target', 'under-target');
+
+  // Show a small status pill below each value instead of changing the number's color
+  setIndicatorStatus('ind-inflation',    state.inflation,    TARGET_INFLATION,    0.5);
+  setIndicatorStatus('ind-unemployment', state.unemployment, TARGET_UNEMPLOYMENT, 0.5);
 
   // Apply border state signal to parent indicator containers
   var setStateBorder = function(el, val, target) {
@@ -1161,6 +1226,32 @@ function renderIndicators() {
   };
   setStateBorder(inflEl,  state.inflation,    TARGET_INFLATION);
   setStateBorder(unempEl, state.unemployment, TARGET_UNEMPLOYMENT);
+}
+
+/** Show a small status pill inside an indicator container instead of coloring the number */
+function setIndicatorStatus(parentId, val, target, thresh) {
+  var parent = document.getElementById(parentId);
+  if (!parent) return;
+  var statusEl = parent.querySelector('.indicator-status');
+  if (!statusEl) {
+    statusEl = document.createElement('div');
+    statusEl.className = 'indicator-status';
+    var targetEl = parent.querySelector('.indicator-target');
+    if (targetEl) targetEl.parentNode.insertBefore(statusEl, targetEl.nextSibling);
+    else parent.appendChild(statusEl);
+  }
+  var diff = val - target;
+  statusEl.className = 'indicator-status';
+  if (Math.abs(diff) <= thresh) {
+    statusEl.textContent = '● On target';
+    statusEl.classList.add('ind-status--good');
+  } else if (diff > 0) {
+    statusEl.textContent = '▲ Above target';
+    statusEl.classList.add('ind-status--over');
+  } else {
+    statusEl.textContent = '▼ Below target';
+    statusEl.classList.add('ind-status--under');
+  }
 }
 
 function setIndicatorClass(el, val, target, nearThresh, warnThresh) {
@@ -1836,14 +1927,16 @@ function renderNews() {
     if (continuingShock) {
       badge.textContent = 'ONGOING';
       badge.className   = 'news-badge shock shock--ongoing';
-      body.innerHTML = '<p class="event-title">' + shock.title
-        + ' <span style="font-size:0.8em;color:#8f6a00">(continuing \u2014 '
+      // Alert banner already shows the shock title; body shows only the remaining-turns reminder
+      body.innerHTML = '<p class="news-continuing">'
+        + '<span style="color:#8f6a00;font-weight:bold">Event ongoing</span> \u2014 '
         + state.activeShockTurnsRemaining + ' quarter'
-        + (state.activeShockTurnsRemaining === 1 ? '' : 's') + ' remaining)</span></p>'
-        + '<p>' + shock.text + '</p>';
+        + (state.activeShockTurnsRemaining === 1 ? '' : 's') + ' remaining.</p>';
     } else {
       badge.textContent = shock.badge;
-      badge.className   = 'news-badge shock' + (shock.badge === 'CRISIS' ? ' crisis-badge' : '');
+      badge.className   = 'news-badge shock'
+        + (shock.badge === 'CRISIS' ? ' crisis-badge' : '')
+        + (shock.badge === 'BOOM'   ? ' boom-badge'   : '');
 
       var subHeadline = getShockSubHeadline(shock, state);
       body.innerHTML = '<p class="event-title">' + shock.title + '</p>'
@@ -1851,13 +1944,17 @@ function renderNews() {
         + '<p class="news-sub-headline">' + subHeadline + '</p>';
     }
 
-    if (alert && alertHeadline && alertText) {
+    // Only flash the alert banner on the first quarter of a new shock, not on continuing turns
+    if (!continuingShock && alert && alertHeadline && alertText) {
       alertHeadline.textContent = shock.title;
-      alertText.textContent     = shock.text;
+      alertText.textContent     = '';  // details are already in the body below
       alert.classList.remove('hidden', 'news-alert--flash', 'news-alert--panic');
       void alert.offsetWidth;
       alert.classList.add('news-alert--flash');
       if (shock.badge === 'CRISIS') alert.classList.add('news-alert--panic');
+    } else if (continuingShock && alert) {
+      alert.classList.add('hidden');
+      alert.classList.remove('news-alert--flash', 'news-alert--panic');
     }
   } else {
     var newsItem  = selectRoutineNews(state);
@@ -1894,9 +1991,11 @@ function renderNews() {
 
   body.innerHTML += '<p class="news-context">' + inflNote + ' ' + unempNote + '</p>';
 
-  // Show ongoing shock status banner if multi-turn shock is continuing
+  // Show ongoing shock status banner only when a new shock is also firing this quarter
+  // (i.e. body is showing a new shock AND there is still an older one in the background).
+  // When continuingShock=true the body already displays the ongoing shock info, so the banner would duplicate it.
   var shockBannerEl = document.getElementById('shock-status-banner');
-  if (state.activeShockTurnsRemaining > 0 && state.activeShock) {
+  if (state.activeShockTurnsRemaining > 0 && state.activeShock && !continuingShock) {
     if (!shockBannerEl) {
       shockBannerEl = document.createElement('div');
       shockBannerEl.id = 'shock-status-banner';
