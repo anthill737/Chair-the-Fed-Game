@@ -1382,8 +1382,7 @@ document.addEventListener('DOMContentLoaded', function() {
     state = { quarter: 1, totalQuarters: TOTAL_QUARTERS };
   }
   renderQuarterProgress();
-  var endStart = document.getElementById('end-final-rate-start');
-  if (endStart) endStart.textContent = 'Started: ' + fmt(getInitialConditions(selectedDifficulty).fedRate) + '%';
+  // end-final-rate-start is populated by renderEndScreen() with the actual per-game starting rate
 });
 
 // Inject rate selector markup into the decision panel
