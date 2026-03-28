@@ -332,77 +332,108 @@ function renderNews() {
 }
 
 /**
- * Render advisor panel with recommendations based on current economic state.
+ * Render advisor panel with signal-combining logic derived from current state.
+ * All three advisors agree on direction (no conflicts); rationales reflect persona.
  *
- * Signal rules (per mandate targets):
- *   inflSig  +1 = inflation above 2% → raise bias
- *            -1 = inflation below 2% → lower bias
- *   unempSig +1 = unemployment below 5% (tight labor) → raise bias
- *            -1 = unemployment above 5% (slack labor) → lower bias
- *
- * Each advisor weights the two signals differently:
- *   Dr. Chen    — hawkish: inflation weight 0.70, unemployment weight 0.30
- *   Gov. Rivera — balanced: both 0.50
- *   Sec. Park   — dovish:  inflation weight 0.30, unemployment weight 0.70
- *
- * Combined score >= 0.4 → Raise, <= -0.4 → Lower, else → Hold.
- * Mixed / stagflation signals naturally resolve to Hold for balanced advisors.
+ *   inflSig  +1 = inflation above 2% → raise bias   -1 = below 2% → lower bias
+ *   unempSig +1 = unemployment below 5% (tight) → raise   -1 = above 5% (slack) → lower
+ *   combined: +2/-2 = strong signal; +1/-1 = mild; 0 = mixed/near-target → Hold
  */
 function renderAdvisors() {
   var container = document.getElementById('advisors-list');
   if (!container) return;
 
-  var infl  = state.inflation    || TARGET_INFLATION;
-  var unemp = state.unemployment || TARGET_UNEMPLOYMENT;
-  var rate  = state.fedRate      || 0;
+  var infl  = state.inflation    != null ? state.inflation    : TARGET_INFLATION;
+  var unemp = state.unemployment != null ? state.unemployment : TARGET_UNEMPLOYMENT;
 
-  // Directional signals: +1 = raise pressure, -1 = lower pressure, 0 = neutral
-  var inflSig  = infl  > 2.0 ? 1 : infl  < 2.0 ? -1 : 0;
-  var unempSig = unemp < 5.0 ? 1 : unemp > 5.0 ? -1 : 0;
+  var inflSig  = infl  > TARGET_INFLATION    ? 1 : infl  < TARGET_INFLATION    ? -1 : 0;
+  var unempSig = unemp < TARGET_UNEMPLOYMENT ? 1 : unemp > TARGET_UNEMPLOYMENT ? -1 : 0;
 
-  var ADVISORS_DEF = [
-    { name: 'Dr. Chen',    title: 'Chief Economist', avatar: 'C', iw: 0.70, uw: 0.30 },
-    { name: 'Gov. Rivera', title: 'Board Governor',  avatar: 'R', iw: 0.50, uw: 0.50 },
-    { name: 'Sec. Park',   title: 'Market Analyst',  avatar: 'P', iw: 0.30, uw: 0.70 }
+  var combined = inflSig + unempSig;
+  var bothNear = Math.abs(infl  - TARGET_INFLATION)    <= 0.15
+              && Math.abs(unemp - TARGET_UNEMPLOYMENT) <= 0.15;
+
+  // All advisors share the same direction — no conflicts possible
+  var direction = (bothNear || combined === 0) ? 'Hold'
+                : combined > 0 ? 'Raise' : 'Lower';
+
+  var strong = Math.abs(combined) === 2; // both signals point same way
+
+  function f1(n) { return (n || 0).toFixed(1); }
+  function inflWord()  { var d = Math.abs(infl  - TARGET_INFLATION);    return d < 0.2 ? 'slightly' : d < 0.6 ? 'moderately' : 'significantly'; }
+  function unempWord() { var d = Math.abs(unemp - TARGET_UNEMPLOYMENT); return d < 0.2 ? 'slightly' : d < 0.6 ? 'moderately' : 'significantly'; }
+
+  function chenRationale() { // hawkish — leads with inflation signal
+    if (direction === 'Raise') {
+      if (infl > TARGET_INFLATION && unemp < TARGET_UNEMPLOYMENT)
+        return 'Inflation at ' + f1(infl) + '% is ' + inflWord() + ' above target and the labor market is tight \u2014 raising rates is overdue.';
+      if (infl > TARGET_INFLATION)
+        return 'Inflation at ' + f1(infl) + '% is ' + inflWord() + ' above 2%; price stability requires tightening.';
+      return 'Unemployment at ' + f1(unemp) + '% signals an overheating labor market \u2014 higher rates are warranted.';
+    }
+    if (direction === 'Lower') {
+      if (infl < TARGET_INFLATION && unemp > TARGET_UNEMPLOYMENT)
+        return 'With inflation at ' + f1(infl) + '% and unemployment at ' + f1(unemp) + '%, both mandates point toward easing policy.';
+      if (infl < TARGET_INFLATION)
+        return 'Inflation at ' + f1(infl) + '% is running ' + inflWord() + ' below 2% \u2014 accommodation is warranted.';
+      return 'Unemployment at ' + f1(unemp) + '% is ' + unempWord() + ' elevated; easing would support the labor market.';
+    }
+    return 'Inflation at ' + f1(infl) + '% and unemployment at ' + f1(unemp) + '% are near mandate \u2014 no adjustment is necessary.';
+  }
+
+  function riveraRationale() { // balanced — weighs both mandates equally
+    if (direction === 'Raise') {
+      if (strong)
+        return 'Both inflation at ' + f1(infl) + '% and tight labor at ' + f1(unemp) + '% point toward tightening \u2014 a raise is the right move.';
+      if (infl > TARGET_INFLATION)
+        return 'Inflation at ' + f1(infl) + '% is ' + inflWord() + ' above target; a balanced view supports a modest rate increase.';
+      return 'The labor market at ' + f1(unemp) + '% unemployment is ' + unempWord() + ' tighter than natural \u2014 raising rates would cool it.';
+    }
+    if (direction === 'Lower') {
+      if (strong)
+        return 'Below-target inflation of ' + f1(infl) + '% and elevated unemployment of ' + f1(unemp) + '% both argue for easing.';
+      if (unemp > TARGET_UNEMPLOYMENT)
+        return 'Unemployment at ' + f1(unemp) + '% is ' + unempWord() + ' elevated \u2014 lowering rates would support the labor market.';
+      return 'Inflation at ' + f1(infl) + '% is running ' + inflWord() + ' below 2% \u2014 a modest cut is warranted.';
+    }
+    return 'With inflation at ' + f1(infl) + '% and unemployment at ' + f1(unemp) + '%, conditions are balanced \u2014 holding steady is appropriate.';
+  }
+
+  function parkRationale() { // dovish — leads with unemployment signal
+    if (direction === 'Raise') {
+      if (strong)
+        return 'Even with a full-employment focus, inflation at ' + f1(infl) + '% and unemployment at ' + f1(unemp) + '% justify raising rates.';
+      if (unemp < TARGET_UNEMPLOYMENT)
+        return 'Unemployment at ' + f1(unemp) + '% is ' + unempWord() + ' below the natural rate \u2014 gradual tightening is justified.';
+      return 'Inflation at ' + f1(infl) + '% is ' + inflWord() + ' above target \u2014 a modest raise would reduce the risk of a larger correction.';
+    }
+    if (direction === 'Lower') {
+      if (unemp > TARGET_UNEMPLOYMENT)
+        return 'Unemployment at ' + f1(unemp) + '% is ' + unempWord() + ' above 5% \u2014 lowering rates is the right call to support workers.';
+      return 'Inflation at ' + f1(infl) + '% is running well below target \u2014 accommodative policy is needed.';
+    }
+    return 'Both indicators are near mandate; holding the rate steady lets the economy find its footing.';
+  }
+
+  var advisors = [
+    { name: 'Dr. Chen',    title: 'Chief Economist',  avatar: 'C', rec: direction, rationale: chenRationale()   },
+    { name: 'Gov. Rivera', title: 'Fed Governor',     avatar: 'R', rec: direction, rationale: riveraRationale() },
+    { name: 'Sec. Park',   title: 'Treasury Advisor', avatar: 'P', rec: direction, rationale: parkRationale()   }
   ];
 
-  container.innerHTML = ADVISORS_DEF.map(function(a) {
-    var score    = inflSig * a.iw + unempSig * a.uw;
-    var rec      = score >= 0.4 ? 'Raise' : score <= -0.4 ? 'Lower' : 'Hold';
-    var recLower = rec.toLowerCase();
+  container.innerHTML = advisors.map(function(advisor) {
+    var recLower  = advisor.rec.toLowerCase();
     var recClass  = 'advisor-rec--' + recLower;
     var cardClass = recLower === 'hold' ? 'advisor-card--calm' : 'advisor-card--concerned';
-
-    // Magnitude adverb for Raise/Lower recommendations
-    var mag = Math.abs(score) >= 0.85 ? 'significantly ' : Math.abs(score) >= 0.5 ? 'modestly ' : 'slightly ';
-
-    // Build rationale using directional language only — no specific rate values suggested
-    var inflDesc  = infl  > 2.0 ? 'above' : infl  < 2.0 ? 'below' : 'at';
-    var unempDesc = unemp > 5.0 ? 'above' : unemp < 5.0 ? 'below' : 'at';
-    var rationale;
-    if (rec === 'Hold') {
-      rationale = 'With inflation at ' + fmt(infl) + '% (' + inflDesc + ' the 2% target) and '
-        + 'unemployment at ' + fmt(unemp) + '% (' + unempDesc + ' the natural rate), '
-        + 'holding the rate at ' + fmt(rate) + '% is appropriate.';
-    } else {
-      var dir     = rec === 'Raise' ? 'raising' : 'lowering';
-      var reasons = [];
-      if (inflSig !== 0) reasons.push('inflation at ' + fmt(infl) + '% is ' + inflDesc + ' the 2% target');
-      if (unempSig !== 0) reasons.push('unemployment at ' + fmt(unemp) + '% is ' + unempDesc + ' the natural rate');
-      var reason  = reasons.length ? reasons.join('; ') : 'mixed signals';
-      rationale = reason.charAt(0).toUpperCase() + reason.slice(1) + '. '
-        + 'Recommend ' + mag + dir + ' rates from ' + fmt(rate) + '%.';
-    }
-
     return '<div class="advisor-card ' + cardClass + '">'
-      + '<div class="advisor-avatar">' + a.avatar + '</div>'
+      + '<div class="advisor-avatar">' + advisor.avatar + '</div>'
       + '<div class="advisor-content">'
       + '<div class="advisor-header-row">'
-      + '<span class="advisor-name">' + a.name + '</span>'
-      + '<span class="advisor-title-text">' + a.title + '</span>'
-      + '<span class="advisor-rec ' + recClass + '">' + rec + '</span>'
+      + '<span class="advisor-name">' + advisor.name + '</span>'
+      + '<span class="advisor-title-text">' + advisor.title + '</span>'
+      + '<span class="advisor-rec ' + recClass + '">' + advisor.rec + '</span>'
       + '</div>'
-      + '<div class="advisor-rationale">' + rationale + '</div>'
+      + '<div class="advisor-rationale">' + advisor.rationale + '</div>'
       + '</div>'
       + '</div>';
   }).join('');
