@@ -56,8 +56,8 @@ let UNEMP_MEAN_REVERT = 0.02;   // pull toward TARGET_UNEMPLOYMENT (weakened —
 // Persistent per-quarter pressure that prevents a stable "hold and win" equilibrium.
 // Without active policy the economy drifts: inflation creeps up, unemployment rises.
 // Set via difficulty profile through applyDifficultyToConstants().
-let INFL_DRIFT_BIAS  = 0.12;   // upward inflationary pressure per quarter
-let UNEMP_DRIFT_BIAS = 0.06;   // upward unemployment pressure per quarter
+let INFL_DRIFT_BIAS  = 0.08;   // upward inflationary pressure per quarter (Real World default)
+let UNEMP_DRIFT_BIAS = -0.03;  // natural employment growth at neutral rates (Real World default; negative = falls slightly)
 
 // === TUNING: Rate-level effect
 // Holding rates above/below the neutral rate exerts continuous, ongoing pressure.
@@ -65,8 +65,8 @@ let UNEMP_DRIFT_BIAS = 0.06;   // upward unemployment pressure per quarter
 // making holding a high rate identical to holding a neutral rate. That is wrong.
 // With this, rates of 7% continuously suppress inflation; rates of 2% continuously stoke it.
 const NEUTRAL_RATE           = 4.0;   // rate at which level effect is zero
-const RATE_INFL_LEVEL_COEFF  = 0.10;  // fraction of sensitivity applied per 1% above neutral
-const RATE_UNEMP_LEVEL_COEFF = 0.05;  // fraction of sensitivity applied per 1% above neutral
+const RATE_INFL_LEVEL_COEFF  = 0.40;  // fraction of sensitivity applied per 1% above neutral (was 0.10 — too small, breakeven was 8.6%)
+const RATE_UNEMP_LEVEL_COEFF = 0.20;  // fraction of sensitivity applied per 1% above neutral (was 0.05)
 
 // === TUNING: Random noise magnitude
 let INFL_NOISE  = 0.20;   // max random ± on inflation each quarter (was 0.15)
@@ -81,7 +81,7 @@ const UNEMP_MAX = 15.0;
 // === TUNING: Scoring weights and thresholds ===
 const INFL_WEIGHT        = 1.0;   // relative importance of inflation in scoring
 const UNEMP_WEIGHT       = 1.0;   // relative importance of unemployment in scoring
-let MAX_AVG_PENALTY    = 5.0;   // penalty at which score hits 0
+let MAX_AVG_PENALTY    = 2.5;   // penalty at which score hits 0 (was 5.0 — hold-steady scored ~66, not POOR)
 let SCORE_EXCELLENT    = 80;
 let SCORE_GOOD         = 60;
 let SCORE_POOR         = 40;
@@ -113,8 +113,8 @@ const DIFFICULTY_PROFILES = {
     unempNoise:               0.08,
     inflMeanRevert:           0.08,   // mild self-correction — easier for learners (was 0.12)
     unempMeanRevert:          0.06,
-    inflDriftBias:            0.06,   // mild upward inflation pressure — manageable
-    unempDriftBias:           0.03,   // mild upward unemployment pressure
+    inflDriftBias:            0.05,   // mild upward inflation pressure — manageable
+    unempDriftBias:           -0.02,  // natural employment growth at low/neutral rates (negative = unemployment falls)
     eventChance:              0.20,   // 20% chance of any event per quarter (~3 events/run)
     shockMagnitudeMultiplier: 0.7     // shocks are smaller
   },
@@ -128,8 +128,8 @@ const DIFFICULTY_PROFILES = {
     unempNoise:               0.15,   // (was 0.12)
     inflMeanRevert:           0.03,   // weak pull — does not create free equilibrium (was 0.08)
     unempMeanRevert:          0.02,
-    inflDriftBias:            0.12,   // persistent upward inflation pressure — requires active rate management
-    unempDriftBias:           0.06,   // persistent upward unemployment pressure
+    inflDriftBias:            0.08,   // persistent upward inflation pressure — requires active rate management (was 0.12)
+    unempDriftBias:           -0.03,  // natural employment growth at neutral rates; level effect handles tight-money unemployment
     eventChance:              0.30,   // 30% chance of any event per quarter (~4-5 events/run)
     shockMagnitudeMultiplier: 1.0
   },
@@ -143,8 +143,8 @@ const DIFFICULTY_PROFILES = {
     unempNoise:               0.22,   // (was 0.20)
     inflMeanRevert:           0.01,   // economy barely self-corrects (was 0.04)
     unempMeanRevert:          0.01,
-    inflDriftBias:            0.20,   // severe upward pressure — Volcker-level challenge
-    unempDriftBias:           0.10,   // severe upward unemployment pressure
+    inflDriftBias:            0.16,   // severe upward pressure — Volcker-level challenge
+    unempDriftBias:           -0.05,  // natural employment growth overwhelmed by high-rate level effects in crisis
     eventChance:              0.40,   // 40% chance of any event per quarter (~6-7 events/run)
     shockMagnitudeMultiplier: 1.5,    // shocks are larger
     initInflation:            4.5,    // economy already running hot at game start
