@@ -2091,3 +2091,209 @@ html:has(#screen-game.active) body {
 
 /* Suppress the in-game CC footer — reclaims ~32px of vertical space */
 #screen-game .cc-attribution { display: none; }
+
+/* ============================================================
+   T-STATE: State-Invariant Desktop HUD
+   Containers define geometry. Content swaps without moving furniture.
+   ============================================================ */
+
+/* --- Fix advisor visibility shift (the #1 state-change layout bug) --------
+   JS toggles .hidden on #panel-advisors between decision and result phases.
+   .hidden uses display:none !important which collapses the 120px advisor space,
+   causing the right column to shift by 128px (120px + 8px gap).
+   Fix: higher-specificity rule keeps the advisor slot in the flex flow
+   (visibility:hidden = invisible but space-preserving; display:flex !important
+   wins over display:none !important because ID selector has higher specificity). */
+#panel-advisors.hidden {
+  display: flex !important;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+/* --- Shell heights: explicit so game states can't grow them ----------------
+   Header and timeline are always the same DOM structure, but explicit heights
+   guard against any unexpected content-driven growth. */
+.game-header {
+  height: 52px;
+  min-height: 52px;
+  max-height: 52px;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.quarter-progress-panel {
+  height: 76px;
+  min-height: 76px;
+  max-height: 76px;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+/* --- Enforce fixed news panel height at 150px ------------------------------
+   Already set to height:150px above, but also needs flex shorthand with a
+   fixed basis (not auto) so it never shrinks when chart grows. */
+.panel-news {
+  flex: 0 0 150px;
+}
+
+/* --- Enforce fixed right-column panel heights at 120px / 258px -------------
+   Also needs fixed flex-basis (not auto) to prevent shrink. */
+.panel-side .panel-advisors {
+  flex: 0 0 120px;
+}
+.panel-side #panel-decision,
+.panel-side #panel-result {
+  flex: 0 0 258px;
+}
+
+/* --- No-wrap for all single-line UI labels ---------------------------------
+   Prevents text content from widening or collapsing columns. */
+.panel-title,
+.news-header .panel-title,
+.chart-header .panel-title {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.news-badge,
+.game-title,
+.quarter-progress-current,
+.quarter-progress-labels span,
+.sandbox-banner { white-space: nowrap; overflow: hidden; }
+
+/* Buttons must never wrap */
+.btn-go,
+#btn-next,
+.btn-primary { white-space: nowrap; }
+
+/* Advisor rows: name and title stay on one line */
+.advisor-name,
+.advisor-title-text { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.advisor-rec        { white-space: nowrap; flex-shrink: 0; }
+.advisor-header-row { flex-wrap: nowrap; }
+
+/* Rate selector labels */
+.rate-val,
+.rate-tag,
+.rate-change-summary { white-space: nowrap; }
+
+/* Indicator labels */
+.indicator-label,
+.indicator-target { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* Chart legend items */
+.legend-item { white-space: nowrap; flex-shrink: 0; }
+
+/* News header row */
+.news-header { flex-wrap: nowrap; }
+
+/* --- History table: table-layout:fixed for stable column geometry ----------
+   Without fixed layout, columns resize with content causing subtle layout shifts.
+   min-width:0 overrides the base min-width:520px so the table fits the column;
+   horizontal scroll within .history-scroll handles any overflow. */
+.panel-side .history-table {
+  table-layout: fixed;
+  min-width: 0;
+  width: 100%;
+}
+
+/* Explicit column widths sized for 280px column (padding: 10px 12px → 256px usable).
+   Columns: Qtr | Inflation | Unemployment | Fed Rate | Decision | Event */
+.panel-side .history-table th,
+.panel-side .history-table td { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.panel-side .history-table th:nth-child(1),
+.panel-side .history-table td:nth-child(1) { width: 34px; }
+.panel-side .history-table th:nth-child(2),
+.panel-side .history-table td:nth-child(2) { width: 44px; }
+.panel-side .history-table th:nth-child(3),
+.panel-side .history-table td:nth-child(3) { width: 58px; }
+.panel-side .history-table th:nth-child(4),
+.panel-side .history-table td:nth-child(4) { width: 44px; }
+.panel-side .history-table th:nth-child(5),
+.panel-side .history-table td:nth-child(5) { width: 40px; }
+.panel-side .history-table th:nth-child(6),
+.panel-side .history-table td:nth-child(6) { width: auto; }
+
+/* Compact header row — tighter padding and font so labels show more chars */
+.panel-side .history-table thead th {
+  padding: 4px 5px;
+  font-size: 0.60rem;
+  letter-spacing: 0.04em;
+}
+.panel-side .history-table tbody td {
+  padding: 3px 5px;
+  font-size: 0.74rem;
+}
+
+/* --- Center column: prevent gap collapse ----------------------------------
+   panel-center uses gap:8px; ensure both news and chart always exist in flow. */
+.panel-center { overflow: hidden; }
+
+/* --- Right column: tighten gap to reclaim space for history ---------------
+   gap:8px with 3 items = 16px consumed. Keep at 8px. */
+.panel-side { gap: 8px; }
+
+/* --- Ensure result panel body never clips its three stat rows ------------- */
+.panel-side #panel-result .result-body {
+  overflow: hidden;
+  max-height: 160px;
+}
+
+/* --- News panel: internals must fit at 150px (base padding 14px × 2 = inner 122px) ---
+   Tighten spacing for both plain-briefing and breaking-news states. */
+.panel-news .news-header {
+  margin-bottom: 6px;
+  padding-bottom: 4px;
+}
+.panel-news .news-body p {
+  margin-bottom: 4px;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+/* Breaking news alert: compact version to coexist with header at 122px */
+.panel-news .news-alert {
+  margin: -14px -16px 6px;
+}
+.panel-news .news-alert-copy {
+  padding: 6px 12px;
+}
+.panel-news .news-alert-headline {
+  font-size: 1.05rem;
+  line-height: 1.1;
+  margin-bottom: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.panel-news .news-alert-text {
+  font-size: 0.76rem;
+  line-height: 1.25;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+}
+
+/* --- Advisor cards: 2 cards must fit in 120px (10px padding × 2 = 100px inner) ---
+   Each card ≈ 46px → 2×46 + gap = 100px ✅ */
+.panel-side .panel-advisors { overflow: hidden; }
+.panel-side .advisor-card {
+  padding: 5px 8px;
+  margin-bottom: 4px;
+}
+.panel-side .advisor-card:last-child { margin-bottom: 0; }
+.panel-side .advisor-rationale {
+  font-size: 0.75rem;
+  line-height: 1.3;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+/* --- Prevent the .panel-history margin default from applying in sidebar --- */
+.panel-side .panel-history { overflow: hidden; }
