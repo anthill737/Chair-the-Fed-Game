@@ -283,47 +283,63 @@ var ROUTINE_NEWS = [
      title    : role/title string
      avatar   : single character for avatar display (CSS uses data-avatar attr)
      rec      : 'Raise' | 'Lower' | 'Hold'
-     rationale: one-sentence directional explanation — no specific rate targets
+     rationale: one-sentence directional explanation — no specific rate values
 
-   Signal logic: deviations from 2% inflation and 5% unemployment drive signals.
-     inflation  > 2% + band → raise signal  |  < 2% - band → lower signal
-     unemployment > 5% + band → lower signal | < 5% - band → raise signal
-     combined signals: same direction → Raise/Lower; opposing → Hold
+   Signal logic (mandate targets: inflation 2%, unemployment 5%):
+     inflSignal  = +1 if inflation > 2.0   (above target → suggests Raise)
+                   -1 if inflation < 2.0   (below target → suggests Lower)
+                    0 if = 2.0
+     unempSignal = +1 if unemployment < 5.0 (labor tight → suggests Raise)
+                   -1 if unemployment > 5.0 (labor slack → suggests Lower)
+                    0 if = 5.0
+     net = inflSignal + unempSignal   (-2 = both Lower, +2 = both Raise, 0 = mixed)
 
-   Advisor personality deadbands (tolerance around each target):
-     Dr. Chen    — hawkish: tight inflation band (0.15pp), wider unemployment (0.30pp)
-     Gov. Rivera — balanced: symmetric bands (0.20pp each)
-     Sec. Park   — dovish: wide inflation band (0.30pp), tight unemployment (0.15pp)
+   Both-near-target override: |infl-2| ≤ 0.3 AND |unemp-5| ≤ 0.3 → Hold.
+
+   Advisor personalities (differ in how much net is required before acting):
+     Dr. Chen    — hawkish: Raise on net ≥ +1; Lower only on net = -2 (needs both)
+     Gov. Rivera — balanced: Raise on net ≥ +1; Lower on net ≤ -1 (symmetric)
+     Sec. Park   — dovish:  Lower on net ≤ -1; Raise only on net = +2 (needs both)
+
+   Mixed signal (net = 0, not both near target) → all Hold; signals cancel out.
    ========================================================================== */
 
 function getAdvisorRecs(inflation, unemployment, fedRate, difficulty) {
-  // Helper: format a number to one decimal place for rationale strings
   function f1(n) { return n.toFixed(1); }
 
-  // Compute directional signals from current state.
-  // inflSignal: +1 = above target (raise), -1 = below target (lower), 0 = near target
-  // unempSignal: -1 = below 5% = tight labor (raise), +1 = above 5% = slack labor (lower), 0 = near
-  // Each advisor applies slightly different near-target thresholds reflecting their bias.
-  function computeRec(inflNearThresh, unempNearThresh) {
-    var inflAbove  = inflation    > 2.0 + inflNearThresh;
-    var inflBelow  = inflation    < 2.0 - inflNearThresh;
-    var unempAbove = unemployment > 5.0 + unempNearThresh; // slack labor → lower
-    var unempBelow = unemployment < 5.0 - unempNearThresh; // tight labor → raise
+  // --- Directional signals ---
+  // inflSignal:  +1 = inflation above 2% (Raise bias),  -1 = below 2% (Lower bias)
+  // unempSignal: +1 = unemployment below 5% (Raise bias), -1 = above 5% (Lower bias)
+  var inflSignal  = inflation    > 2.0 ? 1 : (inflation    < 2.0 ? -1 : 0);
+  var unempSignal = unemployment < 5.0 ? 1 : (unemployment > 5.0 ? -1 : 0);
+  var net = inflSignal + unempSignal;  // ranges: -2, -1, 0, +1, +2
 
-    var raiseSignals = (inflAbove ? 1 : 0) + (unempBelow ? 1 : 0);
-    var lowerSignals = (inflBelow ? 1 : 0) + (unempAbove ? 1 : 0);
+  // Both-near-target: economy in the comfort zone → no urgency to move
+  var bothNear = Math.abs(inflation - 2.0) <= 0.3 && Math.abs(unemployment - 5.0) <= 0.3;
 
-    if (raiseSignals > lowerSignals) return 'Raise';
-    if (lowerSignals > raiseSignals) return 'Lower';
+  // Dr. Chen: hawkish — Raise on any positive net; Lower only when BOTH signals point down
+  function chenRec() {
+    if (bothNear)  return 'Hold';
+    if (net >= 1)  return 'Raise';
+    if (net <= -2) return 'Lower';  // requires both inflation and unemployment to signal Lower
     return 'Hold';
   }
 
-  // Dr. Chen: hawkish — tighter inflation tolerance, more lenient on unemployment
-  function chenRec()   { return computeRec(0.15, 0.30); }
-  // Gov. Rivera: balanced — symmetric sensitivity to both mandates
-  function riveraRec() { return computeRec(0.20, 0.20); }
-  // Sec. Park: dovish — more lenient on inflation, tighter unemployment sensitivity
-  function parkRec()   { return computeRec(0.30, 0.15); }
+  // Gov. Rivera: balanced — symmetric, acts on net ±1
+  function riveraRec() {
+    if (bothNear)  return 'Hold';
+    if (net >= 1)  return 'Raise';
+    if (net <= -1) return 'Lower';
+    return 'Hold';
+  }
+
+  // Sec. Park: dovish — Lower on any negative net; Raise only when BOTH signals point up
+  function parkRec() {
+    if (bothNear)  return 'Hold';
+    if (net >= 2)  return 'Raise';  // requires both inflation and unemployment to signal Raise
+    if (net <= -1) return 'Lower';
+    return 'Hold';
+  }
 
   // Magnitude helpers for rationale wording
   function inflWord()  {
