@@ -290,7 +290,7 @@ function calcFinalScore(history) {
 function getOutcomeVerdict(score) {
   var tiers = [
     { min: 95, title: 'Legendary Chair',         text: 'A Flawless Soft Landing',              className: 'excellent' },
-    { min: 85, title: 'Soft Landing Achieved',   text: 'Textbook Policy',                      className: 'good'      },
+    { min: 85, title: 'Soft Landing Achieved',   text: 'Textbook Policy',                      className: 'excellent' }, // coordinator decision: 85+ is excellent (green)
     { min: 75, title: 'Steady Hand',             text: 'Economy Stabilized',                   className: 'good'      },
     { min: 60, title: 'Reappointed',             text: 'Mixed but Acceptable',                 className: 'good'      },
     { min: 40, title: 'Not Reappointed',         text: 'Policy Fell Short',                    className: 'poor'      },
