@@ -2021,14 +2021,15 @@ function renderNews() {
         + state.activeShockTurnsRemaining + ' quarter'
         + (state.activeShockTurnsRemaining === 1 ? '' : 's') + ' remaining.</p>';
     } else if (tier === 'minor') {
-      // Minor events: appear as informational update, no dramatic breaking-news treatment
+      // Minor events: appear as informational update, no dramatic breaking-news treatment.
+      // No 'shock' class — prevents .news-badge.shock red from overriding news-badge--minor gray.
       badge.textContent = 'ECONOMIC UPDATE';
-      badge.className   = 'news-badge shock news-badge--minor';
+      badge.className   = 'news-badge news-badge--minor';
       body.innerHTML = '<p class="event-title">' + shock.title + '</p>'
         + '<p>' + shock.text + '</p>';
     } else {
-      // Tier 2 (moderate/breaking) and tier 3 (major/crisis), plus legacy events
-      badge.textContent = shock.badge;
+      // Tier 2 (moderate) shows 'ECONOMIC ALERT'; tier 3 (major/crisis) shows shock.badge as-is.
+      badge.textContent = (tier === 'moderate') ? 'ECONOMIC ALERT' : shock.badge;
       badge.className   = 'news-badge shock'
         + (shock.badge === 'CRISIS' ? ' crisis-badge' : '')
         + (shock.badge === 'BOOM'   ? ' boom-badge'   : '');
