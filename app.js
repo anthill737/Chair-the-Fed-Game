@@ -778,10 +778,10 @@ function createInitialState(seed) {
 
   const d   = currentDifficulty;
   const mag = d.shockMagnitudeMultiplier;
-  const rng = (seed != null) ? seededRandom(seed) : Math.random.bind(Math);
 
-  // Build shock schedule then adjust count and scale magnitudes for difficulty.
-  let schedule = buildShockSchedule(seed).map(entry =>
+  // Build probabilistic schedule using this difficulty's per-quarter event chance,
+  // then scale each event's magnitudes for the active difficulty.
+  const schedule = buildShockSchedule(seed, d.eventChance).map(entry =>
     entry == null ? null : {
       ...entry,
       inflEffect:  entry.inflEffect  * mag,
@@ -790,34 +790,6 @@ function createInitialState(seed) {
       unempLag:    (entry.unempLag || 0) * mag
     }
   );
-
-  const targetCount  = Math.min(d.shocksPerRun, SHOCK_EVENTS.length);
-  const currentCount = schedule.filter(e => e !== null).length;
-
-  if (targetCount < currentCount) {
-    // Remove excess shocks (Textbook: fewer shocks)
-    let toRemove = currentCount - targetCount;
-    schedule = schedule.map(entry => {
-      if (entry !== null && toRemove > 0) { toRemove--; return null; }
-      return entry;
-    });
-  } else if (targetCount > currentCount) {
-    // Add more shocks (Crisis: replace nulls with extra scaled shocks)
-    const extras = [...SHOCK_EVENTS]
-      .sort(() => rng() - 0.5)
-      .slice(0, targetCount - currentCount)
-      .map(s => ({
-        ...s,
-        inflEffect:  s.inflEffect  * mag,
-        unempEffect: s.unempEffect * mag,
-        inflLag:     (s.inflLag  || 0) * mag,
-        unempLag:    (s.unempLag || 0) * mag
-      }));
-    let addIdx = 0;
-    schedule = schedule.map(entry =>
-      (entry === null && addIdx < extras.length) ? extras[addIdx++] : entry
-    );
-  }
 
   // Use difficulty-specific starting conditions if defined
   const initInflation    = d.initInflation    != null ? d.initInflation    : INIT_INFLATION;
@@ -830,7 +802,7 @@ function createInitialState(seed) {
     fedRate:                   INIT_RATE,
     pendingRate:               INIT_RATE,   // rate player has selected but not yet confirmed
     lagInflEffect:             0,           // deferred inflation effect from last decision
-    lagUnempEffect:            0,           // deferred unemployment effect from last decision
+    lagUnempEffect:            0,           // deferred unemployment effect from last quarter
     history:                   [],          // array of completed-quarter records
     shockSchedule:             schedule,    // array[16] of shock or null, scaled for difficulty
     cumulativePenalty:         0,
@@ -840,6 +812,8 @@ function createInitialState(seed) {
     // Multi-turn shock tracking
     activeShock:               null,        // shock object currently in effect (or null)
     activeShockTurnsRemaining: 0,           // quarters left for the active shock (0 = none)
+    // Runtime cooldown counter — mirrors schedule-generation cooldown for advanceEconomy
+    eventCooldownQuarters:     0,
     seed:                      seed != null ? seed : null
   };
 }
@@ -960,6 +934,11 @@ function stopSparklineAnimation() {
  * @returns {object} - { newInflation, newUnemployment, inflDelta, unempDelta }
  */
 function advanceEconomy(rateDelta) {
+  // --- Decrement post-major-event cooldown at the start of each quarter ---
+  if (state.eventCooldownQuarters > 0) {
+    state.eventCooldownQuarters = Math.max(0, state.eventCooldownQuarters - 1);
+  }
+
   // --- Determine the shock in effect this quarter ---
   // Priority: a continuing multi-turn shock takes precedence over scheduling a new one.
   // If no active shock is continuing, check whether the schedule fires a new shock.
@@ -1033,6 +1012,12 @@ function advanceEconomy(rateDelta) {
   // Persist multi-turn shock state directly into state (so makeDecision doesn't need changes)
   state.activeShock               = newActiveShock;
   state.activeShockTurnsRemaining = newActiveShockTurnsRemaining;
+
+  // After a major (tier-3) shock fires for the first time, set runtime cooldown.
+  // This mirrors the schedule-generation cooldown and prevents unscheduled stacking.
+  if (shock && shock.tier === 3 && newActiveShockTurnsRemaining === (shock.duration || 1) - 1) {
+    state.eventCooldownQuarters = 2;
+  }
 
   return { newInflation, newUnemployment, inflDelta, unempDelta,
            nextLagInfl, nextLagUnemp, shock };
