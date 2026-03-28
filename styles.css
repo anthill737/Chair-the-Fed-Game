@@ -2066,8 +2066,10 @@ html:has(#screen-game.active) body {
 /* Center column: flex column so news and chart share vertical space */
 .panel-indicators { min-height: 0; overflow: hidden; }
 .panel-center     { min-height: 0; overflow: hidden; }
-/* News panel capped so chart always has room to breathe */
-.panel-news       { flex: 0 0 auto; max-height: 120px; overflow-y: auto; }
+/* News panel: FIXED HEIGHT — state-invariant. Height never changes regardless of
+   content (plain briefing, breaking news, short text, long text).
+   Chart position is stable because this panel always occupies exactly 150px. */
+.panel-news       { flex: 0 0 auto; height: 150px; overflow: hidden; }
 /* Chart panel grows to fill remaining center-column height */
 .panel-chart      { flex: 1; min-height: 0; overflow: hidden; }
 /* Chart frame fills the panel */
@@ -2297,3 +2299,63 @@ html:has(#screen-game.active) body {
 
 /* --- Prevent the .panel-history margin default from applying in sidebar --- */
 .panel-side .panel-history { overflow: hidden; }
+
+/* ==========================================================================
+   S2: TEXT DISCIPLINE — No-wrap rules for fixed-geometry elements
+   Ensures layout geometry never shifts due to text reflow or wrapping.
+   ========================================================================== */
+
+/* Panel section headers — never wrap */
+.panel-title {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Quarter labels in timeline — never wrap */
+.quarter-progress-current,
+.quarter-progress-caption,
+.quarter-progress-labels span {
+  white-space: nowrap;
+}
+
+/* Buttons must never wrap */
+.btn-go,
+#btn-next,
+.btn-primary {
+  white-space: nowrap;
+}
+
+/* History table headers — never wrap, use tight column sizing */
+.panel-side .history-table th {
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+/* Advisor name + role row — single line with max-width guard */
+.advisor-name,
+.advisor-title-text {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 120px;
+}
+
+/* Rate selector options — no wrap (short values, should fit) */
+.rate-option {
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+/* Policy change summary — single line */
+.rate-change-summary {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Meta header values — never wrap */
+.meta-label,
+.meta-value {
+  white-space: nowrap;
+}
