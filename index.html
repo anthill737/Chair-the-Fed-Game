@@ -168,6 +168,13 @@
     </div>
   </header>
 
+  <!-- ADVISORS ROW: Full-width row directly under top bar -->
+  <section class="advisors-row" id="panel-advisors" aria-label="Advisor Briefing">
+    <div id="advisors-list">
+      <!-- Advisor cards injected by renderAdvisors() -->
+    </div>
+  </section>
+
   <section class="quarter-progress-panel" aria-label="Term timeline">
     <div class="quarter-progress-meta">
       <span class="quarter-progress-caption">Term Timeline</span>
@@ -212,7 +219,7 @@
 
     </aside>
 
-    <!-- CENTER COLUMN: News + Shared Chart -->
+    <!-- CENTER COLUMN: News + Chart + History -->
     <main class="panel-center">
 
       <!-- News / Event card -->
@@ -255,36 +262,8 @@
           <canvas id="main-chart" width="760" height="380" title="Economic trends over time"></canvas>
         </div>
       </section>
-    </main>
 
-    <!-- RIGHT COLUMN: Advisors + Rate Control + Result -->
-    <aside class="panel-side">
-
-      <!-- Advisor Briefing panel (shown during decision phase) -->
-      <div class="panel panel-advisors" id="panel-advisors">
-        <h3 class="panel-title">Advisor Briefing</h3>
-        <div id="advisors-list">
-          <!-- Advisor cards injected by renderAdvisors() -->
-        </div>
-      </div>
-
-      <!-- Decision panel (shown before player acts) -->
-      <!-- Content injected by app.js DOMContentLoaded handler -->
-      <div class="panel panel-decision" id="panel-decision"></div>
-
-      <!-- Result panel (shown after player acts, before next quarter) -->
-      <div class="panel panel-result hidden" id="panel-result">
-        <h3 class="panel-title">Economic Update</h3>
-        <div id="result-body" class="result-body"></div>
-        <div class="result-footer">
-          <div class="quarter-score-display">
-            Quarter score: <span id="result-quarter-score">&mdash;</span>
-          </div>
-          <button class="btn-primary" id="btn-next" onclick="nextQuarter()">Next Quarter &rarr;</button>
-        </div>
-      </div>
-
-      <!-- History table — inside side column so it doesn't push the page below viewport -->
+      <!-- History table — moved here from right column -->
       <section class="panel panel-history">
         <h3 class="panel-title">History</h3>
         <div class="history-scroll">
@@ -304,6 +283,26 @@
           </table>
         </div>
       </section>
+    </main>
+
+    <!-- RIGHT COLUMN: Rate Control + Result -->
+    <aside class="panel-side">
+
+      <!-- Decision panel (shown before player acts) -->
+      <!-- Content injected by app.js DOMContentLoaded handler -->
+      <div class="panel panel-decision" id="panel-decision"></div>
+
+      <!-- Result panel (shown after player acts, before next quarter) -->
+      <div class="panel panel-result hidden" id="panel-result">
+        <h3 class="panel-title">Economic Update</h3>
+        <div id="result-body" class="result-body"></div>
+        <div class="result-footer">
+          <div class="quarter-score-display">
+            Quarter score: <span id="result-quarter-score">&mdash;</span>
+          </div>
+          <button class="btn-primary" id="btn-next" onclick="nextQuarter()">Next Quarter &rarr;</button>
+        </div>
+      </div>
 
     </aside>
   </div>
