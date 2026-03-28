@@ -19,7 +19,7 @@
      severity   : 'minor' | 'moderate' | 'major'
    ========================================================================== */
 
-const SHOCK_EVENTS = [
+var SHOCK_EVENTS = [
   {
     title:     'Oil Price Crash',
     headline:  'Global Oil Prices Plunge on Supply Glut',
@@ -198,7 +198,7 @@ function selectEvent(rng, difficulty) {
    Rotate through using (quarter - 1) % ROUTINE_NEWS.length.
    ========================================================================== */
 
-const ROUTINE_NEWS = [
+var ROUTINE_NEWS = [
   {
     badge:    'MARKET UPDATE',
     headline: 'Quarterly Economic Briefing',
