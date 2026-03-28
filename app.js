@@ -58,6 +58,10 @@ function selectDifficulty(key) {
 }
 
 
+// Global game state — initialized by startGame(), referenced by all rendering functions
+var state = {};
+
+
 /* ==========================================================================
    2. GAME STATE
    ========================================================================== */
