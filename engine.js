@@ -290,7 +290,7 @@ function calcFinalScore(history) {
 function getOutcomeVerdict(score) {
   var tiers = [
     { min: 95, title: 'Legendary Chair',         text: 'A Flawless Soft Landing',              className: 'excellent' },
-    { min: 85, title: 'Soft Landing Achieved',   text: 'Textbook Policy',                      className: 'excellent' },
+    { min: 85, title: 'Soft Landing Achieved',   text: 'Textbook Policy',                      className: 'good'      },
     { min: 75, title: 'Steady Hand',             text: 'Economy Stabilized',                   className: 'good'      },
     { min: 60, title: 'Reappointed',             text: 'Mixed but Acceptable',                 className: 'good'      },
     { min: 40, title: 'Not Reappointed',         text: 'Policy Fell Short',                    className: 'poor'      },
@@ -362,9 +362,10 @@ function findBestWorstQuarters(history) {
    }
    -------------------------------------------------------------------------- */
 
-var RATE_STEP = 0.25;
-var RATE_CLAMP_MIN = 0.0;
-var RATE_CLAMP_MAX = 20.0;
+// ENGINE_RATE_STEP prefixed to avoid conflict with app.js const RATE_STEP
+var ENGINE_RATE_STEP      = 0.25;
+var ENGINE_RATE_CLAMP_MIN = 0.0;
+var ENGINE_RATE_CLAMP_MAX = 20.0;
 
 /**
  * Map 'normal' (legacy alias) → 'realworld', then look up DIFFICULTY_PRESETS.
@@ -376,12 +377,13 @@ function resolveDifficulty(key) {
 }
 
 /**
- * Create a fresh game state.
+ * Create a fresh engine-level game state (for headless/smoke-test use).
+ * App.js uses its own createInitialState() with DOM-aware fields.
  * @param {number}  seed       — integer seed for the PRNG (use getDailySeed() for daily challenge)
  * @param {string}  difficulty — 'textbook' | 'realworld' | 'crisis' | 'normal' (alias for realworld)
  * @returns {object} Initial game state
  */
-function createInitialState(seed, difficulty) {
+function engineCreateState(seed, difficulty) {
   var diff  = resolveDifficulty(difficulty || 'realworld');
   var ic    = getInitialConditions(difficulty || 'realworld');
   var rng   = mulberry32(seed || getDailySeed());
@@ -401,17 +403,18 @@ function createInitialState(seed, difficulty) {
 }
 
 /**
- * Advance the simulation by one quarter.
- * @param {object} state  — current game state (immutably-styled: returns new state)
+ * Advance the engine state by one quarter (for headless/smoke-test use).
+ * App.js has its own makeDecision() UI function.
+ * @param {object} state  — current engine state
  * @param {string} action — 'hold' | 'raise' | 'lower'
- * @returns {object} New game state after applying the decision
+ * @returns {object} New engine state after applying the decision
  */
-function makeDecision(state, action) {
+function engineMakeDecision(state, action) {
   var rateChange = 0;
-  if (action === 'raise') rateChange =  RATE_STEP;
-  if (action === 'lower') rateChange = -RATE_STEP;
+  if (action === 'raise') rateChange =  ENGINE_RATE_STEP;
+  if (action === 'lower') rateChange = -ENGINE_RATE_STEP;
 
-  var newFedRate      = Math.max(RATE_CLAMP_MIN, Math.min(RATE_CLAMP_MAX,
+  var newFedRate      = Math.max(ENGINE_RATE_CLAMP_MIN, Math.min(ENGINE_RATE_CLAMP_MAX,
                           Math.round((state.fedRate + rateChange) * 100) / 100));
   var actualRateChange = Math.round((newFedRate - state.fedRate) * 100) / 100;
 
@@ -457,6 +460,6 @@ function makeDecision(state, action) {
  * @param {object} state — game state with history array
  * @returns {number} Score 0-100
  */
-function calculateFinalScore(state) {
-  return calcFinalScore(state.history);
+function calculateFinalScore(engineState) {
+  return calcFinalScore(engineState.history);
 }
