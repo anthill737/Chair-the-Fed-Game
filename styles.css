@@ -2716,3 +2716,114 @@ html:has(#screen-game.active) body {
   margin-top: 2px;
   font-size: 0.78rem;
 }
+
+/* ============================================================
+   SURGICAL-FIX-2: Correct remaining issues in Set Monetary Policy
+   and Breaking News panels. Overrides S6 block above.
+   2026-03-28
+   ============================================================ */
+
+/* --- AREA 1: Set Monetary Policy ---
+   Problem: overflow:hidden still clips #panel-decision; controls row
+   (summary|button side-by-side) is cramped; GO button is auto-width (small).
+   Fix: remove clipping, make controls a stacked column so both elements
+   use the full 280px right column width. */
+
+/* Allow decision panel to show all content — no clipping */
+.panel-side #panel-decision {
+  overflow: visible;
+}
+
+/* Rate list: fixed max-height so panel is not dominated by a giant list.
+   Scroll internally for the remaining options. */
+.panel-side .rate-selector-scroll {
+  flex: 0 0 auto;
+  min-height: 80px;
+  max-height: 200px;
+  overflow-y: auto;
+  width: 100%;
+  min-width: 0;
+}
+
+/* Controls: COLUMN layout — summary above, GO button below, both full width */
+.panel-side .rate-selector-controls {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  width: 100%;
+  min-width: 0;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+/* Summary: full width, centered, may wrap to show complete action */
+.panel-side .rate-change-summary {
+  flex-shrink: 0;
+  width: 100%;
+  white-space: normal;
+  text-align: center;
+  font-size: 0.82rem;
+  padding: 8px 10px;
+  line-height: 1.35;
+}
+
+/* GO button: full column width, prominent height */
+.panel-side .btn-go {
+  width: 100%;
+  padding: 14px 12px;
+  font-size: 1.0rem;
+  flex-shrink: 0;
+}
+
+/* Instructional prompt: normal wrap, never hidden */
+.panel-side .decision-prompt {
+  white-space: normal;
+  overflow: visible;
+  flex-shrink: 0;
+  font-size: 0.82rem;
+  margin-bottom: 10px;
+}
+
+/* --- AREA 2: Breaking News / Briefing Panel ---
+   Problem: 150px (S6) gives only 122px usable, but breaking news content
+   (alert 67px + margin 6px + header 28px + body 40px = 141px) still clips.
+   S6 also had line-clamp:2 on alert text (adds ~16px more height).
+   Fix: 180px panel (152px usable), 1-line alert-text, 2-line news body.
+   Offset: reduce chart from 310px to 280px (history panel absorbs same space). */
+
+/* News panel: 180px fits both normal and breaking-news content */
+.panel-news {
+  flex: 0 0 180px;
+  height: 180px;
+  min-height: 180px;
+  max-height: 180px;
+}
+
+/* Chart: 30px shorter to offset news panel growth (310→280) */
+.panel-chart {
+  flex: 0 0 280px;
+  height: 280px;
+  min-height: 280px;
+  max-height: 280px;
+}
+
+/* Alert supplementary text: 1 line max — headline IS the news */
+.panel-news .news-alert-text {
+  font-size: 0.76rem;
+  line-height: 1.3;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+}
+
+/* News body: 2-line max in all states.
+   Normal state: header(28) + body(39) + padding(28) = 95px << 180px ✓
+   Breaking news: alert(67) + margin(6) + header(28) + body(39) = 140px < 152px usable ✓ */
+.panel-news .news-body p {
+  margin-bottom: 3px;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
