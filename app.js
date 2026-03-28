@@ -1328,7 +1328,19 @@ function setIndicatorClass(el, val, target, nearThresh, warnThresh) {
   }
 }
 
-/** Render the news / event card for the current quarter */
+/**
+ * DEAD CODE — DO NOT USE OR MODIFY
+ *
+ * This is an earlier draft of renderNews() that is completely overridden at
+ * runtime by the canonical implementation at ~line 1977 (JavaScript function
+ * hoisting means the last same-named declaration wins in the same scope).
+ *
+ * This copy is missing: tier-gating (minor/moderate/major), the news-alert
+ * banner logic, continuingShock handling, and tier normalisation. Any changes
+ * must go to the active renderNews() near line 1977 instead.
+ *
+ * @deprecated superseded by renderNews() at ~line 1977
+ */
 function renderNews() {
   const shock = state.shockSchedule[state.quarter - 1];
   const label = document.getElementById('news-quarter-label');
