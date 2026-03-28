@@ -2217,7 +2217,7 @@ html:has(#screen-game.active) body {
   width: 100%;
 }
 
-/* Explicit column widths sized for 280px column (padding: 10px 12px → 256px usable).
+/* Explicit column widths sized for 300px column (padding: 10px 12px → 276px usable).
    Columns: Qtr | Inflation | Unemployment | Fed Rate | Decision | Event */
 .panel-side .history-table th,
 .panel-side .history-table td { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
