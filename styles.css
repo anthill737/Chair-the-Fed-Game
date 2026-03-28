@@ -27,6 +27,20 @@ html, body {
   line-height: 1.5;
 }
 
+/* When the game screen is active, lock body scroll so the page never scrolls */
+/* JS toggles .game-screen-active on <html> — more reliable than :has() across browsers */
+html.game-screen-active,
+html.game-screen-active body {
+  overflow: hidden;
+  height: 100%;
+}
+/* Keep :has() as a fallback for browsers that support it */
+html:has(#screen-game.active),
+html:has(#screen-game.active) body {
+  overflow: hidden;
+  height: 100%;
+}
+
 /* ---------- Screens ---------- */
 .screen {
   display: none;
@@ -34,6 +48,17 @@ html, body {
 }
 .screen.active {
   display: block;
+}
+
+/* Game screen fills viewport exactly — no page scroll during play.
+   min-height: 0 overrides .screen { min-height: 100vh } so the container
+   cannot grow beyond 100vh with content (which would re-enable page scroll). */
+#screen-game.active {
+  height: 100vh;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 /* ---------- INTRO SCREEN ---------- */
@@ -190,11 +215,14 @@ html, body {
 }
 
 /* ---------- GAME SCREEN ---------- */
+/* Hidden when inactive — display:none here so the inactive game screen doesn't
+   push the end/intro screens off-page. #screen-game.active overrides to flex. */
 #screen-game {
-  display: flex;
+  display: none;
   flex-direction: column;
   background: #ddd8cc;
-  min-height: 100vh;
+  height: 100vh;
+  overflow: hidden;
 }
 
 /* Game Header */
@@ -204,13 +232,81 @@ html, body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 24px;
+  padding: 8px 20px;
   border-bottom: 3px solid #c8a400;
+  position: relative; /* needed so the dropdown can position itself relative to the header */
+}
+
+/* Hamburger menu button */
+.hdr-menu-wrap {
+  position: relative;
+  margin-left: 12px;
+  flex-shrink: 0;
+}
+
+.hdr-menu-btn {
+  background: none;
+  border: 1px solid rgba(255,255,255,0.3);
+  border-radius: 3px;
+  cursor: pointer;
+  padding: 6px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 30px;
+}
+.hdr-menu-btn span {
+  display: block;
+  width: 18px;
+  height: 2px;
+  background: #fff;
+  border-radius: 1px;
+  transition: transform 0.2s, opacity 0.2s;
+}
+.hdr-menu-btn:hover { border-color: #c8a400; }
+.hdr-menu-btn[aria-expanded="true"] span:nth-child(1) { transform: translateY(6px) rotate(45deg); }
+.hdr-menu-btn[aria-expanded="true"] span:nth-child(2) { opacity: 0; }
+.hdr-menu-btn[aria-expanded="true"] span:nth-child(3) { transform: translateY(-6px) rotate(-45deg); }
+
+/* Dropdown panel */
+.hdr-menu-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  background: #fff;
+  border: 1px solid #c8c0b0;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.18);
+  min-width: 200px;
+  z-index: 1000;
+  border-radius: 3px;
+  padding: 4px 0;
+}
+.hdr-menu-item {
+  display: block;
+  width: 100%;
+  padding: 10px 16px;
+  text-align: left;
+  background: none;
+  border: none;
+  font-family: Arial, sans-serif;
+  font-size: 0.88rem;
+  color: #1a2a4a;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.hdr-menu-item:hover { background: #f4efe6; color: #0d1c35; }
+.hdr-menu-divider {
+  height: 1px;
+  background: #e0dbd2;
+  margin: 4px 0;
 }
 
 .quarter-progress-panel {
-  margin: 12px 16px 0;
-  padding: 12px 16px 14px;
+  margin: 8px 12px 0;
+  padding: 8px 12px;
   background: linear-gradient(180deg, #f7f4ee 0%, #ece5d6 100%);
   border: 1px solid #bbb5a8;
   box-shadow: 1px 1px 4px rgba(0,0,0,0.08);
@@ -339,9 +435,11 @@ html, body {
 .game-body {
   display: grid;
   grid-template-columns: 220px minmax(0, 1fr) 260px;
-  gap: 12px;
-  padding: 12px 16px;
+  gap: 10px;
+  padding: 8px 12px;
   flex: 1;
+  min-height: 0;
+  overflow-y: auto;
 }
 
 @media (max-width: 1100px) {
@@ -377,6 +475,14 @@ html, body {
     grid-column: auto;
     grid-row: auto;
   }
+}
+
+/* Each column scrolls within its grid cell instead of pushing the page */
+.panel-indicators,
+.panel-center,
+.panel-side {
+  min-height: 0;
+  overflow-y: auto;
 }
 
 /* Panels */
@@ -432,12 +538,12 @@ html, body {
   color: #1a2a4a;
   line-height: 1.1;
   margin: 2px 0;
-  transition: color 0.4s ease;
 }
 
-.indicator-value.over-target { color: #b22222; }
-.indicator-value.under-target { color: #1a5c1a; }
-.indicator-value.near-target { color: #1a6b1a; }
+/* Status shown via superscript symbol — no color change to avoid conflicting with chart line colors */
+.indicator-value.over-target::after  { content: ' ▲'; font-size: 0.65em; color: #b45309; vertical-align: super; }
+.indicator-value.under-target::after { content: ' ▼'; font-size: 0.65em; color: #4338ca; vertical-align: super; }
+.indicator-value.near-target::after  { content: ' ✓'; font-size: 0.65em; color: #0b7c6c; vertical-align: super; }
 
 .indicator-target {
   font-size: 0.72rem;
@@ -446,17 +552,36 @@ html, body {
   margin-bottom: 6px;
 }
 
+/* Status pill shown below the indicator value — uses non-chart colors to avoid confusion */
+.indicator-status {
+  display: inline-block;
+  font-family: Arial, sans-serif;
+  font-size: 0.64rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-top: 2px;
+  padding: 2px 7px;
+  border-radius: 3px;
+}
+.ind-status--good  { background: #e8ede6; color: #3a4a38; border: 1px solid #b4c8b0; }
+.ind-status--over  { background: #fdf3e0; color: #7a3e00; border: 1px solid #dfbb60; }
+.ind-status--under { background: #ededf8; color: #2a2a70; border: 1px solid #b4b4d8; }
+
 /* Center and side columns */
 .panel-center {
   display: flex;
   flex-direction: column;
   gap: 12px;
+  min-height: 0;
 }
 
 .panel-side {
   display: flex;
   flex-direction: column;
   gap: 12px;
+  min-height: 0;
+  overflow-y: auto;
 }
 
 /* News panel */
@@ -615,7 +740,9 @@ html, body {
 .chart-frame canvas {
   display: block;
   width: 100%;
-  height: 380px;
+  /* Responsive height so chart fits the viewport without page scrolling.
+     At 900px viewport → ~290px; at 768px → ~160px (clamped to 160 minimum). */
+  height: clamp(160px, calc(100vh - 610px), 360px);
   background: #fdfcf9;
   border: 1px solid #ded7ca;
 }
@@ -631,7 +758,7 @@ html, body {
   }
 
   .chart-frame canvas {
-    height: 320px;
+    height: clamp(140px, calc(100vh - 560px), 260px);
   }
 }
 
@@ -836,7 +963,7 @@ html, body {
 .history-scroll {
   overflow-x: auto;
   overflow-y: auto;
-  max-height: 260px;
+  max-height: 130px;
 }
 
 .history-table {
@@ -1375,12 +1502,14 @@ html, body {
   color: #444;
 }
 .bd-track {
+  display: block;
   background: #e8e3d8;
   height: 10px;
   border-radius: 2px;
   overflow: hidden;
 }
 .bd-fill {
+  display: block;
   height: 100%;
   border-radius: 2px;
   transition: width 0.6s ease;
@@ -1823,9 +1952,10 @@ html, body {
    ============================================================ */
 
 /* Running score in game header — color-coded by performance */
-.hdr-score--good    { color: #1a6b1a; }
-.hdr-score--ok      { color: #c8a400; }
-.hdr-score--poor    { color: #b22222; }
+/* Header score: teal/amber/magenta — distinct from chart line colors (red/navy/gold) */
+.hdr-score--good    { color: #0b7c6c; }
+.hdr-score--ok      { color: #b45309; }
+.hdr-score--poor    { color: #9b1f7a; }
 
 /* CRISIS badge pulse — draws attention to high-severity shocks */
 @keyframes crisisPulse {
@@ -1842,9 +1972,10 @@ html, body {
   transition: border-color 0.4s ease;
   padding-left: 8px;
 }
-.indicator.state-over  { border-left-color: #b22222; }
-.indicator.state-under { border-left-color: #1a5c1a; }
-.indicator.state-near  { border-left-color: #1a6b1a; }
+/* Border + subtle background tint — none of these colors match chart lines (#b22222 red / #1a2a4a navy) */
+.indicator.state-over  { border-left-color: #b45309; background: #fff8f0; }
+.indicator.state-under { border-left-color: #4338ca; background: #f4f4fd; }
+.indicator.state-near  { border-left-color: #0b7c6c; background: #f0f9f7; }
 
 /* Quarter progress marker — prevent clipping at position 0% */
 .quarter-progress-marker {
@@ -1883,6 +2014,9 @@ html, body {
 .news-badge.shock--ongoing { background: #8f6a00; color: #fff; }
 .news-alert--panic .news-alert-label { background: linear-gradient(135deg, #8f1717, #600e0e); }
 .news-alert--calm  .news-alert-label { background: linear-gradient(135deg, #1a6b1a, #145214); }
+
+/* --- BOOM badge: positive economic shock (green, not red) --- */
+.news-badge.shock.boom-badge { background: #1a6b1a; color: #fff; }
 
 /* --- End screen seed display --- */
 .end-seed-display {
@@ -1936,3 +2070,27 @@ html, body {
 .intro-body { gap: 36px; }
 .intro-section { padding: 24px 26px; }
 .intro-column { gap: 24px; }
+
+/* --- Viewport-fit layout: center column + chart scale to fill available height --- */
+
+/* Center column: flex column so news and chart share vertical space */
+.panel-indicators { min-height: 0; overflow-y: auto; }
+.panel-center     { min-height: 0; overflow-y: auto; }
+/* News panel capped so chart always has room to breathe */
+.panel-news       { flex-shrink: 0; max-height: 36vh; overflow-y: auto; }
+/* Chart panel grows to fill remaining center-column height */
+.panel-chart      { flex: 1; min-height: 0; overflow: hidden; }
+/* Chart frame fills the panel */
+.chart-frame      { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+/* Canvas: viewport-relative height — reliable without depending on full parent-chain heights */
+.chart-frame canvas { height: clamp(180px, 22vh, 300px); }
+
+/* Right column: allow internal scroll as history grows */
+.panel-side { min-height: 0; overflow-y: auto; }
+
+/* Suppress the in-game CC footer — reclaims ~32px of vertical space */
+#screen-game .cc-attribution { display: none; }
+
+/* History panel inside the side column: no outer page margins, constrained height */
+.panel-side .panel-history { margin: 0; }
+.panel-side .history-scroll { max-height: 200px; }
