@@ -283,17 +283,17 @@ var ROUTINE_NEWS = [
      title    : role/title string
      avatar   : single character for avatar display (CSS uses data-avatar attr)
      rec      : 'Raise' | 'Lower' | 'Hold'
-     rationale: one-sentence explanation mentioning specific numbers
+     rationale: one-sentence directional explanation — no specific rate targets
 
-   Advisors have slightly different thresholds to create occasional disagreement:
-     Dr. Chen    — hawkish lean (more sensitive to inflation above target)
-     Gov. Rivera — balanced / centrist
-     Sec. Park   — dovish lean (more sensitive to unemployment above target)
+   Signal logic: deviations from 2% inflation and 5% unemployment drive signals.
+     inflation  > 2% + band → raise signal  |  < 2% - band → lower signal
+     unemployment > 5% + band → lower signal | < 5% - band → raise signal
+     combined signals: same direction → Raise/Lower; opposing → Hold
 
-   Thresholds (before advisor-specific adjustments):
-     lean Raise if inflation > 2.5 AND unemployment < 6.0
-     lean Lower if inflation < 1.5 OR unemployment > 6.5
-     otherwise Hold
+   Advisor personality deadbands (tolerance around each target):
+     Dr. Chen    — hawkish: tight inflation band (0.15pp), wider unemployment (0.30pp)
+     Gov. Rivera — balanced: symmetric bands (0.20pp each)
+     Sec. Park   — dovish: wide inflation band (0.30pp), tight unemployment (0.15pp)
    ========================================================================== */
 
 function getAdvisorRecs(inflation, unemployment, fedRate, difficulty) {
