@@ -35,14 +35,16 @@ const RATE_STEP = 0.25;            // Increment per notch
 // === TUNING: Policy sensitivity
 // These control how strongly rate changes pass through to the economy.
 // Declared as `let` so difficulty modes can override them at game start.
-let RATE_INFL_SENSITIVITY  = 0.18;  // Each 1% rate change → this much inflation impact
-let RATE_UNEMP_SENSITIVITY = 0.14;  // Each 1% rate change → this much unemployment impact
+// Defaults match the Real World profile — overridden at game start by applyDifficultyToConstants().
+let RATE_INFL_SENSITIVITY  = 0.26;  // Each 1% rate change → this much inflation impact
+let RATE_UNEMP_SENSITIVITY = 0.20;  // Each 1% rate change → this much unemployment impact
 
 // === TUNING: Lag (policy takes time to fully work)
 // LAG_IMMEDIATE: fraction of effect felt this quarter
 // LAG_DEFERRED:  fraction felt next quarter (should sum to ~1.0)
-const LAG_IMMEDIATE = 0.45;
-const LAG_DEFERRED  = 0.55;
+// 65% deferred: policy effects accumulate over two quarters, forcing player to plan ahead.
+const LAG_IMMEDIATE = 0.35;
+const LAG_DEFERRED  = 0.65;
 
 // === TUNING: Momentum / mean-reversion
 // Weak stabilising pull — intentionally small so it does NOT create a free equilibrium.
@@ -56,6 +58,15 @@ let UNEMP_MEAN_REVERT = 0.02;   // pull toward TARGET_UNEMPLOYMENT (weakened —
 // Set via difficulty profile through applyDifficultyToConstants().
 let INFL_DRIFT_BIAS  = 0.12;   // upward inflationary pressure per quarter
 let UNEMP_DRIFT_BIAS = 0.06;   // upward unemployment pressure per quarter
+
+// === TUNING: Rate-level effect
+// Holding rates above/below the neutral rate exerts continuous, ongoing pressure.
+// Without this, a rate raise only helps for 1-2 quarters (the lag window), then stops —
+// making holding a high rate identical to holding a neutral rate. That is wrong.
+// With this, rates of 7% continuously suppress inflation; rates of 2% continuously stoke it.
+const NEUTRAL_RATE           = 4.0;   // rate at which level effect is zero
+const RATE_INFL_LEVEL_COEFF  = 0.10;  // fraction of sensitivity applied per 1% above neutral
+const RATE_UNEMP_LEVEL_COEFF = 0.05;  // fraction of sensitivity applied per 1% above neutral
 
 // === TUNING: Random noise magnitude
 let INFL_NOISE  = 0.20;   // max random ± on inflation each quarter (was 0.15)
@@ -1008,14 +1019,21 @@ function advanceEconomy(rateDelta) {
   const pullInfl  = (TARGET_INFLATION    - state.inflation)    * INFL_MEAN_REVERT;
   const pullUnemp = (TARGET_UNEMPLOYMENT - state.unemployment) * UNEMP_MEAN_REVERT;
 
+  // --- Rate-level effect: holding rates above/below neutral exerts continuous pressure ---
+  // Without this, raising rates only matters for the 1-2 quarter lag window.
+  // With this, holding at 7% continuously suppresses inflation; 2% continuously stokes it.
+  const rateGap    = state.fedRate - NEUTRAL_RATE;
+  const levelInfl  = -rateGap * RATE_INFL_SENSITIVITY  * RATE_INFL_LEVEL_COEFF;
+  const levelUnemp = +rateGap * RATE_UNEMP_SENSITIVITY * RATE_UNEMP_LEVEL_COEFF;
+
   // --- Random noise (seeded when replaying a seed, random otherwise) ---
   const _rng = (state.noiseRng || Math.random.bind(Math));
   const noiseInfl  = (_rng() * 2 - 1) * INFL_NOISE;
   const noiseUnemp = (_rng() * 2 - 1) * UNEMP_NOISE;
 
   // --- Combine all effects ---
-  const inflDelta  = directInfl  + lagInfl  + shockInfl  + pullInfl  + driftInfl  + noiseInfl;
-  const unempDelta = directUnemp + lagUnemp + shockUnemp + pullUnemp + driftUnemp + noiseUnemp;
+  const inflDelta  = directInfl  + lagInfl  + shockInfl  + pullInfl  + driftInfl  + levelInfl  + noiseInfl;
+  const unempDelta = directUnemp + lagUnemp + shockUnemp + pullUnemp + driftUnemp + levelUnemp + noiseUnemp;
 
   // --- Compute new values and clamp to bounds ---
   let newInflation    = Math.max(INFL_MIN,  Math.min(INFL_MAX,  state.inflation    + inflDelta));
