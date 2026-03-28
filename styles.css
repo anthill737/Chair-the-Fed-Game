@@ -180,6 +180,7 @@ html, body {
   transition: background 0.15s;
 }
 .btn-primary:hover { background: #2a3e6e; }
+.btn-primary:focus-visible { outline: 2px solid #c8a400; outline-offset: 2px; }
 .btn-large {
   font-size: 1.05rem;
   padding: 13px 40px;
@@ -429,6 +430,7 @@ html, body {
   color: #1a2a4a;
   line-height: 1.1;
   margin: 2px 0;
+  transition: color 0.4s ease;
 }
 
 .indicator-value.over-target { color: #b22222; }
@@ -507,21 +509,6 @@ html, body {
   color: #4a433a;
   font-size: 0.84rem;
   line-height: 1.45;
-}
-
-.news-alert--flash {
-  animation: newsFlash 0.8s ease-out;
-}
-
-@keyframes newsFlash {
-  0% {
-    opacity: 0;
-    transform: translateY(-8px);
-  }
-  100% {
-    opacity: 1;
-    transform: translateY(0);
-  }
 }
 
 .news-header .panel-title {
@@ -746,6 +733,7 @@ html, body {
   transition: background 0.15s;
 }
 .btn-go:hover { background: #2a3e6e; }
+.btn-go:focus-visible { outline: 2px solid #c8a400; outline-offset: 2px; }
 
 .panel-side .panel {
   padding: 12px 12px 14px;
@@ -780,7 +768,7 @@ html, body {
 }
 
 .panel-side .rate-tag {
-  font-size: 0.55rem;
+  font-size: 0.62rem;
 }
 
 .panel-side .rate-selector-controls {
@@ -1096,3 +1084,774 @@ html, body {
 .cc-attribution--game a {
   color: rgba(200, 164, 0, 0.8);
 }
+
+/* ==========================================================================
+   T5 — SEEDED RUNS + ONE-MORE-TURN FLOW
+   ========================================================================== */
+
+/* --- Intro screen seed options --- */
+.seed-options {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
+.btn-daily {
+  background: #c8a400;
+  color: #1a2a4a;
+  border: none;
+  border-radius: 6px;
+  padding: 9px 18px;
+  font-size: 0.92rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.1s;
+  white-space: nowrap;
+}
+.btn-daily:hover {
+  background: #e6bc00;
+  transform: translateY(-1px);
+}
+.btn-daily:focus-visible {
+  outline: 2px solid #1a2a4a;
+  outline-offset: 2px;
+}
+
+.seed-custom {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.seed-custom input[type="text"] {
+  padding: 8px 12px;
+  border: 1.5px solid #c8a400;
+  border-radius: 5px;
+  background: rgba(245, 240, 232, 0.9);
+  color: #1a2a4a;
+  font-size: 0.88rem;
+  width: 160px;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.seed-custom input[type="text"]:focus {
+  border-color: #e6bc00;
+  box-shadow: 0 0 0 2px rgba(200, 164, 0, 0.25);
+}
+.seed-custom input[type="text"]::placeholder {
+  color: #888;
+  font-style: italic;
+}
+.btn-seeded {
+  background: transparent;
+  color: #c8a400;
+  border: 1.5px solid #c8a400;
+  border-radius: 5px;
+  padding: 8px 14px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s, color 0.15s;
+}
+.btn-seeded:hover {
+  background: rgba(200, 164, 0, 0.12);
+}
+.btn-seeded:focus-visible {
+  outline: 2px solid #c8a400;
+  outline-offset: 2px;
+}
+
+/* --- Game header: seed display --- */
+.meta-item--seed {
+  border-left: 1px solid rgba(200, 164, 0, 0.3);
+  padding-left: 10px;
+}
+.meta-seed {
+  font-family: 'Courier New', monospace;
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+  color: rgba(200, 164, 0, 0.85);
+}
+
+/* --- Sandbox mode banner --- */
+.sandbox-banner {
+  background: rgba(200, 164, 0, 0.15);
+  border-bottom: 1px solid rgba(200, 164, 0, 0.5);
+  color: #c8a400;
+  text-align: center;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  padding: 4px 0;
+}
+
+/* --- End screen action buttons --- */
+.end-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+  padding: 20px 0 10px;
+}
+.btn-end {
+  border-radius: 6px;
+  padding: 10px 20px;
+  font-size: 0.93rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.1s, box-shadow 0.15s;
+  border: 1.5px solid transparent;
+}
+.btn-end:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 3px 10px rgba(0,0,0,0.18);
+}
+.btn-end:focus-visible {
+  outline: 2px solid #c8a400;
+  outline-offset: 2px;
+}
+.btn-replay-seed {
+  background: transparent;
+  color: #c8a400;
+  border-color: #c8a400;
+}
+.btn-replay-seed:hover {
+  background: rgba(200, 164, 0, 0.1);
+}
+.btn-sandbox {
+  background: transparent;
+  color: #5a8a5a;
+  border-color: #5a8a5a;
+}
+.btn-sandbox:hover {
+  background: rgba(90, 138, 90, 0.1);
+}
+
+.end-actions-hint {
+  text-align: center;
+  font-size: 0.75rem;
+  color: #888;
+  margin: 4px 0 0;
+}
+.end-actions-hint kbd {
+  background: #f0ece4;
+  border: 1px solid #ccc;
+  border-radius: 3px;
+  padding: 1px 5px;
+  font-family: monospace;
+  font-size: 0.75rem;
+}
+
+/* ==========================================================================
+   FEATURE: ENHANCED SCORING + ENDGAME — feature-scoring.js styles
+   Added at end to avoid conflicts with other builders' CSS additions.
+   ========================================================================== */
+
+/* ---- Verdict subtitle ---- */
+.end-subtitle {
+  font-family: Arial, sans-serif;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: #666;
+  margin-bottom: 8px;
+}
+
+/* ---- End highlights row (soft landing + best/worst) ---- */
+.end-highlights {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 18px;
+  flex-wrap: wrap;
+}
+
+/* ---- Soft Landing badge ---- */
+.end-soft-landing {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 18px;
+  border: 2px solid #c8c0b0;
+  background: #fff;
+  min-width: 160px;
+  flex-shrink: 0;
+}
+.end-soft-landing.yes { border-color: #1a6b1a; background: #f0f7f0; }
+.end-soft-landing.no  { border-color: #b22222; background: #fdf0f0; }
+
+.end-soft-landing-label {
+  font-family: Arial, sans-serif;
+  font-size: 0.70rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: #555;
+}
+.end-soft-landing-value {
+  font-family: 'Courier New', monospace;
+  font-size: 1.3rem;
+  font-weight: bold;
+  color: #1a2a4a;
+}
+.end-soft-landing.yes .end-soft-landing-value { color: #1a6b1a; }
+.end-soft-landing.no  .end-soft-landing-value { color: #b22222; }
+
+/* ---- Best / Worst quarter callouts ---- */
+.end-best-worst {
+  display: flex;
+  gap: 10px;
+  flex: 1;
+  flex-wrap: wrap;
+}
+.bw-item {
+  display: flex;
+  flex-direction: column;
+  padding: 8px 14px;
+  border: 1px solid #c8c0b0;
+  background: #fff;
+  flex: 1;
+  min-width: 130px;
+}
+.bw-item.bw-best  { border-left: 3px solid #1a6b1a; }
+.bw-item.bw-worst { border-left: 3px solid #b22222; }
+
+.bw-tag {
+  font-family: Arial, sans-serif;
+  font-size: 0.62rem;
+  text-transform: uppercase;
+  letter-spacing: 0.13em;
+  color: #888;
+  margin-bottom: 2px;
+}
+.bw-quarter {
+  font-size: 0.95rem;
+  font-weight: bold;
+  color: #1a2a4a;
+}
+.bw-detail {
+  font-family: 'Courier New', monospace;
+  font-size: 0.78rem;
+  color: #555;
+  margin-top: 2px;
+}
+
+/* ---- Score breakdown panel ---- */
+.end-breakdown-wrap {
+  margin-bottom: 20px;
+}
+.end-breakdown-title {
+  font-family: Arial, sans-serif;
+  font-size: 0.70rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: #1a2a4a;
+  font-weight: bold;
+  margin-bottom: 8px;
+}
+.end-score-breakdown {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  background: #fff;
+  border: 1px solid #c8c0b0;
+  padding: 14px 16px;
+}
+.bd-row {
+  display: grid;
+  grid-template-columns: 160px 1fr 36px;
+  align-items: center;
+  gap: 10px;
+  cursor: default;
+}
+.bd-label {
+  font-family: Arial, sans-serif;
+  font-size: 0.75rem;
+  color: #444;
+}
+.bd-track {
+  background: #e8e3d8;
+  height: 10px;
+  border-radius: 2px;
+  overflow: hidden;
+}
+.bd-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.6s ease;
+}
+.bd-fill--good { background: #1a6b1a; }
+.bd-fill--ok   { background: #c8a400; }
+.bd-fill--poor { background: #b22222; }
+.bd-value {
+  font-family: 'Courier New', monospace;
+  font-size: 0.80rem;
+  font-weight: bold;
+  color: #1a2a4a;
+  text-align: right;
+}
+
+/* ---- Share text (if added to HTML later) ---- */
+.end-share-wrap {
+  margin-top: 10px;
+  text-align: center;
+}
+.end-share-wrap label {
+  font-family: Arial, sans-serif;
+  font-size: 0.70rem;
+  text-transform: uppercase;
+  letter-spacing: 0.10em;
+  color: #888;
+  display: block;
+  margin-bottom: 4px;
+}
+#end-share-text {
+  width: 100%;
+  max-width: 500px;
+  font-family: 'Courier New', monospace;
+  font-size: 0.78rem;
+  padding: 6px 8px;
+  border: 1px solid #c8c0b0;
+  background: #f9f7f3;
+  color: #444;
+  resize: none;
+}
+
+/* ---- Responsive adjustments ---- */
+@media (max-width: 600px) {
+  .end-highlights { flex-direction: column; }
+  .end-soft-landing { min-width: 0; }
+  .bd-row { grid-template-columns: 130px 1fr 32px; }
+}
+
+
+/* ==========================================================================
+   T3 — DIFFICULTY SELECTOR
+   Three mode cards on the intro screen: Textbook / Real World / Crisis Mode
+   ========================================================================== */
+
+.difficulty-selector {
+  max-width: 700px;
+  margin: 0 auto 24px;
+  text-align: center;
+}
+
+.difficulty-heading {
+  font-family: Arial, sans-serif;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: #888;
+  margin-bottom: 12px;
+}
+
+.difficulty-options {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.btn-difficulty {
+  background: #fff;
+  border: 2px solid #c8c0b0;
+  padding: 14px 18px;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: center;
+  min-width: 160px;
+  flex: 1;
+  max-width: 200px;
+  transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.btn-difficulty:hover {
+  border-color: #1a2a4a;
+  box-shadow: 0 2px 6px rgba(26, 42, 74, 0.12);
+}
+
+.btn-difficulty.active {
+  background: #1a2a4a;
+  border-color: #1a2a4a;
+}
+
+.diff-name {
+  display: block;
+  font-family: Arial, sans-serif;
+  font-size: 0.95rem;
+  font-weight: bold;
+  color: #1a2a4a;
+  letter-spacing: 0.04em;
+}
+
+.btn-difficulty.active .diff-name {
+  color: #fff;
+}
+
+.diff-subtitle {
+  display: block;
+  font-family: Arial, sans-serif;
+  font-size: 0.72rem;
+  color: #888;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.btn-difficulty.active .diff-subtitle {
+  color: rgba(200, 164, 0, 0.85);
+}
+
+.diff-dots {
+  display: block;
+  font-size: 0.7rem;
+  color: #c8a400;
+  letter-spacing: 3px;
+  margin: 3px 0;
+}
+
+.btn-difficulty.active .diff-dots {
+  color: #c8a400;
+}
+
+.diff-desc {
+  display: block;
+  font-size: 0.78rem;
+  color: #555;
+  font-style: italic;
+  line-height: 1.4;
+}
+
+.btn-difficulty.active .diff-desc {
+  color: rgba(245, 240, 232, 0.75);
+}
+
+.difficulty-description {
+  font-size: 0.82rem;
+  color: #555;
+  font-style: italic;
+  margin-top: 10px;
+  min-height: 1.2em;
+  font-family: Georgia, serif;
+}
+
+@media (max-width: 540px) {
+  .difficulty-options { flex-direction: column; align-items: center; }
+  .btn-difficulty { max-width: 100%; width: 100%; }
+}
+
+
+/* ==========================================================================
+   T4 — ADVISORS + NEWS UPGRADE
+   ========================================================================== */
+
+/* -- News mood badge variants -------------------------------------------- */
+.news-badge.routine.news-mood--warning    { background: #c8500a; color: #fff; }
+.news-badge.routine.news-mood--crisis     { background: #8f1717; color: #fff; }
+.news-badge.routine.news-mood--optimistic { background: #2a6e2a; color: #fff; }
+.news-badge.routine.news-mood--stable     { background: #c8a400; color: #fff; }
+
+/* Sub-headline beneath shock event text */
+.news-sub-headline {
+  font-size: 0.80rem;
+  color: #6b5c4a;
+  font-style: italic;
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px dashed #d7d1c5;
+}
+
+/* Market reaction line in routine quarters */
+.news-market-react {
+  font-size: 0.80rem;
+  color: #1a2a4a;
+  background: rgba(26, 42, 74, 0.05);
+  border-left: 3px solid #c8a400;
+  padding: 4px 8px;
+  margin-top: 6px;
+}
+
+/* Enhanced ticker animation for breaking news */
+@keyframes newsTickerIn {
+  0%   { opacity: 0; transform: translateY(-12px) scaleY(0.92); }
+  60%  { opacity: 1; transform: translateY(2px)   scaleY(1.01); }
+  100% { opacity: 1; transform: translateY(0)     scaleY(1); }
+}
+@keyframes newsTickerPulse {
+  0%   { box-shadow: 0 0 0 0 rgba(178, 34, 34, 0.35); }
+  60%  { box-shadow: 0 0 0 6px rgba(178, 34, 34, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(178, 34, 34, 0); }
+}
+.news-alert--flash {
+  animation: newsTickerIn 0.55s ease-out, newsTickerPulse 1.2s ease-out 0.1s;
+}
+
+/* -- Advisor Briefing panel ---------------------------------------------- */
+.panel-advisors {
+  margin-bottom: 12px;
+}
+
+.panel-advisors .panel-title {
+  border-bottom: 1px solid #ddd;
+  padding-bottom: 6px;
+  margin-bottom: 10px;
+}
+
+.advisor-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 9px 10px;
+  margin-bottom: 8px;
+  border-radius: 3px;
+  border-left: 3px solid #c8c0b0;
+  background: #faf8f4;
+  font-size: 0.83rem;
+}
+.advisor-card:last-child { margin-bottom: 0; }
+
+.advisor-card--calm      { border-left-color: #8aab8a; background: #f7faf7; }
+.advisor-card--concerned { border-left-color: #c8a400; background: #faf8ee; }
+.advisor-card--alarmed   { border-left-color: #b22222; background: #fdf5f5; }
+
+.advisor-avatar {
+  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: #1a2a4a;
+  color: #f0e8d6;
+  font-size: 0.75rem;
+  font-weight: bold;
+  font-family: Arial, sans-serif;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.advisor-content   { flex: 1; min-width: 0; }
+
+.advisor-header-row {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  margin-bottom: 4px;
+}
+
+.advisor-name {
+  font-weight: bold;
+  color: #1a2a4a;
+  font-size: 0.83rem;
+  font-family: Arial, sans-serif;
+}
+
+.advisor-title-text {
+  font-size: 0.75rem;
+  color: #777;
+  flex: 1;
+}
+
+.advisor-rec {
+  font-size: 0.68rem;
+  font-weight: bold;
+  font-family: Arial, sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 1px 7px;
+  border-radius: 2px;
+  white-space: nowrap;
+}
+.advisor-rec--raise { background: #b22222; color: #fff; }
+.advisor-rec--cut   { background: #2a6e2a; color: #fff; }
+.advisor-rec--hold  { background: #5b564b; color: #fff; }
+
+.advisor-rationale {
+  color: #3a3530;
+  line-height: 1.45;
+  font-size: 0.80rem;
+}
+
+@media (max-width: 860px) {
+  .panel-advisors { display: none; }
+}
+
+
+/* ==========================================================================
+   T8 — Achievement Toast & End-Screen Panel
+   ========================================================================== */
+
+/* ---- Achievement Toast ---- */
+@keyframes achievement-slide-in {
+  from { transform: translateX(120%); opacity: 0; }
+  to   { transform: translateX(0);    opacity: 1; }
+}
+@keyframes achievement-slide-out {
+  from { transform: translateX(0);    opacity: 1; }
+  to   { transform: translateX(120%); opacity: 0; }
+}
+
+.achievement-toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 9999;
+  max-width: 340px;
+  min-width: 260px;
+  background: #0d1f3c;
+  border: 2px solid #c9a227;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.45);
+  pointer-events: none;
+  transition: opacity 0.4s ease, transform 0.4s ease;
+}
+.achievement-toast.hidden { display: none; }
+.achievement-toast--in  { animation: achievement-slide-in  0.4s ease forwards; }
+.achievement-toast--out { animation: achievement-slide-out 0.4s ease forwards; }
+
+.achievement-toast-inner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+}
+.achievement-icon { font-size: 2.2rem; line-height: 1; flex-shrink: 0; }
+.achievement-copy { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.achievement-label {
+  font-family: Arial, sans-serif;
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #c9a227;
+}
+.achievement-title {
+  font-family: 'Georgia', serif;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.achievement-desc {
+  font-family: Arial, sans-serif;
+  font-size: 0.72rem;
+  color: #aabbd0;
+  line-height: 1.3;
+}
+
+/* ---- End-Screen Achievements Panel ---- */
+.end-achievements-panel { margin: 20px auto 8px; max-width: 680px; text-align: center; }
+.achievements-heading {
+  font-family: 'Georgia', serif;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #1a2a4a;
+  margin: 0 0 12px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.achievements-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+}
+.achievement-badge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  width: 90px;
+  padding: 10px 6px 8px;
+  background: #f5f0e4;
+  border: 1.5px solid #c9a227;
+  border-radius: 8px;
+  cursor: default;
+}
+.achievement-badge-icon { font-size: 1.6rem; line-height: 1; }
+.achievement-badge-title {
+  font-family: Arial, sans-serif;
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: #1a2a4a;
+  text-align: center;
+  line-height: 1.2;
+}
+.achievements-empty { font-family: Arial, sans-serif; font-size: 0.8rem; color: #888; font-style: italic; margin: 0; }
+
+@media (max-width: 600px) {
+  .achievement-toast { bottom: 12px; right: 12px; max-width: calc(100vw - 24px); }
+  .achievement-badge { width: 76px; }
+}
+
+/* ============================================================
+   T6 — UI POLISH
+   ============================================================ */
+
+/* Running score in game header — color-coded by performance */
+.hdr-score--good    { color: #1a6b1a; }
+.hdr-score--ok      { color: #c8a400; }
+.hdr-score--poor    { color: #b22222; }
+
+/* CRISIS badge pulse — draws attention to high-severity shocks */
+@keyframes crisisPulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.65; }
+}
+.news-badge.shock.crisis-badge {
+  animation: crisisPulse 1.4s ease-in-out 3;
+}
+
+/* Indicator box — subtle left-border state signal */
+.indicator {
+  border-left: 3px solid transparent;
+  transition: border-color 0.4s ease;
+  padding-left: 8px;
+}
+.indicator.state-over  { border-left-color: #b22222; }
+.indicator.state-under { border-left-color: #1a5c1a; }
+.indicator.state-near  { border-left-color: #1a6b1a; }
+
+/* Quarter progress marker — prevent clipping at position 0% */
+.quarter-progress-marker {
+  transform: translateX(-50%) translateY(-50%);
+}
+.quarter-progress-track {
+  overflow: visible;
+}
+
+/* Last-quarter highlight on Next Quarter button */
+.btn-next--final {
+  background: #8f1717;
+  border-color: #8f1717;
+}
+.btn-next--final:hover { background: #a01c1c; }
+
+
+/* --- Share result button --- */
+.btn-share {
+  background: #1a2a4a;
+  color: #fff;
+  border: 2px solid #1a2a4a;
+  padding: 10px 20px;
+  font-family: Arial, sans-serif;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.btn-share:hover { background: #243d6a; border-color: #243d6a; }
+
+/* --- Shock status banner (ongoing multi-turn shock indicator below news panel) --- */
+.shock-status-banner { margin-top: 8px; padding: 6px 10px; background: #fdf3e0; border-left: 3px solid #c8a400; font-size: 0.82rem; color: #5a4000; font-family: Arial, sans-serif; }
+.shock-status-icon { color: #c8a400; }
+
+/* --- T11: Ongoing shock badge + Breaking news mood variants --- */
+.news-badge.shock--ongoing { background: #8f6a00; color: #fff; }
+.news-alert--panic .news-alert-label { background: linear-gradient(135deg, #8f1717, #600e0e); }
+.news-alert--calm  .news-alert-label { background: linear-gradient(135deg, #1a6b1a, #145214); }

@@ -62,17 +62,54 @@
           <h2>Scoring</h2>
           <p>You are scored each quarter based on how close inflation and unemployment are to their targets. Your final score (0-100) determines your reappointment outcome.</p>
           <table class="score-table">
-            <tr><td>80-100</td><td>Reappointed with Distinction</td></tr>
-            <tr><td>60-79</td><td>Reappointed</td></tr>
-            <tr><td>40-59</td><td>Not Reappointed</td></tr>
-            <tr><td>0-39</td><td>Removed from Office</td></tr>
+            <tr><td>95-100</td><td>Legendary Chair — A Flawless Soft Landing</td></tr>
+            <tr><td>85-94</td><td>Soft Landing Achieved — Textbook Policy</td></tr>
+            <tr><td>75-84</td><td>Steady Hand — Economy Stabilized</td></tr>
+            <tr><td>60-74</td><td>Reappointed — Mixed but Acceptable</td></tr>
+            <tr><td>40-59</td><td>Not Reappointed — Policy Fell Short</td></tr>
+            <tr><td>20-39</td><td>Policy Disaster — Stagflation Spiral</td></tr>
+            <tr><td>15-19</td><td>Volcker-Level Crisis (Self-Inflicted)</td></tr>
+            <tr><td>0-14</td><td>Worst Chair in Fed History</td></tr>
           </table>
         </section>
       </div>
     </div>
 
+    <!-- Difficulty Selector -->
+    <div id="difficulty-selector" class="difficulty-selector">
+      <p class="difficulty-heading">Select Difficulty</p>
+      <div class="difficulty-options">
+        <button class="btn-difficulty" data-diff="textbook" onclick="selectDifficulty('textbook')">
+          <span class="diff-name">Textbook</span>
+          <span class="diff-subtitle">Academic / Easy</span>
+          <span class="diff-dots">&#9679;&#9675;&#9675;</span>
+          <span class="diff-desc">Forgiving economy. Good for learning the basics.</span>
+        </button>
+        <button class="btn-difficulty active" data-diff="realworld" onclick="selectDifficulty('realworld')">
+          <span class="diff-name">Real World</span>
+          <span class="diff-subtitle">Realistic / Default</span>
+          <span class="diff-dots">&#9679;&#9679;&#9675;</span>
+          <span class="diff-desc">Calibrated to historical Fed data. The intended experience.</span>
+        </button>
+        <button class="btn-difficulty" data-diff="crisis" onclick="selectDifficulty('crisis')">
+          <span class="diff-name">Crisis Mode</span>
+          <span class="diff-subtitle">Volcker-Style Brutal</span>
+          <span class="diff-dots">&#9679;&#9679;&#9679;</span>
+          <span class="diff-desc">Volatile economy. Policy lags hurt more. Not for the faint of heart.</span>
+        </button>
+      </div>
+      <p class="difficulty-description" id="difficulty-description">Calibrated to historical Fed data. The intended experience.</p>
+    </div>
+
     <div class="intro-footer">
-      <button id="btn-start" class="btn-primary btn-large" onclick="startGame()">Begin Simulation &rarr;</button>
+      <div class="seed-options">
+        <button class="btn-daily" onclick="startGame(getDailySeed())">&#128197; Daily Challenge</button>
+        <div class="seed-custom">
+          <input type="text" id="seed-input" placeholder="Custom seed (optional)" maxlength="20" aria-label="Custom seed" />
+          <button class="btn-seeded" onclick="startGameWithSeedInput()">Play Seeded &rarr;</button>
+        </div>
+      </div>
+      <button id="btn-start" class="btn-primary btn-large" onclick="startGame()">Random Run &rarr;</button>
     </div>
 
     <footer class="cc-attribution">
@@ -106,6 +143,13 @@
         <span class="meta-label">SCORE</span>
         <span class="meta-value" id="hdr-score">&mdash;</span>
       </div>
+      <div class="meta-item meta-item--seed" id="hdr-seed-container" style="display:none;">
+        <span class="meta-label">SEED</span>
+        <span class="meta-value meta-seed" id="hdr-seed"></span>
+      </div>
+    </div>
+    <div class="sandbox-banner" id="sandbox-banner" style="display:none;" aria-live="polite">
+      SANDBOX MODE &mdash; Extended Play
     </div>
   </header>
 
@@ -197,8 +241,16 @@
       </section>
     </main>
 
-    <!-- RIGHT COLUMN: Rate Control + Result -->
+    <!-- RIGHT COLUMN: Advisors + Rate Control + Result -->
     <aside class="panel-side">
+
+      <!-- Advisor Briefing panel (shown during decision phase) -->
+      <div class="panel panel-advisors" id="panel-advisors">
+        <h3 class="panel-title">Advisor Briefing</h3>
+        <div id="advisors-list">
+          <!-- Advisor cards injected by renderAdvisors() -->
+        </div>
+      </div>
 
       <!-- Decision panel (shown before player acts) -->
       <!-- Content injected by app.js DOMContentLoaded handler -->
@@ -287,6 +339,21 @@
       </div>
     </div>
 
+    <!-- Soft Landing badge + Best/Worst quarter callouts -->
+    <div class="end-highlights">
+      <div class="end-soft-landing" id="end-soft-landing">
+        <span class="end-soft-landing-label">Soft Landing?</span>
+        <span class="end-soft-landing-value">&mdash;</span>
+      </div>
+      <div class="end-best-worst" id="end-best-worst"></div>
+    </div>
+
+    <!-- Score breakdown: sub-scores by dimension -->
+    <div class="end-breakdown-wrap">
+      <div class="end-breakdown-title">Score Breakdown</div>
+      <div class="end-score-breakdown" id="end-score-breakdown"></div>
+    </div>
+
     <!-- End-game sparklines -->
     <div class="end-charts">
       <div class="end-chart-wrap">
@@ -324,9 +391,22 @@
       </div>
     </section>
 
-    <div class="end-footer">
-      <button class="btn-primary btn-large" onclick="resetGame()">&#8635; Play Again</button>
+    <!-- Share text -->
+    <div class="end-share-wrap">
+      <label for="end-share-text">Share your result</label>
+      <textarea id="end-share-text" rows="2" readonly aria-label="Shareable result text"></textarea>
     </div>
+
+    <!-- Achievements earned this run -->
+    <div id="end-achievements-panel" class="end-achievements-panel"></div>
+
+    <div class="end-actions">
+      <button class="btn-end btn-replay-seed" onclick="replayWithSameSeed()">&#8635; Replay Same Seed</button>
+      <button class="btn-end btn-primary btn-large" onclick="startNewRun()">&#9654; New Run</button>
+      <button class="btn-end btn-sandbox" onclick="startSandboxMode()">&#9645; Sandbox Mode</button>
+      <button class="btn-end btn-share" id="btn-share-result" onclick="copyResultToClipboard()">&#128203; Copy Result</button>
+    </div>
+    <p class="end-actions-hint">Press <kbd>R</kbd> for a new run</p>
 
     <footer class="cc-attribution">
       <p>
@@ -340,5 +420,17 @@
 </div><!-- /screen-end -->
 
 <script src="app.js"></script>
+<!-- Achievement toast overlay -->
+<div id="achievement-toast" class="achievement-toast hidden" role="status" aria-live="polite" aria-atomic="true">
+  <div class="achievement-toast-inner">
+    <div class="achievement-icon" id="achievement-icon" aria-hidden="true"></div>
+    <div class="achievement-copy">
+      <div class="achievement-label">Achievement Unlocked</div>
+      <div class="achievement-title" id="achievement-toast-title"></div>
+      <div class="achievement-desc" id="achievement-toast-desc"></div>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
