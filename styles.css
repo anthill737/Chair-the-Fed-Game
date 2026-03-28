@@ -27,6 +27,13 @@ html, body {
   line-height: 1.5;
 }
 
+/* When the game screen is active, lock body scroll so the page never scrolls */
+html:has(#screen-game.active),
+html:has(#screen-game.active) body {
+  overflow: hidden;
+  height: 100%;
+}
+
 /* ---------- Screens ---------- */
 .screen {
   display: none;
@@ -34,6 +41,17 @@ html, body {
 }
 .screen.active {
   display: block;
+}
+
+/* Game screen fills viewport exactly — no page scroll during play.
+   min-height: 0 overrides .screen { min-height: 100vh } so the container
+   cannot grow beyond 100vh with content (which would re-enable page scroll). */
+#screen-game.active {
+  height: 100vh;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 /* ---------- INTRO SCREEN ---------- */
@@ -194,7 +212,8 @@ html, body {
   display: flex;
   flex-direction: column;
   background: #ddd8cc;
-  min-height: 100vh;
+  height: 100vh;
+  overflow: hidden;
 }
 
 /* Game Header */
@@ -342,6 +361,8 @@ html, body {
   gap: 12px;
   padding: 12px 16px;
   flex: 1;
+  min-height: 0;
+  overflow-y: auto;
 }
 
 @media (max-width: 1100px) {
@@ -377,6 +398,14 @@ html, body {
     grid-column: auto;
     grid-row: auto;
   }
+}
+
+/* Each column scrolls within its grid cell instead of pushing the page */
+.panel-indicators,
+.panel-center,
+.panel-side {
+  min-height: 0;
+  overflow-y: auto;
 }
 
 /* Panels */
@@ -631,7 +660,7 @@ html, body {
 .chart-frame canvas {
   display: block;
   width: 100%;
-  height: 380px;
+  height: 260px;
   background: #fdfcf9;
   border: 1px solid #ded7ca;
 }
@@ -647,7 +676,7 @@ html, body {
   }
 
   .chart-frame canvas {
-    height: 320px;
+    height: 220px;
   }
 }
 
@@ -852,7 +881,7 @@ html, body {
 .history-scroll {
   overflow-x: auto;
   overflow-y: auto;
-  max-height: 260px;
+  max-height: 180px;
 }
 
 .history-table {
@@ -1957,3 +1986,26 @@ html, body {
 .intro-body { gap: 36px; }
 .intro-section { padding: 24px 26px; }
 .intro-column { gap: 24px; }
+
+/* --- Viewport-fit layout: center column + chart scale to fill available height --- */
+
+/* Center column: flex column so news and chart share vertical space */
+.panel-center { min-height: 0; overflow: hidden; }
+/* News panel capped so chart always has room to breathe */
+.panel-news   { flex-shrink: 0; max-height: 36vh; overflow-y: auto; }
+/* Chart panel grows to fill remaining center-column height */
+.panel-chart  { flex: 1; min-height: 0; overflow: hidden; }
+/* Chart frame fills the panel */
+.chart-frame  { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+/* Canvas fills the frame; drops the fixed 380px constraint */
+.chart-frame canvas { height: 100%; min-height: 120px; }
+
+/* Right column: allow internal scroll if advisors + rate selector are tall */
+.panel-side { min-height: 0; overflow-y: auto; }
+
+/* Suppress the in-game CC footer — reclaims ~32px of vertical space */
+#screen-game .cc-attribution { display: none; }
+
+/* History panel inside the side column: no outer page margins, constrained height */
+.panel-side .panel-history { margin: 0; }
+.panel-side .history-scroll { max-height: 200px; }

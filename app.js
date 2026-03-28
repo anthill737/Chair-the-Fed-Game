@@ -1331,14 +1331,18 @@ function renderRateSelector() {
   }
   container.innerHTML = html;
 
-  // Scroll the selected rate into view within its container (not the whole page)
-  setTimeout(() => {
+  // Always center the selected rate in view. Uses getBoundingClientRect (viewport-relative)
+  // so the calculation is correct regardless of the element's position in the DOM tree.
+  // This prevents the list from jumping to the bottom when the selected rate changes.
+  requestAnimationFrame(() => {
     const sel = container.querySelector('.selected');
-    if (sel) {
-      const top = sel.offsetTop - container.clientHeight / 2 + sel.clientHeight / 2;
-      container.scrollTop = Math.max(0, top);
-    }
-  }, 50);
+    if (!sel || container.clientHeight === 0) return;
+    const cr = container.getBoundingClientRect();
+    const sr = sel.getBoundingClientRect();
+    container.scrollTop = Math.max(0,
+      sr.top - cr.top + container.scrollTop - (container.clientHeight - sel.clientHeight) / 2
+    );
+  });
 
   // Show rate change summary
   const delta = Math.round((state.pendingRate - state.fedRate) * 100) / 100;
@@ -2681,17 +2685,18 @@ function beginQuarter() {
   state.phase = 'decision';
   state.pendingRate = state.fedRate;
 
-  window.scrollTo(0, 0);
-
   renderHeader();
   renderIndicators();
   renderNews();
   renderAdvisors();
   renderMainChart();
-  renderRateSelector();
 
+  // Show decision panel BEFORE rendering rate selector so the container is visible.
+  // This ensures getBoundingClientRect() returns correct coords for scroll centering.
   document.getElementById('panel-decision').classList.remove('hidden');
   document.getElementById('panel-result').classList.add('hidden');
+
+  renderRateSelector();
 }
 
 function makeDecision() {
@@ -2733,7 +2738,9 @@ function makeDecision() {
   if (nextBtn) nextBtn.disabled = true;
 
   renderIndicators();
-  renderRateSelector();
+  // Intentionally NOT calling renderRateSelector() here — panel-decision is hidden at this point.
+  // Calling it on a hidden container resets scrollTop to 0 and corrupts the player's scroll position.
+  // beginQuarter() will rebuild the selector once the panel is visible again.
 
   startMainChartAnimation({
     from: previousPoint,
