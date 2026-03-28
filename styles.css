@@ -237,72 +237,59 @@ html:has(#screen-game.active) body {
   position: relative; /* needed so the dropdown can position itself relative to the header */
 }
 
-/* Hamburger menu button */
+/* Hamburger menu */
 .hdr-menu-wrap {
   position: relative;
-  margin-left: 12px;
-  flex-shrink: 0;
+  margin-left: auto;
 }
-
-.hdr-menu-btn {
+.btn-hamburger {
   background: none;
   border: 1px solid rgba(255,255,255,0.3);
-  border-radius: 3px;
+  border-radius: 4px;
   cursor: pointer;
   padding: 6px 8px;
   display: flex;
   flex-direction: column;
   gap: 4px;
-  align-items: center;
-  justify-content: center;
-  width: 34px;
-  height: 30px;
 }
-.hdr-menu-btn span {
+.btn-hamburger span {
   display: block;
-  width: 18px;
+  width: 20px;
   height: 2px;
   background: #fff;
   border-radius: 1px;
   transition: transform 0.2s, opacity 0.2s;
 }
-.hdr-menu-btn:hover { border-color: #c8a400; }
-.hdr-menu-btn[aria-expanded="true"] span:nth-child(1) { transform: translateY(6px) rotate(45deg); }
-.hdr-menu-btn[aria-expanded="true"] span:nth-child(2) { opacity: 0; }
-.hdr-menu-btn[aria-expanded="true"] span:nth-child(3) { transform: translateY(-6px) rotate(-45deg); }
-
-/* Dropdown panel */
-.hdr-menu-dropdown {
+.btn-hamburger.is-open span:nth-child(1) { transform: translateY(6px) rotate(45deg); }
+.btn-hamburger.is-open span:nth-child(2) { opacity: 0; }
+.btn-hamburger.is-open span:nth-child(3) { transform: translateY(-6px) rotate(-45deg); }
+.game-menu {
   position: absolute;
-  top: calc(100% + 6px);
+  top: calc(100% + 8px);
   right: 0;
-  background: #fff;
-  border: 1px solid #c8c0b0;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.18);
-  min-width: 200px;
+  background: #1a2a4a;
+  border: 1px solid #c8a400;
+  border-radius: 6px;
+  min-width: 210px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.35);
   z-index: 1000;
-  border-radius: 3px;
-  padding: 4px 0;
+  overflow: hidden;
 }
-.hdr-menu-item {
+.game-menu.hidden { display: none; }
+.game-menu-item {
   display: block;
   width: 100%;
-  padding: 10px 16px;
-  text-align: left;
   background: none;
   border: none;
+  color: #f0e8d6;
   font-family: Arial, sans-serif;
   font-size: 0.88rem;
-  color: #1a2a4a;
+  text-align: left;
+  padding: 10px 16px;
   cursor: pointer;
-  white-space: nowrap;
 }
-.hdr-menu-item:hover { background: #f4efe6; color: #0d1c35; }
-.hdr-menu-divider {
-  height: 1px;
-  background: #e0dbd2;
-  margin: 4px 0;
-}
+.game-menu-item:hover { background: rgba(200,164,0,0.15); color: #fff; }
+.game-menu-divider { border: none; border-top: 1px solid rgba(255,255,255,0.15); margin: 4px 0; }
 
 .quarter-progress-panel {
   margin: 8px 12px 0;
@@ -434,12 +421,12 @@ html:has(#screen-game.active) body {
 /* Game Body */
 .game-body {
   display: grid;
-  grid-template-columns: 220px minmax(0, 1fr) 260px;
+  grid-template-columns: 230px minmax(0, 1fr) 280px;
   gap: 10px;
   padding: 8px 12px;
   flex: 1;
   min-height: 0;
-  overflow-y: auto;
+  overflow: hidden;
 }
 
 @media (max-width: 1100px) {
@@ -477,12 +464,12 @@ html:has(#screen-game.active) body {
   }
 }
 
-/* Each column scrolls within its grid cell instead of pushing the page */
+/* Each column is locked — content must fit, no column scroll */
 .panel-indicators,
 .panel-center,
 .panel-side {
   min-height: 0;
-  overflow-y: auto;
+  overflow: hidden;
 }
 
 /* Panels */
@@ -2074,8 +2061,8 @@ html:has(#screen-game.active) body {
 /* --- Viewport-fit layout: center column + chart scale to fill available height --- */
 
 /* Center column: flex column so news and chart share vertical space */
-.panel-indicators { min-height: 0; overflow-y: auto; }
-.panel-center     { min-height: 0; overflow-y: auto; }
+.panel-indicators { min-height: 0; overflow: hidden; }
+.panel-center     { min-height: 0; overflow: hidden; }
 /* News panel capped so chart always has room to breathe */
 .panel-news       { flex-shrink: 0; max-height: 36vh; overflow-y: auto; }
 /* Chart panel grows to fill remaining center-column height */
