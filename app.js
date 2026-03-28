@@ -38,6 +38,10 @@ const START_YEAR     = 2014;
 
 const GRAPH_ANIMATION_MS = 1100;
 
+// No-op stubs for HTML onclick attrs that reference removed functions
+function selectDifficulty(k) {}  // difficulty selector — no effect in static shell
+function getDailySeed() { return null; }  // daily challenge seed — not used in static shell
+
 
 /* ==========================================================================
    2. GAME STATE
