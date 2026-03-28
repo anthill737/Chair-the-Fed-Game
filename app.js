@@ -34,9 +34,9 @@ const RATE_STEP = 0.25;            // Increment per notch
 
 // === TUNING: Policy sensitivity
 // These control how strongly rate changes pass through to the economy.
-// Higher = more responsive economy.
-const RATE_INFL_SENSITIVITY  = 0.18;  // Each 1% rate change → this much inflation impact
-const RATE_UNEMP_SENSITIVITY = 0.14;  // Each 1% rate change → this much unemployment impact
+// Declared as `let` so difficulty modes can override them at game start.
+let RATE_INFL_SENSITIVITY  = 0.18;  // Each 1% rate change → this much inflation impact
+let RATE_UNEMP_SENSITIVITY = 0.14;  // Each 1% rate change → this much unemployment impact
 
 // === TUNING: Lag (policy takes time to fully work)
 // LAG_IMMEDIATE: fraction of effect felt this quarter
@@ -46,12 +46,12 @@ const LAG_DEFERRED  = 0.55;
 
 // === TUNING: Momentum / mean-reversion
 // How strongly the economy drifts back toward "normal" each quarter
-const INFL_MEAN_REVERT  = 0.08;   // pull toward TARGET_INFLATION
-const UNEMP_MEAN_REVERT = 0.07;   // pull toward TARGET_UNEMPLOYMENT
+let INFL_MEAN_REVERT  = 0.08;   // pull toward TARGET_INFLATION
+let UNEMP_MEAN_REVERT = 0.07;   // pull toward TARGET_UNEMPLOYMENT
 
 // === TUNING: Random noise magnitude
-const INFL_NOISE  = 0.15;   // max random ± on inflation each quarter
-const UNEMP_NOISE = 0.12;   // max random ± on unemployment each quarter
+let INFL_NOISE  = 0.15;   // max random ± on inflation each quarter
+let UNEMP_NOISE = 0.12;   // max random ± on unemployment each quarter
 
 // === TUNING: Value bounds (hard clamps)
 const INFL_MIN  = -1.0;
@@ -62,10 +62,10 @@ const UNEMP_MAX = 15.0;
 // === TUNING: Scoring weights and thresholds ===
 const INFL_WEIGHT        = 1.0;   // relative importance of inflation in scoring
 const UNEMP_WEIGHT       = 1.0;   // relative importance of unemployment in scoring
-const MAX_AVG_PENALTY    = 5.0;   // penalty at which score hits 0
-const SCORE_EXCELLENT    = 80;
-const SCORE_GOOD         = 60;
-const SCORE_POOR         = 40;
+let MAX_AVG_PENALTY    = 5.0;   // penalty at which score hits 0
+let SCORE_EXCELLENT    = 80;
+let SCORE_GOOD         = 60;
+let SCORE_POOR         = 40;
 
 // Total quarters in the simulation
 const TOTAL_QUARTERS = 16;
@@ -73,6 +73,91 @@ const START_YEAR     = 2014;
 
 // Graph animation timing is controlled here.
 const GRAPH_ANIMATION_MS = 1100;
+
+
+/* ==========================================================================
+   DIFFICULTY SYSTEM
+   Three modes that meaningfully change how the economy responds.
+   Textbook  = Easy    (forgiving, predictable, more responsive to policy)
+   Real World = Default (calibrated to historical Fed experience)
+   Crisis Mode = Hard  (volatile, stubborn, Volcker-style brutal)
+   ========================================================================== */
+
+const DIFFICULTY_PROFILES = {
+  textbook: {
+    name:                     'Textbook',
+    subtitle:                 'Academic / Easy',
+    description:              'Forgiving economy. Good for learning the basics.',
+    rateInflSensitivity:      0.24,   // policy more effective at controlling inflation
+    rateUnempSensitivity:     0.18,   // policy more effective at influencing employment
+    inflNoise:                0.08,   // low randomness — economy behaves predictably
+    unempNoise:               0.06,
+    inflMeanRevert:           0.12,   // economy corrects toward targets quickly
+    unempMeanRevert:          0.10,
+    shocksPerRun:             7,      // fewer shocks
+    shockMagnitudeMultiplier: 0.7     // shocks are smaller
+  },
+  realworld: {
+    name:                     'Real World',
+    subtitle:                 'Realistic / Default',
+    description:              'Calibrated to historical Fed data. The intended experience.',
+    rateInflSensitivity:      0.18,
+    rateUnempSensitivity:     0.14,
+    inflNoise:                0.15,
+    unempNoise:               0.12,
+    inflMeanRevert:           0.08,
+    unempMeanRevert:          0.07,
+    shocksPerRun:             10,
+    shockMagnitudeMultiplier: 1.0
+  },
+  crisis: {
+    name:                     'Crisis Mode',
+    subtitle:                 'Volcker-Style Brutal',
+    description:              'Volatile economy. Policy lags hurt more. Not for the faint of heart.',
+    rateInflSensitivity:      0.13,   // policy less effective — economy resists correction
+    rateUnempSensitivity:     0.10,
+    inflNoise:                0.25,   // high volatility, frequent surprises
+    unempNoise:               0.20,
+    inflMeanRevert:           0.04,   // economy barely self-corrects
+    unempMeanRevert:          0.03,
+    shocksPerRun:             13,     // near-constant shocks
+    shockMagnitudeMultiplier: 1.5,    // shocks are larger
+    initInflation:            4.5,    // economy already running hot at game start
+    initUnemployment:         7.0     // economy already strained at game start
+  }
+};
+
+// Currently active difficulty profile — set by selectDifficulty() on the intro screen.
+let currentDifficulty = DIFFICULTY_PROFILES.realworld;
+
+/**
+ * Called by difficulty selector buttons on the intro screen.
+ * Updates the active profile and refreshes visual selection state.
+ */
+function selectDifficulty(key) {
+  if (!DIFFICULTY_PROFILES[key]) return;
+  currentDifficulty = DIFFICULTY_PROFILES[key];
+  document.querySelectorAll('.btn-difficulty').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.diff === key);
+  });
+  const descEl = document.getElementById('difficulty-description');
+  if (descEl) descEl.textContent = currentDifficulty.description;
+}
+
+/**
+ * Apply the active difficulty profile to the global tuning constants.
+ * Must be called at the start of each game so advanceEconomy() uses
+ * the correct values for the chosen difficulty.
+ */
+function applyDifficultyToConstants() {
+  const d = currentDifficulty;
+  RATE_INFL_SENSITIVITY  = d.rateInflSensitivity;
+  RATE_UNEMP_SENSITIVITY = d.rateUnempSensitivity;
+  INFL_NOISE             = d.inflNoise;
+  UNEMP_NOISE            = d.unempNoise;
+  INFL_MEAN_REVERT       = d.inflMeanRevert;
+  UNEMP_MEAN_REVERT      = d.unempMeanRevert;
+}
 
 
 /* ==========================================================================
@@ -87,10 +172,13 @@ const GRAPH_ANIMATION_MS = 1100;
 
 // === TUNING: Shock / event cards ===
 const SHOCK_EVENTS = [
+  // ── SUPPLY shocks ─────────────────────────────────────────────────────────
   {
     id: 'oil_spike',
     title: 'Oil Price Spike',
     badge: 'BREAKING',
+    category: 'supply',
+    duration: 2,
     text: 'Global oil prices have surged following supply disruptions in major producing regions. Energy costs for consumers and businesses are rising sharply, pushing up prices across the economy.',
     inflEffect:  0.40,
     unempEffect: 0.25,
@@ -98,9 +186,60 @@ const SHOCK_EVENTS = [
     unempLag:    0.10
   },
   {
+    id: 'supply_disruption',
+    title: 'Supply Chain Disruption',
+    badge: 'BREAKING',
+    category: 'supply',
+    duration: 2,
+    text: 'Major port congestion and transportation bottlenecks are causing widespread shortages of goods. Delivery times have lengthened and supplier prices are rising, adding to inflationary pressure.',
+    inflEffect:  0.45,
+    unempEffect: 0.20,
+    inflLag:     0.25,
+    unempLag:    0.10
+  },
+  {
+    id: 'energy_drop',
+    title: 'Energy Price Drop',
+    badge: 'UPDATE',
+    category: 'supply',
+    duration: 1,
+    text: 'A surge in global energy production has sent oil and natural gas prices sharply lower. Consumers are seeing lower prices at the pump and in utility bills, providing a boost to real incomes.',
+    inflEffect: -0.35,
+    unempEffect:-0.10,
+    inflLag:    -0.15,
+    unempLag:    0.00
+  },
+  {
+    id: 'productivity',
+    title: 'Productivity Improvement',
+    badge: 'UPDATE',
+    category: 'supply',
+    duration: 1,
+    text: 'A wave of business efficiency gains — driven largely by technology adoption — is allowing companies to produce more with fewer resources. This is restraining both price and wage growth.',
+    inflEffect: -0.25,
+    unempEffect:-0.20,
+    inflLag:    -0.10,
+    unempLag:   -0.10
+  },
+  {
+    id: 'oil_embargo',
+    title: 'Oil Supply Embargo',
+    badge: 'CRISIS',
+    category: 'supply',
+    duration: 3,
+    text: 'A major oil-producing bloc has announced a coordinated export embargo targeting Western nations. Fuel prices are spiking across the board and energy rationing is being discussed in several states.',
+    inflEffect:  0.60,
+    unempEffect: 0.35,
+    inflLag:     0.30,
+    unempLag:    0.15
+  },
+  // ── DEMAND shocks ─────────────────────────────────────────────────────────
+  {
     id: 'spending_slowdown',
     title: 'Consumer Spending Slowdown',
     badge: 'BREAKING',
+    category: 'demand',
+    duration: 1,
     text: 'Retail sales fell for the second consecutive month as consumers pull back on discretionary spending. Businesses are responding by trimming payrolls and slowing investment.',
     inflEffect: -0.30,
     unempEffect: 0.35,
@@ -111,6 +250,8 @@ const SHOCK_EVENTS = [
     id: 'housing_boom',
     title: 'Housing Market Boom',
     badge: 'BREAKING',
+    category: 'demand',
+    duration: 2,
     text: 'Home prices and construction activity are at multi-year highs. Strong demand for housing is spilling over into consumer confidence and broader spending, adding to inflationary pressure.',
     inflEffect:  0.30,
     unempEffect:-0.20,
@@ -118,49 +259,11 @@ const SHOCK_EVENTS = [
     unempLag:   -0.10
   },
   {
-    id: 'financial_stress',
-    title: 'Financial Market Stress',
-    badge: 'BREAKING',
-    text: 'Volatility in financial markets has tightened credit conditions significantly. Banks have pulled back on lending to consumers and businesses, threatening to slow economic growth.',
-    inflEffect: -0.20,
-    unempEffect: 0.45,
-    inflLag:    -0.10,
-    unempLag:    0.20
-  },
-  {
-    id: 'strong_dollar',
-    title: 'Stronger Dollar',
-    badge: 'UPDATE',
-    text: 'The U.S. dollar has strengthened significantly against major currencies. This is holding down import prices, providing relief on inflation, but American exporters are facing a competitive headwind.',
-    inflEffect: -0.30,
-    unempEffect: 0.15,
-    inflLag:    -0.15,
-    unempLag:    0.05
-  },
-  {
-    id: 'productivity',
-    title: 'Productivity Improvement',
-    badge: 'UPDATE',
-    text: 'A wave of business efficiency gains — driven largely by technology adoption — is allowing companies to produce more with fewer resources. This is restraining both price and wage growth.',
-    inflEffect: -0.25,
-    unempEffect:-0.20,
-    inflLag:    -0.10,
-    unempLag:   -0.10
-  },
-  {
-    id: 'supply_disruption',
-    title: 'Supply Chain Disruption',
-    badge: 'BREAKING',
-    text: 'Major port congestion and transportation bottlenecks are causing widespread shortages of goods. Delivery times have lengthened and supplier prices are rising, adding to inflationary pressure.',
-    inflEffect:  0.45,
-    unempEffect: 0.20,
-    inflLag:     0.25,
-    unempLag:    0.10
-  },
-  {
     id: 'fiscal_stimulus',
     title: 'Fiscal Stimulus Package',
     badge: 'BREAKING',
+    category: 'demand',
+    duration: 2,
     text: 'Congress has passed a significant fiscal stimulus bill. Direct payments to households and infrastructure spending are expected to boost demand substantially over the coming quarters.',
     inflEffect:  0.30,
     unempEffect:-0.30,
@@ -168,69 +271,11 @@ const SHOCK_EVENTS = [
     unempLag:   -0.15
   },
   {
-    id: 'global_slowdown',
-    title: 'Global Economic Slowdown',
-    badge: 'BREAKING',
-    text: 'Growth is decelerating sharply in major trading partners. Weakening overseas demand is hitting U.S. exports, and business investment plans are being scaled back.',
-    inflEffect: -0.30,
-    unempEffect: 0.35,
-    inflLag:    -0.15,
-    unempLag:    0.15
-  },
-  {
-    id: 'wage_surge',
-    title: 'Wage Growth Acceleration',
-    badge: 'UPDATE',
-    text: 'Labor Department data shows wage growth running well above recent norms. While workers benefit from rising paychecks, the wage-price spiral risk is drawing attention from policymakers.',
-    inflEffect:  0.35,
-    unempEffect:-0.10,
-    inflLag:     0.15,
-    unempLag:    0.00
-  },
-  {
-    id: 'tech_boom',
-    title: 'Technology Sector Boom',
-    badge: 'UPDATE',
-    text: 'Investment and hiring in the technology sector are accelerating. Tech companies are absorbing a large share of the workforce, pushing down headline unemployment while keeping a lid on goods prices.',
-    inflEffect:  0.10,
-    unempEffect:-0.30,
-    inflLag:     0.05,
-    unempLag:   -0.10
-  },
-  {
-    id: 'banking_stress',
-    title: 'Banking Sector Stress',
-    badge: 'BREAKING',
-    text: 'Several regional banks are reporting significant losses. The resulting tightening of credit standards is damping investment and consumer spending, raising recession concerns.',
-    inflEffect: -0.15,
-    unempEffect: 0.40,
-    inflLag:    -0.10,
-    unempLag:    0.15
-  },
-  {
-    id: 'energy_drop',
-    title: 'Energy Price Drop',
-    badge: 'UPDATE',
-    text: 'A surge in global energy production has sent oil and natural gas prices sharply lower. Consumers are seeing lower prices at the pump and in utility bills, providing a boost to real incomes.',
-    inflEffect: -0.35,
-    unempEffect:-0.10,
-    inflLag:    -0.15,
-    unempLag:    0.00
-  },
-  {
-    id: 'import_prices',
-    title: 'Import Price Increase',
-    badge: 'UPDATE',
-    text: 'New tariffs and a weaker dollar are raising the cost of imported goods. Businesses are beginning to pass these higher costs on to consumers, adding upward pressure to inflation.',
-    inflEffect:  0.30,
-    unempEffect: 0.10,
-    inflLag:     0.15,
-    unempLag:    0.05
-  },
-  {
     id: 'consumer_confidence',
     title: 'Consumer Confidence Surge',
     badge: 'UPDATE',
+    category: 'demand',
+    duration: 1,
     text: 'A widely watched consumer sentiment index hit its highest level in years. Households are increasing spending on big-ticket items, lifting demand and putting mild upward pressure on prices.',
     inflEffect:  0.20,
     unempEffect:-0.20,
@@ -241,25 +286,396 @@ const SHOCK_EVENTS = [
     id: 'spending_cuts',
     title: 'Government Spending Cuts',
     badge: 'UPDATE',
+    category: 'demand',
+    duration: 1,
     text: 'Congress has reached a deficit reduction agreement that includes significant cuts to federal spending. The resulting fiscal drag is expected to weigh on economic activity over coming quarters.',
     inflEffect: -0.20,
     unempEffect: 0.30,
     inflLag:    -0.10,
     unempLag:    0.15
+  },
+  {
+    id: 'wage_price_spiral',
+    title: 'Wage-Price Spiral',
+    badge: 'CRISIS',
+    category: 'demand',
+    duration: 3,
+    text: 'Surging labor costs are feeding directly into consumer prices, which are in turn fueling demands for even higher wages. The feedback loop is accelerating — breaking it will require decisive policy action.',
+    inflEffect:  0.55,
+    unempEffect:-0.15,
+    inflLag:     0.30,
+    unempLag:   -0.05
+  },
+  // ── FINANCIAL shocks ──────────────────────────────────────────────────────
+  {
+    id: 'financial_stress',
+    title: 'Financial Market Stress',
+    badge: 'BREAKING',
+    category: 'financial',
+    duration: 1,
+    text: 'Volatility in financial markets has tightened credit conditions significantly. Banks have pulled back on lending to consumers and businesses, threatening to slow economic growth.',
+    inflEffect: -0.20,
+    unempEffect: 0.45,
+    inflLag:    -0.10,
+    unempLag:    0.20
+  },
+  {
+    id: 'banking_stress',
+    title: 'Banking Sector Stress',
+    badge: 'BREAKING',
+    category: 'financial',
+    duration: 1,
+    text: 'Several regional banks are reporting significant losses. The resulting tightening of credit standards is damping investment and consumer spending, raising recession concerns.',
+    inflEffect: -0.15,
+    unempEffect: 0.40,
+    inflLag:    -0.10,
+    unempLag:    0.15
+  },
+  {
+    id: 'banking_crisis',
+    title: 'Banking System Crisis',
+    badge: 'CRISIS',
+    category: 'financial',
+    duration: 3,
+    text: 'Multiple large financial institutions are reporting severe balance-sheet stress. Interbank lending has seized up, credit is unavailable at nearly any price, and emergency Fed liquidity facilities are being activated.',
+    inflEffect: -0.35,
+    unempEffect: 0.70,
+    inflLag:    -0.20,
+    unempLag:    0.35
+  },
+  // ── POLITICAL shocks ──────────────────────────────────────────────────────
+  {
+    id: 'import_prices',
+    title: 'Import Price Increase',
+    badge: 'UPDATE',
+    category: 'demand',
+    duration: 1,
+    text: 'New tariffs and a weaker dollar are raising the cost of imported goods. Businesses are beginning to pass these higher costs on to consumers, adding upward pressure to inflation.',
+    inflEffect:  0.30,
+    unempEffect: 0.10,
+    inflLag:     0.15,
+    unempLag:    0.05
+  },
+  {
+    id: 'strong_dollar',
+    title: 'Stronger Dollar',
+    badge: 'UPDATE',
+    category: 'demand',
+    duration: 1,
+    text: 'The U.S. dollar has strengthened significantly against major currencies. This is holding down import prices, providing relief on inflation, but American exporters are facing a competitive headwind.',
+    inflEffect: -0.30,
+    unempEffect: 0.15,
+    inflLag:    -0.15,
+    unempLag:    0.05
+  },
+  {
+    id: 'political_pressure',
+    title: 'Congressional Pressure on Fed',
+    badge: 'BREAKING',
+    category: 'political',
+    duration: 2,
+    text: 'Senate hearings are targeting the Fed\'s independence. Lawmakers are publicly demanding lower rates to boost employment ahead of elections. Markets are pricing in policy uncertainty, and the Fed\'s credibility is being tested.',
+    inflEffect:  0.20,
+    unempEffect:-0.05,
+    inflLag:     0.15,
+    unempLag:    0.00
+  },
+  // ── GLOBAL shocks ─────────────────────────────────────────────────────────
+  {
+    id: 'global_slowdown',
+    title: 'Global Economic Slowdown',
+    badge: 'BREAKING',
+    category: 'global',
+    duration: 1,
+    text: 'Growth is decelerating sharply in major trading partners. Weakening overseas demand is hitting U.S. exports, and business investment plans are being scaled back.',
+    inflEffect: -0.30,
+    unempEffect: 0.35,
+    inflLag:    -0.15,
+    unempLag:    0.15
+  },
+  {
+    id: 'global_recession',
+    title: 'Global Recession',
+    badge: 'CRISIS',
+    category: 'global',
+    duration: 3,
+    text: 'The world\'s largest economies have simultaneously tipped into contraction. Global trade volumes are collapsing, commodity prices are plummeting, and the IMF has issued an emergency coordinated response call. The U.S. cannot escape the downdraft.',
+    inflEffect: -0.50,
+    unempEffect: 0.65,
+    inflLag:    -0.25,
+    unempLag:    0.30
+  },
+  // ── OTHER ─────────────────────────────────────────────────────────────────
+  {
+    id: 'wage_surge',
+    title: 'Wage Growth Acceleration',
+    badge: 'UPDATE',
+    category: 'supply',
+    duration: 1,
+    text: 'Labor Department data shows wage growth running well above recent norms. While workers benefit from rising paychecks, the wage-price spiral risk is drawing attention from policymakers.',
+    inflEffect:  0.35,
+    unempEffect:-0.10,
+    inflLag:     0.15,
+    unempLag:    0.00
+  },
+  {
+    id: 'tech_boom',
+    title: 'Technology Sector Boom',
+    badge: 'UPDATE',
+    category: 'demand',
+    duration: 1,
+    text: 'Investment and hiring in the technology sector are accelerating. Tech companies are absorbing a large share of the workforce, pushing down headline unemployment while keeping a lid on goods prices.',
+    inflEffect:  0.10,
+    unempEffect:-0.30,
+    inflLag:     0.05,
+    unempLag:   -0.10
+  },
+  {
+    id: 'inflation_spike',
+    title: 'Domestic Inflation Spike',
+    badge: 'CRISIS',
+    category: 'demand',
+    duration: 2,
+    text: 'A sudden acceleration in broad-based consumer prices has caught markets off guard. Shelter, food, and services are all rising faster than expected. Inflation expectations are becoming unanchored — a dangerous sign.',
+    inflEffect:  0.50,
+    unempEffect: 0.05,
+    inflLag:     0.25,
+    unempLag:    0.05
   }
 ];
 
-// Routine news headlines (used for "quiet" quarters with no shock)
+// Routine news headlines -- organized by economic mood for state-reactive selection.
 // === TUNING: Routine news headlines ===
-const ROUTINE_NEWS = [
-  'Economic data released this quarter was broadly in line with expectations. Consumer spending and business investment continue at a moderate pace.',
-  'Labor markets remain steady with no major surprises. The economic expansion continues, though the pace of growth is moderate.',
-  'Inflation readings came in close to forecasts this quarter. Supply and demand conditions appear broadly balanced across most sectors.',
-  'Survey data suggests businesses are cautiously optimistic. Capital expenditure plans are holding steady as firms await greater certainty.',
-  'Trade data for the quarter showed a slight narrowing of the current account deficit. Export growth was modest while import demand held firm.',
-  'Housing starts and building permits were little changed. The residential real estate market is showing signs of gradual stabilization.',
-  'Business investment in equipment and software rose modestly. Technology spending continues to lead as firms seek efficiency improvements.'
+// selectRoutineNews(state) picks the right bucket based on inflation/unemployment gaps.
+const ROUTINE_NEWS = {
+  onTarget: [
+    "Economic data came in broadly as expected. Inflation and unemployment remain near their targets, giving the Fed room to stay patient.",
+    "Markets hold their breath as the Fed meets -- no surprises expected given steady economic conditions.",
+    "Analysts praise the Fed's steady hand as the economy tracks closely to its dual mandate targets.",
+    "Goldilocks conditions persist: inflation near 2%, unemployment near its natural rate.",
+    "No surprises this quarter: consumer spending, employment, and prices all moved within expected ranges."
+  ],
+  inflationHigh: [
+    "Consumers feel the pinch of rising prices as inflation continues to run above the Fed's 2% target.",
+    "Fed under fire: Wall Street demands action as inflation proves stickier than expected.",
+    "The Fed faces mounting pressure to tighten as price growth outpaces wages for another quarter.",
+    "Cost-of-living squeeze deepens -- housing, food, and energy all posting above-target gains.",
+    "Bond markets signal rate-hike expectations as inflation shows no sign of retreating to target.",
+    "We cannot wait forever, warn economists as inflation overshoots for the third straight quarter."
+  ],
+  unemploymentHigh: [
+    "Job market stalls as hiring slows for the second consecutive quarter, raising recession alarm bells.",
+    "Workers left behind: unemployment climbs as businesses pull back on investment.",
+    "The human cost of inaction, economists warn, as unemployment drifts further from its natural rate.",
+    "Layoffs spread across manufacturing and retail -- the Fed faces calls to ease policy.",
+    "Weak payroll numbers fuel debate over whether the Fed has been too tight for too long.",
+    "Consumers tighten belts as job insecurity rises -- confidence surveys hit a multi-quarter low."
+  ],
+  stagflation: [
+    "Policy nightmare: the Fed faces rising prices AND rising unemployment at the same time.",
+    "Stagflation fears return to mainstream discourse as both inflation and joblessness climb.",
+    "There are no good options here, Fed officials acknowledge as the dual mandate pulls in opposite directions.",
+    "Economists divided: some call for hikes to kill inflation, others warn that would crush the job market.",
+    "The 1970s are on everyone's mind as price pressures and weak labor markets intensify simultaneously."
+  ],
+  softLanding: [
+    "A soft landing looks achievable -- inflation cooling without triggering a spike in unemployment.",
+    "The Fed has managed this masterfully so far, say analysts as conditions improve across both mandates.",
+    "Wall Street optimism grows as disinflation takes hold without significant job losses.",
+    "Rare good news on all fronts: prices cooling, labor market solid, growth holding up.",
+    "Policy is working as intended -- the question now is whether the Fed can maintain the balance."
+  ]
+};
+
+/* ==========================================================================
+   DYNAMIC NEWS + ADVISORS SYSTEM
+   State-reactive headline selection, shock sub-headlines, reaction lines,
+   and advisor recommendations that make each turn feel distinct and human.
+   ========================================================================== */
+
+/**
+ * Select a ROUTINE_NEWS entry based on current economic conditions.
+ * @param {object} s - game state
+ * @returns {{ text: string, mood: string }}
+ */
+function selectRoutineNews(s) {
+  var inflGap  = s.inflation   - TARGET_INFLATION;
+  var unempGap = s.unemployment - TARGET_UNEMPLOYMENT;
+  var pool, mood;
+  if (inflGap > 0.8 && unempGap > 0.8) {
+    pool = ROUTINE_NEWS.stagflation; mood = 'crisis';
+  } else if (Math.abs(inflGap) < 0.4 && unempGap < -0.2) {
+    pool = ROUTINE_NEWS.softLanding; mood = 'optimistic';
+  } else if (Math.abs(inflGap) < 0.4 && Math.abs(unempGap) < 0.4) {
+    pool = ROUTINE_NEWS.onTarget; mood = 'stable';
+  } else if (inflGap > 0.5) {
+    pool = ROUTINE_NEWS.inflationHigh; mood = 'warning';
+  } else if (unempGap > 0.5) {
+    pool = ROUTINE_NEWS.unemploymentHigh; mood = 'warning';
+  } else {
+    pool = ROUTINE_NEWS.onTarget; mood = 'stable';
+  }
+  return { text: pool[s.quarter % pool.length], mood: mood };
+}
+
+/**
+ * Generate a contextual sub-headline for a shock event.
+ * @param {object} shock
+ * @param {object} s - game state
+ * @returns {string}
+ */
+function getShockSubHeadline(shock, s) {
+  var inflGap  = s.inflation   - TARGET_INFLATION;
+  var unempGap = s.unemployment - TARGET_UNEMPLOYMENT;
+  if (inflGap > 1.5 && shock.inflEffect > 0) {
+    return 'Analysts alarmed: another inflation shock compounds an already difficult situation for the Fed.';
+  }
+  if (unempGap > 1.5 && shock.unempEffect > 0) {
+    return 'Economists fear a feedback loop as this shock hits an already weakening labor market.';
+  }
+  var cat = (shock.category || 'default');
+  if (cat === 'supply')    return 'Analysts divided on how aggressively the Fed should respond to the supply-side disruption.';
+  if (cat === 'demand')    return 'Markets watch closely as demand conditions shift -- rate expectations are being repriced.';
+  if (cat === 'financial') return 'Volatility spikes as financial markets digest the implications for Fed policy.';
+  if (cat === 'external')  return 'Global spillovers complicate the Fed calculus -- a wait-and-see response is expected.';
+  if (cat === 'political') return 'The Fed independence is in the spotlight as political pressure intensifies.';
+  return 'Markets await guidance from the Fed on how this development will influence its next move.';
+}
+
+/**
+ * Generate a reaction headline based on the last player decision.
+ * @param {object} s - game state
+ * @returns {string|null}
+ */
+function getReactionHeadline(s) {
+  if (!s.history || s.history.length === 0) return null;
+  var last = s.history[s.history.length - 1];
+  var d = last.decision || '';
+  var q = s.quarter;
+  if (d.toLowerCase().indexOf('raise') !== -1) {
+    var hi = [
+      "Markets brace after the Fed's rate hike -- mortgage costs rise, equities dip.",
+      "Dollar strengthens on tighter policy; export-dependent sectors feel the squeeze.",
+      "Rate hike sends a hawkish signal -- bond yields move higher in response."
+    ];
+    return hi[q % hi.length];
+  }
+  if (d.toLowerCase().indexOf('lower') !== -1) {
+    var cu = [
+      "Markets rally after the Fed eases -- risk appetite returns across sectors.",
+      "Rate cut sparks homebuyer optimism as borrowing costs fall.",
+      "Dovish pivot welcomed by equity markets; dollar softens on the news."
+    ];
+    return cu[q % cu.length];
+  }
+  if (d === 'Hold') {
+    var ho = [
+      "Fed holds steady -- patient approach leaves both hawks and doves unsatisfied.",
+      "No change from the Fed this quarter; markets interpret the pause as data-dependent.",
+      "Wait and watch remains the Fed's posture as it holds rates unchanged."
+    ];
+    return ho[q % ho.length];
+  }
+  return null;
+}
+
+/* -- ADVISORS -------------------------------------------------------------- */
+
+const ADVISORS = [
+  { name: 'Dr. Chen',    title: 'Chief Economist',  style: 'hawkish',     avatar: 'C' },
+  { name: 'Gov. Rivera', title: 'Board Governor',   style: 'dovish',      avatar: 'R' },
+  { name: 'Sec. Park',   title: 'Market Analyst',   style: 'data-driven', avatar: 'P' }
 ];
+
+/**
+ * Generate advisor recommendations based on current game state.
+ * @param {object} s - game state
+ * @returns {Array}
+ */
+function generateAdvisorRecommendations(s) {
+  var inflGap  = s.inflation   - TARGET_INFLATION;
+  var unempGap = s.unemployment - TARGET_UNEMPLOYMENT;
+  var shock    = s.shockSchedule ? s.shockSchedule[s.quarter - 1] : null;
+
+  return ADVISORS.map(function(advisor) {
+    var action, amount, rationale, urgency;
+
+    if (advisor.style === 'hawkish') {
+      if (inflGap > 1.5) {
+        action = 'raise'; amount = 0.50; urgency = 'alarmed';
+        rationale = 'With inflation at ' + s.inflation.toFixed(1) + '%, every quarter of delay makes this harder to unwind. We need to move decisively.';
+      } else if (inflGap > 0.5) {
+        action = 'raise'; amount = 0.25; urgency = 'concerned';
+        rationale = 'Inflation is ' + s.inflation.toFixed(1) + '% -- above target. A modest hike now prevents a much harder correction later.';
+      } else if (inflGap > -0.3) {
+        action = 'hold'; amount = 0; urgency = 'calm';
+        rationale = 'Inflation is near target at ' + s.inflation.toFixed(1) + '%. Hold for now, but watching closely for any upward drift.';
+      } else {
+        action = 'hold'; amount = 0; urgency = 'calm';
+        rationale = 'Inflation is soft at ' + s.inflation.toFixed(1) + '%, but I would resist cutting -- let conditions stabilize first.';
+      }
+    } else if (advisor.style === 'dovish') {
+      if (unempGap > 1.5) {
+        action = 'lower'; amount = 0.50; urgency = 'alarmed';
+        rationale = 'Unemployment at ' + s.unemployment.toFixed(1) + '% is inflicting real harm on workers. We cannot afford gradualism here.';
+      } else if (unempGap > 0.5) {
+        action = 'lower'; amount = 0.25; urgency = 'concerned';
+        rationale = 'Labor markets remain soft at ' + s.unemployment.toFixed(1) + '%. A rate cut supports jobs without meaningfully stoking prices.';
+      } else if (unempGap > -0.5) {
+        action = 'hold'; amount = 0; urgency = 'calm';
+        rationale = 'Employment is near target. Hold -- the recovery is fragile and premature tightening would be a mistake.';
+      } else {
+        action = 'hold'; amount = 0; urgency = 'calm';
+        rationale = 'Unemployment is low at ' + s.unemployment.toFixed(1) + '%. Labor markets look healthy -- hold and let the expansion continue.';
+      }
+    } else {
+      var shockNote = shock ? ' The ' + shock.title.toLowerCase() + ' adds uncertainty.' : '';
+      if (inflGap > 1.0 && unempGap < 0.5) {
+        action = 'raise'; amount = 0.25; urgency = 'concerned';
+        rationale = 'Inflation at ' + s.inflation.toFixed(1) + '% with unemployment at ' + s.unemployment.toFixed(1) + '% -- the data supports a measured hike.' + shockNote;
+      } else if (unempGap > 1.0 && inflGap < 0.5) {
+        action = 'lower'; amount = 0.25; urgency = 'concerned';
+        rationale = 'Unemployment at ' + s.unemployment.toFixed(1) + '% with inflation contained at ' + s.inflation.toFixed(1) + '%. A modest cut is warranted.' + shockNote;
+      } else if (inflGap > 0.5 && unempGap > 0.5) {
+        action = 'hold'; amount = 0; urgency = 'concerned';
+        rationale = 'Stagflationary pressures complicate the picture -- inflation ' + s.inflation.toFixed(1) + '%, unemployment ' + s.unemployment.toFixed(1) + '%. Hold and gather more data.' + shockNote;
+      } else {
+        action = 'hold'; amount = 0; urgency = 'calm';
+        rationale = 'Both mandates look balanced -- inflation ' + s.inflation.toFixed(1) + '%, unemployment ' + s.unemployment.toFixed(1) + '%. Patient policy is appropriate.' + shockNote;
+      }
+    }
+
+    return { advisor: advisor, action: action, amount: amount, rationale: rationale, urgency: urgency };
+  });
+}
+
+/** Render the advisor briefing panel. Called from beginQuarter() each turn. */
+function renderAdvisors() {
+  var container = document.getElementById('advisors-list');
+  if (!container) return;
+  var recs = generateAdvisorRecommendations(state);
+  container.innerHTML = recs.map(function(rec) {
+    var lbl = rec.action === 'raise'
+      ? (rec.amount > 0 ? '+' + fmt(rec.amount) + '%' : 'Raise')
+      : rec.action === 'lower'
+      ? (rec.amount > 0 ? '-' + fmt(rec.amount) + '%' : 'Cut')
+      : 'Hold';
+    var ac = rec.action === 'raise' ? 'advisor-rec--raise'
+           : rec.action === 'lower' ? 'advisor-rec--cut'
+           : 'advisor-rec--hold';
+    return '<div class="advisor-card advisor-card--' + rec.urgency + '">'
+      + '<div class="advisor-avatar">' + rec.advisor.avatar + '</div>'
+      + '<div class="advisor-content">'
+      + '<div class="advisor-header-row">'
+      + '<span class="advisor-name">' + rec.advisor.name + '</span>'
+      + '<span class="advisor-title-text">' + rec.advisor.title + '</span>'
+      + '<span class="advisor-rec ' + ac + '">' + lbl + '</span>'
+      + '</div>'
+      + '<div class="advisor-rationale">' + rec.rationale + '</div>'
+      + '</div>'
+      + '</div>';
+  }).join('');
+}
 
 
 /* ==========================================================================
@@ -268,41 +684,127 @@ const ROUTINE_NEWS = [
    ========================================================================== */
 let state = {};
 
-function createInitialState() {
-  // Build the shock schedule for 16 quarters.
-  // We pick ~10 shock quarters and ~6 quiet quarters, in a shuffled order.
-  const shockSchedule = buildShockSchedule();
+function createInitialState(seed) {
+  // Apply the selected difficulty profile to global tuning constants.
+  applyDifficultyToConstants();
+
+  const d   = currentDifficulty;
+  const mag = d.shockMagnitudeMultiplier;
+  const rng = (seed != null) ? seededRandom(seed) : Math.random.bind(Math);
+
+  // Build shock schedule then adjust count and scale magnitudes for difficulty.
+  let schedule = buildShockSchedule(seed).map(entry =>
+    entry == null ? null : {
+      ...entry,
+      inflEffect:  entry.inflEffect  * mag,
+      unempEffect: entry.unempEffect * mag,
+      inflLag:     (entry.inflLag  || 0) * mag,
+      unempLag:    (entry.unempLag || 0) * mag
+    }
+  );
+
+  const targetCount  = Math.min(d.shocksPerRun, SHOCK_EVENTS.length);
+  const currentCount = schedule.filter(e => e !== null).length;
+
+  if (targetCount < currentCount) {
+    // Remove excess shocks (Textbook: fewer shocks)
+    let toRemove = currentCount - targetCount;
+    schedule = schedule.map(entry => {
+      if (entry !== null && toRemove > 0) { toRemove--; return null; }
+      return entry;
+    });
+  } else if (targetCount > currentCount) {
+    // Add more shocks (Crisis: replace nulls with extra scaled shocks)
+    const extras = [...SHOCK_EVENTS]
+      .sort(() => rng() - 0.5)
+      .slice(0, targetCount - currentCount)
+      .map(s => ({
+        ...s,
+        inflEffect:  s.inflEffect  * mag,
+        unempEffect: s.unempEffect * mag,
+        inflLag:     (s.inflLag  || 0) * mag,
+        unempLag:    (s.unempLag || 0) * mag
+      }));
+    let addIdx = 0;
+    schedule = schedule.map(entry =>
+      (entry === null && addIdx < extras.length) ? extras[addIdx++] : entry
+    );
+  }
+
+  // Use difficulty-specific starting conditions if defined
+  const initInflation    = d.initInflation    != null ? d.initInflation    : INIT_INFLATION;
+  const initUnemployment = d.initUnemployment != null ? d.initUnemployment : INIT_UNEMPLOYMENT;
 
   return {
-    quarter:           1,
-    inflation:         INIT_INFLATION,
-    unemployment:      INIT_UNEMPLOYMENT,
-    fedRate:           INIT_RATE,
-    pendingRate:       INIT_RATE,       // rate player has selected but not yet confirmed
-    lagInflEffect:     0,               // deferred inflation effect from last decision
-    lagUnempEffect:    0,               // deferred unemployment effect from last decision
-    history:           [],              // array of completed-quarter records
-    shockSchedule:     shockSchedule,   // array[16] of shock or null
-    cumulativePenalty: 0,
-    phase:             'decision',      // 'decision' | 'animating' | 'result'
-    sparklineAnimation: null,
-    animationFrameId:  0
+    quarter:                   1,
+    inflation:                 initInflation,
+    unemployment:              initUnemployment,
+    fedRate:                   INIT_RATE,
+    pendingRate:               INIT_RATE,   // rate player has selected but not yet confirmed
+    lagInflEffect:             0,           // deferred inflation effect from last decision
+    lagUnempEffect:            0,           // deferred unemployment effect from last decision
+    history:                   [],          // array of completed-quarter records
+    shockSchedule:             schedule,    // array[16] of shock or null, scaled for difficulty
+    cumulativePenalty:         0,
+    phase:                     'decision',  // 'decision' | 'animating' | 'result'
+    sparklineAnimation:        null,
+    animationFrameId:          0,
+    // Multi-turn shock tracking
+    activeShock:               null,        // shock object currently in effect (or null)
+    activeShockTurnsRemaining: 0,           // quarters left for the active shock (0 = none)
+    seed:                      seed != null ? seed : null
   };
 }
 
-// Build a shuffled schedule assigning shocks to quarters
-function buildShockSchedule() {
-  // Shuffle shocks and pick 10
-  const shuffled = [...SHOCK_EVENTS].sort(() => Math.random() - 0.5);
-  const chosen   = shuffled.slice(0, 10);
+// Simple LCG seeded PRNG — returns a function that yields values in [0, 1)
+function seededRandom(seed) {
+  let s = seed >>> 0;
+  return function() {
+    s = (Math.imul(s, 1664525) + 1013904223) >>> 0;
+    return s / 0x100000000;
+  };
+}
 
-  // Create 16-slot array: 10 shock slots, 6 null (routine)
-  const schedule = [
-    ...chosen,
-    null, null, null, null, null, null
-  ].sort(() => Math.random() - 0.5);
+// Build a shuffled schedule assigning shocks to quarters.
+// Pass an integer seed for deterministic (seeded) runs; omit for random.
+// Multi-turn shocks (duration > 1) are spaced so they do not overlap.
+function buildShockSchedule(seed) {
+  const rng = (seed != null) ? seededRandom(seed) : Math.random.bind(Math);
 
-  return schedule;
+  // Fisher-Yates shuffle using rng
+  function shuffle(arr) {
+    const a = [...arr];
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(rng() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+
+  // Prioritise variety: ensure no two CRISIS-badge shocks land in the same run
+  // by picking at most 2 CRISIS events and filling the rest from non-CRISIS pool.
+  const crisisShocks  = shuffle(SHOCK_EVENTS.filter(e => e.badge === 'CRISIS'));
+  const normalShocks  = shuffle(SHOCK_EVENTS.filter(e => e.badge !== 'CRISIS'));
+  const chosen = [...crisisShocks.slice(0, 2), ...normalShocks].slice(0, 10);
+
+  // Create 16-slot array: chosen shocks + 6 null (routine), then shuffle
+  const slots = shuffle([...chosen, null, null, null, null, null, null]);
+
+  // Post-process: prevent two long shocks (duration >= 2) from being adjacent
+  // by swapping one of them with a later null slot when a clash is detected.
+  for (let i = 0; i < slots.length - 1; i++) {
+    const cur  = slots[i];
+    const next = slots[i + 1];
+    if (cur && next && (cur.duration || 1) >= 2 && (next.duration || 1) >= 2) {
+      // Find a null slot after i+1 to swap with
+      const nullIdx = slots.findIndex((v, idx) => idx > i + 1 && v === null);
+      if (nullIdx !== -1) {
+        [slots[i + 1], slots[nullIdx]] = [slots[nullIdx], slots[i + 1]];
+      }
+    }
+  }
+
+  return slots;
 }
 
 function interpolateValue(start, end, progress) {
@@ -335,7 +837,33 @@ function stopSparklineAnimation() {
  * @returns {object} - { newInflation, newUnemployment, inflDelta, unempDelta }
  */
 function advanceEconomy(rateDelta) {
-  const shock = state.shockSchedule[state.quarter - 1];
+  // --- Determine the shock in effect this quarter ---
+  // Priority: a continuing multi-turn shock takes precedence over scheduling a new one.
+  // If no active shock is continuing, check whether the schedule fires a new shock.
+  let shock;
+  let newActiveShock               = null;
+  let newActiveShockTurnsRemaining = 0;
+
+  if (state.activeShockTurnsRemaining > 0 && state.activeShock) {
+    // Carry the existing multi-turn shock forward
+    shock = state.activeShock;
+    newActiveShock               = (state.activeShockTurnsRemaining - 1 > 0) ? state.activeShock : null;
+    newActiveShockTurnsRemaining = Math.max(0, state.activeShockTurnsRemaining - 1);
+  } else {
+    // Check if a new shock fires this quarter from the schedule
+    const scheduledShock = state.shockSchedule[state.quarter - 1];
+    if (scheduledShock) {
+      shock = scheduledShock;
+      const dur = scheduledShock.duration || 1;
+      if (dur > 1) {
+        // Will persist into future quarters
+        newActiveShock               = scheduledShock;
+        newActiveShockTurnsRemaining = dur - 1;
+      }
+    } else {
+      shock = null;
+    }
+  }
 
   // --- Shock effects this quarter ---
   const shockInfl  = shock ? shock.inflEffect  : 0;
@@ -378,8 +906,12 @@ function advanceEconomy(rateDelta) {
   const nextLagUnemp = +rateDelta * RATE_UNEMP_SENSITIVITY * LAG_DEFERRED
                        + (shock ? shock.unempLag : 0);
 
+  // Persist multi-turn shock state directly into state (so makeDecision doesn't need changes)
+  state.activeShock               = newActiveShock;
+  state.activeShockTurnsRemaining = newActiveShockTurnsRemaining;
+
   return { newInflation, newUnemployment, inflDelta, unempDelta,
-           nextLagInfl, nextLagUnemp };
+           nextLagInfl, nextLagUnemp, shock };
 }
 
 
@@ -406,46 +938,165 @@ function calcFinalScore(totalPenalty) {
 }
 
 /**
+ * Calculate a detailed score breakdown across four dimensions (0-100 each).
+ * @param {Array} history  state.history array of completed-quarter records
+ * @returns {{ inflScore, unempScore, consistencyScore, crisisScore }}
+ */
+function calcScoreBreakdown(history) {
+  const n = history.length;
+  if (n === 0) return { inflScore: 0, unempScore: 0, consistencyScore: 0, crisisScore: 0 };
+
+  // 1. Inflation Control
+  const avgInflDev = history.reduce((s, r) => s + Math.abs(r.inflation - TARGET_INFLATION), 0) / n;
+  const inflScore = Math.max(0, Math.round(100 - (avgInflDev / 3.0) * 100));
+
+  // 2. Employment Stability
+  const avgUnempDev = history.reduce((s, r) => s + Math.abs(r.unemployment - TARGET_UNEMPLOYMENT), 0) / n;
+  const unempScore = Math.max(0, Math.round(100 - (avgUnempDev / 3.0) * 100));
+
+  // 3. Policy Consistency — penalize large quarter-to-quarter rate swings
+  let totalSwing = 0;
+  for (let i = 1; i < n; i++) totalSwing += Math.abs(history[i].rate - history[i - 1].rate);
+  const avgSwing = n > 1 ? totalSwing / (n - 1) : 0;
+  const consistencyScore = Math.max(0, Math.round(100 - (avgSwing / 1.5) * 100));
+
+  // 4. Crisis Handling — performance during shock quarters
+  const shockRecs = history.filter(r => r.eventTitle);
+  let crisisScore;
+  if (shockRecs.length === 0) {
+    crisisScore = 100;
+  } else {
+    const avgShockPenalty = shockRecs.reduce(
+      (s, r) => s + Math.abs(r.inflation - TARGET_INFLATION) + Math.abs(r.unemployment - TARGET_UNEMPLOYMENT), 0
+    ) / shockRecs.length;
+    crisisScore = Math.max(0, Math.round(100 - (avgShockPenalty / 5.0) * 100));
+  }
+
+  return { inflScore, unempScore, consistencyScore, crisisScore };
+}
+
+/**
+ * Returns true if the soft-landing condition is met:
+ * the last 4 quarters averaged inflation within 0.5% of target AND unemployment within 0.5% of target.
+ */
+function getSoftLandingStatus(history) {
+  const tail = history.slice(-4);
+  if (tail.length < 4) return false;
+  const avgInfl  = tail.reduce((s, r) => s + r.inflation,    0) / tail.length;
+  const avgUnemp = tail.reduce((s, r) => s + r.unemployment, 0) / tail.length;
+  return Math.abs(avgInfl - TARGET_INFLATION) <= 0.5 && Math.abs(avgUnemp - TARGET_UNEMPLOYMENT) <= 0.5;
+}
+
+/**
+ * Returns the best and worst quarter records from history by combined target deviation.
+ */
+function getBestWorstQuarters(history) {
+  if (history.length === 0) return { best: null, worst: null };
+  const withPenalty = history.map(r => ({
+    ...r,
+    penalty: Math.abs(r.inflation - TARGET_INFLATION) + Math.abs(r.unemployment - TARGET_UNEMPLOYMENT)
+  }));
+  withPenalty.sort((a, b) => a.penalty - b.penalty);
+  return { best: withPenalty[0], worst: withPenalty[withPenalty.length - 1] };
+}
+
+/**
+ * Returns a one-line shareable result string.
+ */
+function getEndScreenShareText(score, verdict) {
+  return 'I scored ' + score + '/100 as "' + verdict.title + '" on Chair the Fed! Can you do better?';
+}
+
+/**
  * Return the reappointment verdict object for a given score.
+ * 8 tiers: Legendary Chair (95+) → Worst Chair in Fed History (0-14).
  */
 function getVerdict(score) {
-  if (score >= SCORE_EXCELLENT) {
+  if (score >= 95) {
     return {
       cssClass: 'excellent',
-      title: 'Reappointed with Distinction',
+      title: 'Legendary Chair',
+      subtitle: 'A Flawless Soft Landing',
+      text: 'History will remember you as one of the great Chairs. Inflation and unemployment ' +
+            'stayed close to target through shocks, reversals, and relentless uncertainty. ' +
+            'The FOMC unanimously endorsed your reappointment — and economists are already writing ' +
+            'chapters about your tenure. You made it look easy. It was not.'
+    };
+  }
+  if (score >= 85) {
+    return {
+      cssClass: 'excellent',
+      title: 'Soft Landing Achieved',
+      subtitle: 'Textbook Policy',
       text: 'The Federal Open Market Committee has voted unanimously to recommend your reappointment. ' +
             'You successfully navigated the economy through a challenging period, keeping both inflation ' +
             'and unemployment close to their targets. Your steady hand and sound judgment have earned ' +
             'the confidence of the Committee and the public.'
     };
   }
-  if (score >= SCORE_GOOD) {
+  if (score >= 75) {
+    return {
+      cssClass: 'good',
+      title: 'Steady Hand',
+      subtitle: 'Economy Stabilized',
+      text: 'The Senate has confirmed your reappointment with broad support. The economy drifted ' +
+            'at times, but your consistent and measured approach helped it find its footing. ' +
+            'The Committee noted that tighter conditions tested your resolve — and you held the line ' +
+            'when it mattered.'
+    };
+  }
+  if (score >= 60) {
     return {
       cssClass: 'good',
       title: 'Reappointed',
+      subtitle: 'Mixed but Acceptable',
       text: 'The Senate has confirmed you for another term as Federal Reserve Chair. ' +
             'While there were periods when the economy drifted from its targets, your overall management ' +
             'of monetary policy was sound. The Committee acknowledged the difficult conditions you faced ' +
             'and expressed confidence in your continued leadership.'
     };
   }
-  if (score >= SCORE_POOR) {
+  if (score >= 40) {
     return {
       cssClass: 'poor',
       title: 'Not Reappointed',
+      subtitle: 'Policy Fell Short',
       text: 'The President has nominated a new Chair of the Federal Reserve. ' +
             'Inflation and unemployment strayed too far from their targets during your tenure. ' +
             'Economists and policymakers have questioned whether your rate decisions responded ' +
             'quickly enough to changing economic conditions. Your term ends without a second appointment.'
     };
   }
+  if (score >= 20) {
+    return {
+      cssClass: 'fired',
+      title: 'Policy Disaster',
+      subtitle: 'Stagflation Spiral',
+      text: 'Congress has passed a resolution calling for your removal, and the President has acted on it. ' +
+            'Inflation and unemployment swung well outside acceptable ranges on your watch. ' +
+            'Your rate decisions — too aggressive, too timid, or simply mistimed — left lasting scars ' +
+            'on the economy. Your term will be a cautionary tale in economic policy courses for decades.'
+    };
+  }
+  if (score >= 15) {
+    return {
+      cssClass: 'fired',
+      title: 'Volcker-Level Crisis',
+      subtitle: 'Self-Inflicted',
+      text: 'The President has demanded your resignation. Your rate decisions — wildly inconsistent or ' +
+            'severely mistimed — sent both inflation and unemployment spiraling into crisis territory. ' +
+            'Markets lost confidence. The public lost patience. Historians will debate which quarter was ' +
+            'the most damaging. There are several candidates.'
+    };
+  }
   return {
     cssClass: 'fired',
-    title: 'Removed from Office',
+    title: 'Worst Chair in Fed History',
+    subtitle: 'Economic Catastrophe on Your Watch',
     text: 'Congress has passed a resolution calling for your removal, and the President has acted on it. ' +
-          'Your management of monetary policy was judged to have caused significant harm to the economy. ' +
-          'Both inflation and unemployment reached levels that the public and policymakers found unacceptable. ' +
-          'This outcome will be studied in economics courses for years to come.'
+          'Your management of monetary policy was judged to have caused catastrophic harm to the economy. ' +
+          'Both inflation and unemployment reached levels not seen in generations. ' +
+          'This outcome will be studied in economics courses for years to come — as a warning.'
   };
 }
 
@@ -495,6 +1146,19 @@ function renderIndicators() {
   // Color-code distance from target
   setIndicatorClass(inflEl,  state.inflation,    TARGET_INFLATION,    0.5, 1.5);
   setIndicatorClass(unempEl, state.unemployment, TARGET_UNEMPLOYMENT, 0.5, 1.5);
+
+  // Apply border state signal to parent indicator containers
+  var setStateBorder = function(el, val, target) {
+    var parent = el.closest ? el.closest('.indicator') : null;
+    if (!parent) return;
+    parent.classList.remove('state-over', 'state-under', 'state-near');
+    var diff = val - target;
+    if (Math.abs(diff) <= 0.5)   parent.classList.add('state-near');
+    else if (diff > 0)            parent.classList.add('state-over');
+    else                          parent.classList.add('state-under');
+  };
+  setStateBorder(inflEl,  state.inflation,    TARGET_INFLATION);
+  setStateBorder(unempEl, state.unemployment, TARGET_UNEMPLOYMENT);
 }
 
 function setIndicatorClass(el, val, target, nearThresh, warnThresh) {
@@ -521,7 +1185,7 @@ function renderNews() {
   const body  = document.getElementById('news-body');
 
   // Quarter label — show quarter number and year
-  const year = 2020 + Math.floor((state.quarter - 1) / 4);
+  const year = START_YEAR + Math.floor((state.quarter - 1) / 4);
   const qNum = ((state.quarter - 1) % 4) + 1;
   label.textContent = 'Q' + qNum + ' ' + year + ' — Economic Briefing';
 
@@ -532,7 +1196,7 @@ function renderNews() {
   } else {
     badge.textContent = 'ROUTINE';
     badge.className   = 'news-badge routine';
-    const routine     = ROUTINE_NEWS[state.quarter % ROUTINE_NEWS.length];
+    const newsItem = selectRoutineNews(state); const routine = newsItem.text;
     body.innerHTML    = '<p>' + routine + '</p>';
   }
 
@@ -614,7 +1278,7 @@ function appendHistoryRow(record) {
   const tbody = document.getElementById('history-tbody');
   if (!tbody) return;
 
-  const year = 2020 + Math.floor((record.quarter - 1) / 4);
+  const year = START_YEAR + Math.floor((record.quarter - 1) / 4);
   const qNum = ((record.quarter - 1) % 4) + 1;
   const inflClass  = getDeviationClass(record.inflation,    TARGET_INFLATION,    0.5);
   const unempClass = getDeviationClass(record.unemployment, TARGET_UNEMPLOYMENT, 0.5);
@@ -687,7 +1351,7 @@ function renderResult(rateDelta, newInfl, newUnemp, qPenalty) {
   // Adjust next-button text on final quarter
   const nextBtn = document.getElementById('btn-next');
   if (nextBtn) {
-    nextBtn.textContent = state.quarter > TOTAL_QUARTERS
+    nextBtn.textContent = state.quarter > (state.totalQuarters || TOTAL_QUARTERS)
       ? 'View Final Results →'
       : 'Next Quarter →';
   }
@@ -884,7 +1548,7 @@ function renderEndHistory() {
   if (!tbody) return;
   tbody.innerHTML = '';
   state.history.forEach(record => {
-    const year    = 2020 + Math.floor((record.quarter - 1) / 4);
+    const year    = START_YEAR + Math.floor((record.quarter - 1) / 4);
     const qNum    = ((record.quarter - 1) % 4) + 1;
     const inflClass  = getDeviationClass(record.inflation,    TARGET_INFLATION,    0.5);
     const unempClass = getDeviationClass(record.unemployment, TARGET_UNEMPLOYMENT, 0.5);
@@ -1106,12 +1770,13 @@ function getQuarterInfo(quarterNumber) {
 }
 
 function renderQuarterProgress() {
+  const totalQ = (state.totalQuarters != null) ? state.totalQuarters : TOTAL_QUARTERS;
   const current = getQuarterInfo(state.quarter || 1);
   const start = getQuarterInfo(1);
-  const end = getQuarterInfo(TOTAL_QUARTERS);
-  const progress = TOTAL_QUARTERS === 1
+  const end = getQuarterInfo(totalQ);
+  const progress = totalQ === 1
     ? 100
-    : ((state.quarter || 1) - 1) / (TOTAL_QUARTERS - 1) * 100;
+    : ((state.quarter || 1) - 1) / (totalQ - 1) * 100;
 
   const currentLabel = document.getElementById('timeline-current-label');
   const startLabel = document.getElementById('timeline-start-label');
@@ -1126,112 +1791,121 @@ function renderQuarterProgress() {
   if (progressMarker) progressMarker.style.left = progress + '%';
 }
 
-function getVerdict(score) {
-  if (score >= SCORE_EXCELLENT) {
-    return {
-      cssClass: 'excellent',
-      title: 'Reappointed with Distinction',
-      text: 'The Federal Open Market Committee has voted unanimously to recommend your reappointment. ' +
-            'You successfully navigated the economy through a challenging period, keeping both inflation ' +
-            'and unemployment close to their targets. Your steady hand and sound judgment have earned ' +
-            'the confidence of the Committee and the public.'
-    };
-  }
-  if (score >= SCORE_GOOD) {
-    return {
-      cssClass: 'good',
-      title: 'Reappointed',
-      text: 'The Senate has confirmed you for another term as Fed Chairman. ' +
-            'While there were periods when the economy drifted from its targets, your overall management ' +
-            'of monetary policy was sound. The Committee acknowledged the difficult conditions you faced ' +
-            'and expressed confidence in your continued leadership.'
-    };
-  }
-  if (score >= SCORE_POOR) {
-    return {
-      cssClass: 'poor',
-      title: 'Not Reappointed',
-      text: 'The President has nominated a new Fed Chairman. ' +
-            'Inflation and unemployment strayed too far from their targets during your tenure. ' +
-            'Economists and policymakers have questioned whether your rate decisions responded ' +
-            'quickly enough to changing economic conditions. Your term ends without a second appointment.'
-    };
-  }
-  return {
-    cssClass: 'fired',
-    title: 'Removed from Office',
-    text: 'Congress has passed a resolution calling for your removal, and the President has acted on it. ' +
-          'Your management of monetary policy was judged to have caused significant harm to the economy. ' +
-          'Both inflation and unemployment reached levels that the public and policymakers found unacceptable. ' +
-          'This outcome will be studied in economics courses for years to come.'
-  };
-}
-
 function renderHeader() {
+  const totalQ = (state.totalQuarters != null) ? state.totalQuarters : TOTAL_QUARTERS;
   document.getElementById('hdr-quarter').textContent =
-    state.quarter + ' / ' + TOTAL_QUARTERS;
+    state.quarter + ' / ' + totalQ;
 
+  const scoreEl = document.getElementById('hdr-score');
   if (state.history.length > 0) {
-    const currentScore = calcFinalScore(state.cumulativePenalty * (TOTAL_QUARTERS / state.history.length));
-    document.getElementById('hdr-score').textContent = currentScore;
+    const currentScore = calcFinalScore(state.cumulativePenalty * (totalQ / state.history.length));
+    scoreEl.textContent = currentScore;
+    scoreEl.classList.remove('hdr-score--good', 'hdr-score--ok', 'hdr-score--poor');
+    if (currentScore >= 75)      scoreEl.classList.add('hdr-score--good');
+    else if (currentScore >= 40) scoreEl.classList.add('hdr-score--ok');
+    else                         scoreEl.classList.add('hdr-score--poor');
   } else {
-    document.getElementById('hdr-score').textContent = '\u2014';
+    scoreEl.textContent = '\u2014';
+    scoreEl.classList.remove('hdr-score--good', 'hdr-score--ok', 'hdr-score--poor');
   }
 
   renderQuarterProgress();
 }
 
 function renderNews() {
-  const shock = state.shockSchedule[state.quarter - 1];
-  const quarterInfo = getQuarterInfo(state.quarter);
-  const label = document.getElementById('news-quarter-label');
-  const badge = document.getElementById('news-badge');
-  const body = document.getElementById('news-body');
-  const alert = document.getElementById('news-alert');
-  const alertHeadline = document.getElementById('news-alert-headline');
-  const alertText = document.getElementById('news-alert-text');
+  var shock = state.shockSchedule[state.quarter - 1];
+  var continuingShock = false;
+  if (!shock && state.activeShockTurnsRemaining > 0 && state.activeShock) {
+    shock = state.activeShock;
+    continuingShock = true;
+  }
+  var quarterInfo = getQuarterInfo(state.quarter);
+  var label = document.getElementById('news-quarter-label');
+  var badge = document.getElementById('news-badge');
+  var body  = document.getElementById('news-body');
+  var alert = document.getElementById('news-alert');
+  var alertHeadline = document.getElementById('news-alert-headline');
+  var alertText     = document.getElementById('news-alert-text');
 
   label.textContent = quarterInfo.label + ' - Economic Briefing';
 
   if (shock) {
-    badge.textContent = shock.badge;
-    badge.className = 'news-badge shock';
-    body.innerHTML = '<p class="event-title">' + shock.title + '</p><p>' + shock.text + '</p>';
+    if (continuingShock) {
+      badge.textContent = 'ONGOING';
+      badge.className   = 'news-badge shock shock--ongoing';
+      body.innerHTML = '<p class="event-title">' + shock.title
+        + ' <span style="font-size:0.8em;color:#8f6a00">(continuing \u2014 '
+        + state.activeShockTurnsRemaining + ' quarter'
+        + (state.activeShockTurnsRemaining === 1 ? '' : 's') + ' remaining)</span></p>'
+        + '<p>' + shock.text + '</p>';
+    } else {
+      badge.textContent = shock.badge;
+      badge.className   = 'news-badge shock' + (shock.badge === 'CRISIS' ? ' crisis-badge' : '');
+
+      var subHeadline = getShockSubHeadline(shock, state);
+      body.innerHTML = '<p class="event-title">' + shock.title + '</p>'
+        + '<p>' + shock.text + '</p>'
+        + '<p class="news-sub-headline">' + subHeadline + '</p>';
+    }
 
     if (alert && alertHeadline && alertText) {
       alertHeadline.textContent = shock.title;
-      alertText.textContent = shock.text;
-      alert.classList.remove('hidden');
-      alert.classList.remove('news-alert--flash');
+      alertText.textContent     = shock.text;
+      alert.classList.remove('hidden', 'news-alert--flash', 'news-alert--panic');
       void alert.offsetWidth;
       alert.classList.add('news-alert--flash');
+      if (shock.badge === 'CRISIS') alert.classList.add('news-alert--panic');
     }
   } else {
-    badge.textContent = 'ROUTINE';
-    badge.className = 'news-badge routine';
-    body.innerHTML = '<p>' + ROUTINE_NEWS[(state.quarter - 1) % ROUTINE_NEWS.length] + '</p>';
+    var newsItem  = selectRoutineNews(state);
+    badge.textContent = 'MARKET UPDATE';
+    badge.className   = 'news-badge routine news-mood--' + newsItem.mood;
+    body.innerHTML    = '<p>' + newsItem.text + '</p>';
 
-    if (alert && alertHeadline && alertText) {
+    // Add reaction headline if last decision was notable
+    var reaction = getReactionHeadline(state);
+    if (reaction) {
+      body.innerHTML += '<p class="news-market-react"><strong>Markets Reacting:</strong> ' + reaction + '</p>';
+    }
+
+    if (alert) {
       alert.classList.add('hidden');
-      alert.classList.remove('news-alert--flash');
-      alertHeadline.textContent = '';
-      alertText.textContent = '';
+      alert.classList.remove('news-alert--flash', 'news-alert--panic');
+      if (alertHeadline) alertHeadline.textContent = '';
+      if (alertText)     alertText.textContent     = '';
     }
   }
 
-  const inflNote = state.inflation > TARGET_INFLATION + 0.5
+  // Contextual condition notes
+  var inflNote = state.inflation > TARGET_INFLATION + 0.5
     ? 'Inflation is running above the Fed\'s 2% target.'
     : state.inflation < TARGET_INFLATION - 0.5
     ? 'Inflation is below the Fed\'s 2% target.'
     : 'Inflation is near the Fed\'s 2% target.';
 
-  const unempNote = state.unemployment > TARGET_UNEMPLOYMENT + 0.5
+  var unempNote = state.unemployment > TARGET_UNEMPLOYMENT + 0.5
     ? 'Unemployment is above the natural rate of 5%.'
     : state.unemployment < TARGET_UNEMPLOYMENT - 0.5
     ? 'Unemployment is below the natural rate of 5%.'
     : 'Unemployment is near its natural rate of 5%.';
 
   body.innerHTML += '<p class="news-context">' + inflNote + ' ' + unempNote + '</p>';
+
+  // Show ongoing shock status banner if multi-turn shock is continuing
+  var shockBannerEl = document.getElementById('shock-status-banner');
+  if (state.activeShockTurnsRemaining > 0 && state.activeShock) {
+    if (!shockBannerEl) {
+      shockBannerEl = document.createElement('div');
+      shockBannerEl.id = 'shock-status-banner';
+      shockBannerEl.className = 'shock-status-banner';
+      var newsPanel = document.getElementById('news-body');
+      if (newsPanel && newsPanel.parentNode) newsPanel.parentNode.appendChild(shockBannerEl);
+    }
+    shockBannerEl.innerHTML = '<span class="shock-status-icon">&#9888;</span> <strong>' + state.activeShock.title + '</strong> still in effect &mdash; ' + state.activeShockTurnsRemaining + ' quarter(s) remaining.';
+    shockBannerEl.style.display = '';
+  } else if (shockBannerEl) {
+    shockBannerEl.style.display = 'none';
+  }
 }
 
 function appendHistoryRow(record) {
@@ -1300,7 +1974,7 @@ function renderResult(rateDelta, newInfl, newUnemp, qPenalty) {
 
   const nextBtn = document.getElementById('btn-next');
   if (nextBtn) {
-    nextBtn.textContent = state.quarter >= TOTAL_QUARTERS
+    nextBtn.textContent = state.quarter >= (state.totalQuarters || TOTAL_QUARTERS)
       ? 'View Final Results ->'
       : 'Next Quarter ->';
   }
@@ -1518,24 +2192,91 @@ function buildChartPoint(completedQuarter, inflation, unemployment, rate) {
   };
 }
 
-function createInitialState() {
-  const shockSchedule = buildShockSchedule();
+function createInitialState(seed) {
+  // Apply the selected difficulty profile to global tuning constants.
+  applyDifficultyToConstants();
+
+  const d   = currentDifficulty;
+  const mag = d.shockMagnitudeMultiplier;
+  const rng = (seed != null) ? seededRandom(seed) : Math.random.bind(Math);
+
+  // Build shock schedule then adjust count and scale magnitudes for difficulty.
+  let schedule = buildShockSchedule(seed).map(entry =>
+    entry == null ? null : {
+      ...entry,
+      inflEffect:  entry.inflEffect  * mag,
+      unempEffect: entry.unempEffect * mag,
+      inflLag:     (entry.inflLag  || 0) * mag,
+      unempLag:    (entry.unempLag || 0) * mag
+    }
+  );
+
+  const targetCount  = Math.min(d.shocksPerRun, SHOCK_EVENTS.length);
+  const currentCount = schedule.filter(e => e !== null).length;
+
+  if (targetCount < currentCount) {
+    // Remove excess shocks (Textbook: fewer shocks)
+    let toRemove = currentCount - targetCount;
+    schedule = schedule.map(entry => {
+      if (entry !== null && toRemove > 0) { toRemove--; return null; }
+      return entry;
+    });
+  } else if (targetCount > currentCount) {
+    // Add more shocks (Crisis: replace nulls with extra scaled shocks)
+    const extras = [...SHOCK_EVENTS]
+      .sort(() => rng() - 0.5)
+      .slice(0, targetCount - currentCount)
+      .map(s => ({
+        ...s,
+        inflEffect:  s.inflEffect  * mag,
+        unempEffect: s.unempEffect * mag,
+        inflLag:     (s.inflLag  || 0) * mag,
+        unempLag:    (s.unempLag || 0) * mag
+      }));
+    let addIdx = 0;
+    schedule = schedule.map(entry =>
+      (entry === null && addIdx < extras.length) ? extras[addIdx++] : entry
+    );
+  }
+
+  // Use difficulty-specific starting conditions if defined
+  const initInflation    = d.initInflation    != null ? d.initInflation    : INIT_INFLATION;
+  const initUnemployment = d.initUnemployment != null ? d.initUnemployment : INIT_UNEMPLOYMENT;
 
   return {
     quarter: 1,
-    inflation: INIT_INFLATION,
-    unemployment: INIT_UNEMPLOYMENT,
+    inflation: initInflation,
+    unemployment: initUnemployment,
     fedRate: INIT_RATE,
     pendingRate: INIT_RATE,
     lagInflEffect: 0,
     lagUnempEffect: 0,
     history: [],
-    shockSchedule,
+    shockSchedule: schedule,
     cumulativePenalty: 0,
     phase: 'decision',
-    chartPoints: [buildChartPoint(0, INIT_INFLATION, INIT_UNEMPLOYMENT, INIT_RATE)],
+    chartPoints: [buildChartPoint(0, initInflation, initUnemployment, INIT_RATE)],
     chartAnimation: null,
-    animationFrameId: 0
+    animationFrameId: 0,
+    // Multi-turn shock tracking
+    activeShock:               null,  // shock object persisting across quarters (or null)
+    activeShockTurnsRemaining: 0,     // quarters remaining for active shock
+    seed:                      seed != null ? seed : null,
+    // Achievement tracking
+    unlockedAchievements: [],
+    achievementStats: {
+      maxInflation:          -Infinity,
+      minInflation:          Infinity,
+      consecutiveHolds:      0,
+      maxConsecutiveHolds:   0,
+      lowRateQuarters:       0,    // quarters with rate == RATE_MIN (0.25)
+      rateDirectionChanges:  0,
+      lastRateDirection:     0,    // -1 lower, 0 hold, +1 raise
+      duration3ShocksCount:  0,    // shocks with duration === 3 experienced
+      unemploymentSpikes:    0,    // times unemployment > 8% in distinct quarters
+      totalRateRaised:       0,    // cumulative rate increases
+      totalRateLowered:      0     // cumulative rate decreases (positive = magnitude)
+    }
   };
 }
 
@@ -1756,7 +2497,17 @@ function finishMainChartAnimation() {
   renderRateSelector();
 
   const nextBtn = document.getElementById('btn-next');
-  if (nextBtn) nextBtn.disabled = false;
+  if (nextBtn) {
+    nextBtn.disabled = false;
+    const limit = (state.totalQuarters != null) ? state.totalQuarters : TOTAL_QUARTERS;
+    if (state.quarter >= limit) {
+      nextBtn.textContent = 'See Final Results \u2192';
+      nextBtn.classList.add('btn-next--final');
+    } else {
+      nextBtn.textContent = 'Next Quarter \u2192';
+      nextBtn.classList.remove('btn-next--final');
+    }
+  }
 }
 
 function startMainChartAnimation(animation) {
@@ -1787,12 +2538,34 @@ function startMainChartAnimation(animation) {
   state.animationFrameId = requestAnimationFrame(step);
 }
 
-function startGame() {
+function startGame(seedValue) {
   stopMainChartAnimation();
-  state = createInitialState();
+  const seed = (seedValue != null) ? seedValue : null;
+  state = createInitialState(seed);
+  state.seed = seed;
+  state.lastSeed = seed;
+  state.totalQuarters = TOTAL_QUARTERS;
+  state.sandboxMode = false;
+  state.isDailyChallenge = (seed != null && seed === getDailySeed());
   document.getElementById('history-tbody').innerHTML = '';
   document.getElementById('end-history-tbody').innerHTML = '';
   document.getElementById('end-verdict-card').querySelectorAll('.end-shock-note').forEach(note => note.remove());
+
+  // Update seed display in game header
+  const seedDisplay = document.getElementById('hdr-seed');
+  const seedContainer = document.getElementById('hdr-seed-container');
+  if (seedDisplay && seedContainer) {
+    if (seed != null) {
+      seedDisplay.textContent = seed;
+      seedContainer.style.display = '';
+    } else {
+      seedContainer.style.display = 'none';
+    }
+  }
+  // Hide sandbox banner
+  const sandboxBanner = document.getElementById('sandbox-banner');
+  if (sandboxBanner) sandboxBanner.style.display = 'none';
+
   showScreen('screen-game');
   beginQuarter();
 }
@@ -1805,6 +2578,7 @@ function beginQuarter() {
   renderHeader();
   renderIndicators();
   renderNews();
+  renderAdvisors();
   renderMainChart();
   renderRateSelector();
 
@@ -1840,6 +2614,9 @@ function makeDecision() {
   state.history.push(record);
   appendHistoryRow(record);
 
+  // Track achievement stats for this quarter
+  updateAchievementStats(record, rateDelta);
+
   renderResult(rateDelta, result.newInflation, result.newUnemployment, qPenalty);
   document.getElementById('panel-decision').classList.add('hidden');
   document.getElementById('panel-result').classList.remove('hidden');
@@ -1862,7 +2639,8 @@ function makeDecision() {
 function nextQuarter() {
   if (state.phase !== 'result') return;
 
-  if (state.quarter >= TOTAL_QUARTERS) {
+  const limit = (state.totalQuarters != null) ? state.totalQuarters : TOTAL_QUARTERS;
+  if (state.quarter >= limit) {
     renderEndScreen();
     showScreen('screen-end');
     return;
@@ -1874,12 +2652,109 @@ function nextQuarter() {
 
 function resetGame() {
   stopMainChartAnimation();
-  state = {};
+  const lastSeed = (state && state.lastSeed != null) ? state.lastSeed : null;
+  state = { lastSeed };
   document.getElementById('history-tbody').innerHTML = '';
   document.getElementById('end-history-tbody').innerHTML = '';
   document.getElementById('end-verdict-card').querySelectorAll('.end-shock-note').forEach(note => note.remove());
+  const sandboxBanner = document.getElementById('sandbox-banner');
+  if (sandboxBanner) sandboxBanner.style.display = 'none';
   showScreen('screen-intro');
 }
+
+// ==========================================================================
+// SEEDING SYSTEM & ONE-MORE-TURN FLOW
+// ==========================================================================
+
+/** Returns today's UTC date as YYYYMMDD integer — same for all players worldwide on the same calendar day. */
+function getDailySeed() {
+  const d = new Date();
+  return d.getUTCFullYear() * 10000 + (d.getUTCMonth() + 1) * 100 + d.getUTCDate();
+}
+
+/**
+ * Maps any string to a stable positive 32-bit integer seed.
+ * Same string always yields the same seed.
+ */
+function stringToSeed(str) {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = (hash * 31 + str.charCodeAt(i)) & 0xffffffff;
+  }
+  return Math.abs(hash) || 1;
+}
+
+/** Reads #seed-input and starts a seeded (or random) game. */
+function startGameWithSeedInput() {
+  const raw = ((document.getElementById('seed-input') || {}).value || '').trim();
+  if (!raw) { startGame(); return; }
+  const asNum = Number(raw);
+  const seed = Number.isInteger(asNum) && asNum > 0 ? asNum : stringToSeed(raw);
+  startGame(seed);
+}
+
+/** Replays the most recent run with the exact same seed (random if no seed was used). */
+function replayWithSameSeed() {
+  startGame(state.lastSeed != null ? state.lastSeed : undefined);
+}
+
+/**
+ * Copy a shareable result string to the clipboard.
+ * Falls back to window.prompt on browsers without Clipboard API.
+ */
+function copyResultToClipboard() {
+  var finalScore = calcFinalScore(state.cumulativePenalty);
+  var verdict = getVerdict(finalScore);
+  var text = getEndScreenShareText(finalScore, verdict);
+  var btn = document.getElementById('btn-share-result');
+
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(function() {
+      if (btn) {
+        btn.textContent = 'Copied!';
+        setTimeout(function() {
+          btn.textContent = '\uD83D\uDCCB Copy Result';
+        }, 1500);
+      }
+    }).catch(function() {
+      window.prompt('Copy your result:', text);
+    });
+  } else {
+    window.prompt('Copy your result:', text);
+  }
+}
+
+/** Returns to the intro screen for a fresh run. */
+function startNewRun() {
+  resetGame();
+}
+
+/**
+ * Extends the completed run to 24 quarters in sandbox mode.
+ * Appends null (routine-quarter) slots to cover extra quarters.
+ */
+function startSandboxMode() {
+  state.totalQuarters = 24;
+  state.sandboxMode = true;
+  while (state.shockSchedule.length < 24) state.shockSchedule.push(null);
+
+  const sandboxBanner = document.getElementById('sandbox-banner');
+  if (sandboxBanner) sandboxBanner.style.display = '';
+
+  showScreen('screen-game');
+  state.quarter += 1;
+  state.phase = 'decision';
+  beginQuarter();
+}
+
+// R-key shortcut: press R on the end screen to start a new run
+document.addEventListener('keydown', function(e) {
+  if (e.key !== 'r' && e.key !== 'R') return;
+  const endScreen = document.getElementById('screen-end');
+  if (endScreen && endScreen.classList.contains('active')) {
+    startNewRun();
+  }
+});
 
 window.addEventListener('resize', () => {
   const gameScreen = document.getElementById('screen-game');
@@ -1893,3 +2768,377 @@ window.addEventListener('resize', () => {
     renderEndCharts();
   }
 });
+
+
+/* ==========================================================================
+   T8 INTEGRATION — Fixed startGame + Enhanced renderEndScreen
+   ========================================================================== */
+
+/**
+ * Start a new game run. Accepts optional integer seed for deterministic play.
+ * Overrides earlier startGame definitions — this is the active version.
+ */
+function startGame(seed) {
+  stopMainChartAnimation();
+  state = createInitialState(seed);
+  state.lastSeed = (seed != null) ? seed : null;
+  state.isDailyChallenge = (seed != null && seed === getDailySeed());
+
+  document.getElementById('history-tbody').innerHTML = '';
+  document.getElementById('end-history-tbody').innerHTML = '';
+  document.getElementById('end-verdict-card').querySelectorAll('.end-shock-note').forEach(el => el.remove());
+
+  // Always hide sandbox banner on any new run start
+  const sandboxBannerEl = document.getElementById('sandbox-banner');
+  if (sandboxBannerEl) sandboxBannerEl.style.display = 'none';
+
+  // Show seed badge in header if seeded run
+  const seedContainer = document.getElementById('hdr-seed-container');
+  const seedEl = document.getElementById('hdr-seed');
+  if (seedContainer && seedEl) {
+    if (seed != null) {
+      seedEl.textContent = String(seed);
+      seedContainer.style.display = '';
+    } else {
+      seedContainer.style.display = 'none';
+    }
+  }
+
+  showScreen('screen-game');
+  beginQuarter();
+}
+
+/**
+ * Enhanced end screen renderer — uses Builder 3's scoring functions and
+ * Builder 6's HTML elements (soft landing, breakdown, best/worst quarters).
+ * Overrides all earlier renderEndScreen definitions.
+ */
+function renderEndScreen() {
+  const finalScore = calcFinalScore(state.cumulativePenalty);
+  const verdict = getVerdict(finalScore);
+
+  // Check end-of-run achievements (score is now known)
+  checkEndAchievements(finalScore);
+
+  // Verdict card
+  const card = document.getElementById('end-verdict-card');
+  card.className = 'end-verdict-card ' + verdict.cssClass;
+  card.querySelectorAll('.end-shock-note').forEach(el => el.remove());
+
+  document.getElementById('end-verdict-title').textContent = verdict.title;
+  document.getElementById('end-score').textContent = finalScore + ' / 100';
+  document.getElementById('end-verdict-text').textContent = verdict.text;
+
+  // Subtitle badge (inserted dynamically if element doesn't exist yet)
+  let subtitleEl = document.getElementById('end-verdict-subtitle');
+  if (!subtitleEl && verdict.subtitle) {
+    subtitleEl = document.createElement('div');
+    subtitleEl.id = 'end-verdict-subtitle';
+    subtitleEl.style.cssText =
+      'font-family:Arial;font-size:0.75rem;text-transform:uppercase;letter-spacing:0.1em;' +
+      'color:#666;margin:0 0 8px;text-align:center;';
+    const scoreLabel = card.querySelector('.verdict-score-label');
+    if (scoreLabel) card.insertBefore(subtitleEl, scoreLabel);
+  }
+  if (subtitleEl) subtitleEl.textContent = verdict.subtitle || '';
+
+  // Avg stats
+  const avgInfl  = state.history.reduce((s, r) => s + r.inflation,    0) / state.history.length;
+  const avgUnemp = state.history.reduce((s, r) => s + r.unemployment, 0) / state.history.length;
+
+  document.getElementById('end-avg-infl').textContent   = fmt(avgInfl)  + '%';
+  document.getElementById('end-avg-unemp').textContent  = fmt(avgUnemp) + '%';
+  document.getElementById('end-final-rate').textContent = fmt(state.fedRate) + '%';
+  document.getElementById('end-final-rate-start').textContent = 'Started: ' + fmt(INIT_RATE) + '%';
+
+  setIndicatorClass(document.getElementById('end-avg-infl'),  avgInfl,  TARGET_INFLATION,    0.5, 1.5);
+  setIndicatorClass(document.getElementById('end-avg-unemp'), avgUnemp, TARGET_UNEMPLOYMENT, 0.5, 1.5);
+
+  // Soft landing indicator
+  const softLanding = getSoftLandingStatus(state.history);
+  const softEl = document.getElementById('end-soft-landing');
+  if (softEl) {
+    const valEl = softEl.querySelector('.end-soft-landing-value');
+    if (valEl) {
+      valEl.textContent = softLanding ? 'Yes \u2014 Achieved!' : 'No';
+      valEl.style.color  = softLanding ? '#1a6b1a' : '#b22222';
+      valEl.style.fontWeight = softLanding ? 'bold' : 'normal';
+    }
+  }
+
+  // Best / worst quarters
+  const { best, worst } = getBestWorstQuarters(state.history);
+  const bestWorstEl = document.getElementById('end-best-worst');
+  if (bestWorstEl && best && worst) {
+    const ql = r => getQuarterInfo(r.quarter).label;
+    bestWorstEl.innerHTML =
+      '<span style="color:#1a6b1a;font-size:0.82rem;">\u25b2 Best: ' + ql(best) +
+      ' (' + fmt(best.inflation) + '% infl, ' + fmt(best.unemployment) + '% unemp)</span>' +
+      '&nbsp;&nbsp;' +
+      '<span style="color:#b22222;font-size:0.82rem;">\u25bc Worst: ' + ql(worst) +
+      ' (' + fmt(worst.inflation) + '% infl, ' + fmt(worst.unemployment) + '% unemp)</span>';
+  }
+
+  // Score breakdown (4 dimensions)
+  const breakdown = calcScoreBreakdown(state.history);
+  const breakdownEl = document.getElementById('end-score-breakdown');
+  if (breakdownEl) {
+    breakdownEl.innerHTML = [
+      { label: 'Inflation Control',     score: breakdown.inflScore },
+      { label: 'Employment Stability',  score: breakdown.unempScore },
+      { label: 'Policy Consistency',    score: breakdown.consistencyScore },
+      { label: 'Crisis Handling',       score: breakdown.crisisScore }
+    ].map(({ label, score }) => {
+      const fillClass = score >= 75 ? 'bd-fill--good' : score >= 50 ? 'bd-fill--ok' : 'bd-fill--poor';
+      return '<div class="bd-row">' +
+        '<span class="bd-label">' + label + '</span>' +
+        '<span class="bd-track"><span class="bd-fill ' + fillClass + '" style="width:' + score + '%;"></span></span>' +
+        '<span class="bd-value">' + score + '</span>' +
+        '</div>';
+    }).join('');
+  }
+
+  // Events summary
+  const shocksOccurred = state.history.filter(r => r.eventTitle).map(r => r.eventTitle);
+  if (shocksOccurred.length > 0) {
+    const shockNote = document.createElement('p');
+    shockNote.className = 'end-shock-note';
+    shockNote.style.cssText = 'font-size:0.83rem;color:#555;text-align:center;margin:8px 0 0;font-style:italic;';
+    shockNote.textContent = 'Events during your term: ' + [...new Set(shocksOccurred)].join(', ') + '.';
+    card.appendChild(shockNote);
+  }
+
+  renderEndCharts();
+  renderEndHistory();
+
+  // --- Share text ---
+  const shareEl = document.getElementById('end-share-text');
+  if (shareEl) shareEl.value = getEndScreenShareText(finalScore, verdict);
+
+  // --- Achievements panel ---
+  // Render any achievements earned this run into the end screen
+  renderEndAchievements();
+}
+
+
+/* ==========================================================================
+   8. ACHIEVEMENTS SYSTEM
+   ========================================================================== */
+
+// Achievement definitions
+const ACHIEVEMENTS = [
+  { id: 'soft_landing',    title: 'Soft Landing',        desc: 'End with avg inflation 1.5\u20132.5% AND avg unemployment 4.5\u20135.5%',   icon: '\uD83C\uDFAF' },
+  { id: 'double_dip',      title: 'Double Dip',           desc: 'Unemployment exceeds 8% in two or more separate quarters',                icon: '\uD83D\uDCC9' },
+  { id: 'hyperinflation',  title: 'Hyperinflation',       desc: 'Inflation exceeds 10% in any quarter',                                    icon: '\uD83D\uDD25' },
+  { id: 'zero_bound',      title: 'Zero Bound Survivor',  desc: 'Hold the rate at 0.25% for 3+ consecutive quarters',                      icon: '\uD83D\uDD12' },
+  { id: 'volcker',         title: 'The Volcker',           desc: 'Raise rates by a cumulative 3%+ in a single run',                         icon: '\uD83E\uDD85' },
+  { id: 'steady_hand',     title: 'Steady Hand',           desc: 'Hold rates unchanged for 8+ consecutive quarters',                        icon: '\u270B' },
+  { id: 'crisis_manager',  title: 'Crisis Manager',        desc: 'Survive 3 or more duration-3 shocks in a single run',                    icon: '\uD83D\uDEE1\uFE0F' },
+  { id: 'policy_reversal', title: 'Policy Reversal',       desc: 'Change rate direction (up\u2194down) 4+ times in a run',                   icon: '\u2194\uFE0F' },
+  { id: 'perfect_score',   title: 'Legendary Chair',       desc: 'Finish with a score of 95 or higher',                                    icon: '\uD83D\uDC51' },
+  { id: 'deflation_scare', title: 'Deflation Scare',       desc: 'Inflation drops below 0% in any quarter',                                icon: '\uD83E\uDDCA' },
+  { id: 'hot_economy',     title: 'Overheating',           desc: 'Inflation AND unemployment both exceed their targets by 2%+ simultaneously', icon: '\uD83D\uDCA5' },
+  { id: 'full_term',       title: 'Full Term',              desc: 'Complete all 16 quarters of your chairmanship',                          icon: '\uD83D\uDCC5' },
+  { id: 'crisis_mode_win', title: 'Crisis Survivor',       desc: 'Score 60+ while playing on Crisis Mode',                                 icon: '\u26A1' },
+  { id: 'daily_challenge', title: 'Daily Challenger',      desc: 'Complete a Daily Challenge run',                                         icon: '\uD83D\uDCC6' }
+];
+
+/**
+ * Unlock an achievement if not already unlocked, then show a toast.
+ */
+function unlockAchievement(id) {
+  if (!state.unlockedAchievements) state.unlockedAchievements = [];
+  if (state.unlockedAchievements.includes(id)) return;
+  const achievement = ACHIEVEMENTS.find(a => a.id === id);
+  if (!achievement) return;
+  state.unlockedAchievements.push(id);
+  showAchievementToast(achievement);
+}
+
+// Internal queue so multiple achievements firing at once don't overlap
+let _toastQueue = [];
+let _toastActive = false;
+
+function showAchievementToast(achievement) {
+  _toastQueue.push(achievement);
+  if (!_toastActive) _processToastQueue();
+}
+
+function _processToastQueue() {
+  if (_toastQueue.length === 0) { _toastActive = false; return; }
+  _toastActive = true;
+  const a = _toastQueue.shift();
+
+  const toast    = document.getElementById('achievement-toast');
+  const iconEl   = document.getElementById('achievement-icon');
+  const titleEl  = document.getElementById('achievement-toast-title');
+  const descEl   = document.getElementById('achievement-toast-desc');
+  if (!toast || !iconEl || !titleEl || !descEl) { _toastActive = false; return; }
+
+  iconEl.textContent  = a.icon  || '\u2605';
+  titleEl.textContent = a.title || a.name || '';
+  descEl.textContent  = a.desc  || '';
+
+  toast.classList.remove('hidden', 'achievement-toast--out');
+  toast.classList.add('achievement-toast--in');
+
+  // Auto-dismiss after 3.5 s
+  setTimeout(() => {
+    toast.classList.remove('achievement-toast--in');
+    toast.classList.add('achievement-toast--out');
+    setTimeout(() => {
+      toast.classList.add('hidden');
+      toast.classList.remove('achievement-toast--out');
+      _processToastQueue(); // show next queued achievement
+    }, 400); // matches CSS transition
+  }, 3500);
+}
+
+/**
+ * Called after each quarter (from makeDecision v2) to update stats and
+ * check / fire in-game achievements.
+ *
+ * @param {object} record    - history record just logged (inflation, unemployment, rate…)
+ * @param {number} rateDelta - rate change applied this quarter (+/-)
+ */
+function updateAchievementStats(record, rateDelta) {
+  if (!state.achievementStats) return;
+  const s = state.achievementStats;
+
+  // --- Track extremes ---
+  s.maxInflation = Math.max(s.maxInflation, record.inflation);
+  s.minInflation = Math.min(s.minInflation, record.inflation);
+
+  // --- Unemployment spikes ---
+  if (record.unemployment > 8) s.unemploymentSpikes++;
+
+  // --- Rate tracking ---
+  if (rateDelta > 0) {
+    s.totalRateRaised += rateDelta;
+  } else if (rateDelta < 0) {
+    s.totalRateLowered += Math.abs(rateDelta);
+  }
+
+  // --- Consecutive holds ---
+  if (Math.abs(rateDelta) < 0.001) {
+    s.consecutiveHolds++;
+    s.maxConsecutiveHolds = Math.max(s.maxConsecutiveHolds, s.consecutiveHolds);
+  } else {
+    s.consecutiveHolds = 0;
+  }
+
+  // --- Low-rate (zero-bound) quarters ---
+  if (record.rate <= RATE_MIN + 0.001) {
+    s.lowRateQuarters++;
+  } else {
+    s.lowRateQuarters = 0; // must be consecutive
+  }
+
+  // --- Rate direction changes ---
+  const dir = rateDelta > 0 ? 1 : rateDelta < 0 ? -1 : 0;
+  if (dir !== 0 && s.lastRateDirection !== 0 && dir !== s.lastRateDirection) {
+    s.rateDirectionChanges++;
+  }
+  if (dir !== 0) s.lastRateDirection = dir;
+
+  // --- Duration-3 shocks ---
+  const scheduledShock = state.shockSchedule ? state.shockSchedule[state.quarter - 1] : null;
+  if (scheduledShock && scheduledShock.duration === 3) s.duration3ShocksCount++;
+
+  // ── Check in-game (per-quarter) achievements ─────────────────────────────
+
+  if (s.maxInflation > 10)
+    unlockAchievement('hyperinflation');
+
+  if (s.minInflation < 0)
+    unlockAchievement('deflation_scare');
+
+  if (s.unemploymentSpikes >= 2)
+    unlockAchievement('double_dip');
+
+  if (s.lowRateQuarters >= 3)
+    unlockAchievement('zero_bound');
+
+  if (s.totalRateRaised >= 3)
+    unlockAchievement('volcker');
+
+  if (s.maxConsecutiveHolds >= 8)
+    unlockAchievement('steady_hand');
+
+  if (s.duration3ShocksCount >= 3)
+    unlockAchievement('crisis_manager');
+
+  if (s.rateDirectionChanges >= 4)
+    unlockAchievement('policy_reversal');
+
+  // Overheating: both exceed target by 2%+
+  if (record.inflation    > TARGET_INFLATION    + 2 &&
+      record.unemployment > TARGET_UNEMPLOYMENT + 2)
+    unlockAchievement('hot_economy');
+
+  // Full term: completing the final quarter
+  const limit = (state.totalQuarters != null) ? state.totalQuarters : TOTAL_QUARTERS;
+  if (state.quarter >= limit)
+    unlockAchievement('full_term');
+
+}
+
+/**
+ * Check end-of-run achievements that require the final score.
+ * Called from renderEndScreen (or after calcFinalScore resolves).
+ * score-based achievements stay here so we don't conflict with T2 work.
+ *
+ * @param {number} finalScore - 0-100 score for this run
+ */
+function checkEndAchievements(finalScore) {
+  if (!state.history || state.history.length === 0) return;
+
+  // Soft landing: avg inflation 1.5-2.5% AND avg unemployment 4.5-5.5%
+  const avgInfl  = state.history.reduce((s, r) => s + r.inflation,    0) / state.history.length;
+  const avgUnemp = state.history.reduce((s, r) => s + r.unemployment, 0) / state.history.length;
+  if (avgInfl >= 1.5 && avgInfl <= 2.5 && avgUnemp >= 4.5 && avgUnemp <= 5.5)
+    unlockAchievement('soft_landing');
+
+  // Perfect score
+  if (finalScore >= 95)
+    unlockAchievement('perfect_score');
+
+  // Crisis Mode win
+  const diffName = (typeof currentDifficulty !== 'undefined' && currentDifficulty)
+    ? currentDifficulty.name : '';
+  if (finalScore >= 60 && diffName === 'Crisis Mode')
+    unlockAchievement('crisis_mode_win');
+
+  // Daily Challenge completion
+  if (state.isDailyChallenge)
+    unlockAchievement('daily_challenge');
+}
+
+/**
+ * Render earned achievements into the end screen achievements panel.
+ * Safe to call even if the panel div is absent (no-ops gracefully).
+ */
+function renderEndAchievements() {
+  const panel = document.getElementById('end-achievements-panel');
+  if (!panel) return;
+
+  const earned = (state.unlockedAchievements || [])
+    .map(id => ACHIEVEMENTS.find(a => a.id === id))
+    .filter(Boolean);
+
+  if (earned.length === 0) {
+    panel.innerHTML = '<p class="achievements-empty">No achievements earned this run.</p>';
+    return;
+  }
+
+  panel.innerHTML =
+    '<h3 class="achievements-heading">Achievements Earned</h3>' +
+    '<div class="achievements-grid">' +
+    earned.map(a =>
+      '<div class="achievement-badge" title="' + a.desc + '">' +
+        '<div class="achievement-badge-icon">' + a.icon + '</div>' +
+        '<div class="achievement-badge-title">' + a.title + '</div>' +
+      '</div>'
+    ).join('') +
+    '</div>';
+}
