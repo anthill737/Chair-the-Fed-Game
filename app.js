@@ -1930,8 +1930,7 @@ function appendHistoryRow(record) {
   `;
   tbody.appendChild(row);
 
-  const histDiv = tbody.closest('.history-scroll');
-  if (histDiv) histDiv.scrollTop = histDiv.scrollHeight;
+  // Do not auto-scroll history — would cause page to scroll unexpectedly
 }
 
 function renderResult(rateDelta, newInfl, newUnemp, qPenalty) {
