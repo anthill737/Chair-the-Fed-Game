@@ -2382,3 +2382,24 @@ html:has(#screen-game.active) body {
    overflow:hidden on each card stops unexpected content-driven height growth. */
 .indicator-group { flex-shrink: 0; }
 .indicator       { overflow: hidden; }
+
+/* --- Advisor panel: 180px shows all 3 advisor cards without clipping -------
+   Math: 180px - 20px padding - 27px title = 133px for 3 cards.
+   Each card: 30px avatar + 8px vertical padding = 38px. 3×38 + 2×3px gaps = 120px < 133px ✓ */
+.panel-side .panel-advisors {
+  flex: 0 0 180px;
+  min-height: 180px;
+  max-height: 180px;
+  overflow: hidden;
+}
+.panel-side .advisor-card {
+  padding: 4px 8px;
+  margin-bottom: 3px;
+}
+.panel-side .advisor-card:last-child { margin-bottom: 0; }
+.panel-side .advisor-rationale {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+}
