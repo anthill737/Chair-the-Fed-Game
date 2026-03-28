@@ -1728,44 +1728,6 @@ function renderEndHistory() {
   });
 }
 
-/** Render the full end screen */
-function renderEndScreen() {
-  const finalScore = calcFinalScore(state.cumulativePenalty);
-  const verdict    = getVerdict(finalScore);
-
-  // Verdict card
-  const card = document.getElementById('end-verdict-card');
-  card.className = 'end-verdict-card ' + verdict.cssClass;
-  document.getElementById('end-verdict-title').textContent = verdict.title;
-  document.getElementById('end-score').textContent         = finalScore + ' / 100';
-  document.getElementById('end-verdict-text').textContent  = verdict.text;
-
-  // Stats
-  const avgInfl  = state.history.reduce((s, r) => s + r.inflation,    0) / state.history.length;
-  const avgUnemp = state.history.reduce((s, r) => s + r.unemployment, 0) / state.history.length;
-
-  document.getElementById('end-avg-infl').textContent   = fmt(avgInfl)  + '%';
-  document.getElementById('end-avg-unemp').textContent  = fmt(avgUnemp) + '%';
-  document.getElementById('end-final-rate').textContent = fmt(state.fedRate) + '%';
-
-  // Color end stats
-  setIndicatorClass(document.getElementById('end-avg-infl'),  avgInfl,  TARGET_INFLATION,    0.5, 1.5);
-  setIndicatorClass(document.getElementById('end-avg-unemp'), avgUnemp, TARGET_UNEMPLOYMENT, 0.5, 1.5);
-
-  renderEndCharts();
-  renderEndHistory();
-
-  // List shock events that occurred
-  const shocksOccurred = state.history
-    .filter(r => r.eventTitle && r.eventTitle !== '—')
-    .map(r => r.eventTitle);
-  if (shocksOccurred.length > 0) {
-    const shockNote = document.createElement('p');
-    shockNote.style.cssText = 'font-size:0.83rem;color:#555;text-align:center;margin:8px 0 0;font-style:italic;';
-    shockNote.textContent   = 'Events during your term: ' + [...new Set(shocksOccurred)].join(', ') + '.';
-    document.getElementById('end-verdict-card').appendChild(shockNote);
-  }
-}
 
 function finishSparklineAnimation() {
   if (!state.sparklineAnimation) return;
@@ -2064,7 +2026,7 @@ function renderResult(rateDelta, newInfl, newUnemp, qPenalty) {
   const qs = document.getElementById('result-quarter-score');
   if (qs) {
     qs.textContent = fmt(qPenalty, 2) + ' deviation pts';
-    qs.style.color = qPenalty < 1.0 ? '#1a6b1a' : qPenalty < 2.5 ? '#c8a400' : '#b22222';
+    qs.style.color = qPenalty < 1.0 ? '#1a6b1a' : qPenalty < MAX_AVG_PENALTY ? '#c8a400' : '#b22222';
   }
 
   const nextBtn = document.getElementById('btn-next');
@@ -2096,44 +2058,6 @@ function renderEndHistory() {
   });
 }
 
-function renderEndScreen() {
-  const finalScore = calcFinalScore(state.cumulativePenalty);
-  const verdict = getVerdict(finalScore);
-
-  const card = document.getElementById('end-verdict-card');
-  card.className = 'end-verdict-card ' + verdict.cssClass;
-  card.querySelectorAll('.end-shock-note').forEach(note => note.remove());
-
-  document.getElementById('end-verdict-title').textContent = verdict.title;
-  document.getElementById('end-score').textContent = finalScore + ' / 100';
-  document.getElementById('end-verdict-text').textContent = verdict.text;
-
-  const avgInfl = state.history.reduce((sum, record) => sum + record.inflation, 0) / state.history.length;
-  const avgUnemp = state.history.reduce((sum, record) => sum + record.unemployment, 0) / state.history.length;
-
-  document.getElementById('end-avg-infl').textContent = fmt(avgInfl) + '%';
-  document.getElementById('end-avg-unemp').textContent = fmt(avgUnemp) + '%';
-  document.getElementById('end-final-rate').textContent = fmt(state.fedRate) + '%';
-  document.getElementById('end-final-rate-start').textContent = 'Started: ' + fmt(INIT_RATE) + '%';
-
-  setIndicatorClass(document.getElementById('end-avg-infl'), avgInfl, TARGET_INFLATION, 0.5, 1.5);
-  setIndicatorClass(document.getElementById('end-avg-unemp'), avgUnemp, TARGET_UNEMPLOYMENT, 0.5, 1.5);
-
-  renderEndCharts();
-  renderEndHistory();
-
-  const shocksOccurred = state.history
-    .filter(record => record.eventTitle)
-    .map(record => record.eventTitle);
-
-  if (shocksOccurred.length > 0) {
-    const shockNote = document.createElement('p');
-    shockNote.className = 'end-shock-note';
-    shockNote.style.cssText = 'font-size:0.83rem;color:#555;text-align:center;margin:8px 0 0;font-style:italic;';
-    shockNote.textContent = 'Events during your term: ' + [...new Set(shocksOccurred)].join(', ') + '.';
-    card.appendChild(shockNote);
-  }
-}
 
 function startGame() {
   stopSparklineAnimation();
