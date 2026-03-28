@@ -2075,12 +2075,19 @@ html:has(#screen-game.active) body {
 /* Canvas: flex-fill — grows to consume all remaining chart-frame height */
 .chart-frame canvas { flex: 1; min-height: 0; height: auto; width: 100%; }
 
-/* Right column: allow internal scroll as history grows */
-.panel-side { min-height: 0; overflow-y: auto; }
+/* Right column: flex column — fixed-height slices, history fills remainder */
+.panel-side { display: flex; flex-direction: column; min-height: 0; overflow: hidden; gap: 8px; }
+/* Advisor briefing: compact fixed height so it never crowds the policy controls */
+.panel-side .panel-advisors { flex: 0 0 auto; max-height: 120px; overflow: hidden; }
+/* Decision / result panels: fixed-size slice (mutually exclusive via .hidden toggle) */
+.panel-side #panel-decision,
+.panel-side #panel-result { flex: 0 0 auto; }
+/* History panel: expands to fill all remaining vertical space */
+.panel-side .panel-history { flex: 1; min-height: 0; margin: 0; overflow: hidden; }
+/* History scroll area: fills the panel, scrolls internally */
+.panel-side .history-scroll { height: 100%; max-height: none; overflow-y: auto; }
+/* Tighten sidebar panel padding to reclaim vertical space */
+.panel-side .panel { padding: 10px 12px; }
 
 /* Suppress the in-game CC footer — reclaims ~32px of vertical space */
 #screen-game .cc-attribution { display: none; }
-
-/* History panel inside the side column: no outer page margins, constrained height */
-.panel-side .panel-history { margin: 0; }
-.panel-side .history-scroll { max-height: 200px; }
