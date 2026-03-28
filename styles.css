@@ -2718,6 +2718,17 @@ html:has(#screen-game.active) body {
 }
 
 /* ============================================================
+   SURGICAL-FIX-3: Override rate-selector-wrapper flex:1 (S6 line 2579)
+   so GO button is near top of panel, not pushed to 826px bottom.
+   2026-03-28
+   ============================================================ */
+
+/* Wrapper must NOT grow — S6's flex:1 caused ~400px dead space below GO button */
+.panel-side .rate-selector-wrapper {
+  flex: none;
+}
+
+/* ============================================================
    SURGICAL-FIX-2: Correct remaining issues in Set Monetary Policy
    and Breaking News panels. Overrides S6 block above.
    2026-03-28
