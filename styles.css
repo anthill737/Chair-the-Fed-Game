@@ -731,9 +731,8 @@ html:has(#screen-game.active) body {
 .chart-frame canvas {
   display: block;
   width: 100%;
-  /* Responsive height so chart fits the viewport without page scrolling.
-     At 900px viewport → ~290px; at 768px → ~160px (clamped to 160 minimum). */
-  height: clamp(160px, calc(100vh - 610px), 360px);
+  /* Base height fallback — viewport-fit block overrides this to flex:1 */
+  height: clamp(160px, calc(100vh - 480px), 500px);
   background: #fdfcf9;
   border: 1px solid #ded7ca;
 }
@@ -2068,13 +2067,13 @@ html:has(#screen-game.active) body {
 .panel-indicators { min-height: 0; overflow: hidden; }
 .panel-center     { min-height: 0; overflow: hidden; }
 /* News panel capped so chart always has room to breathe */
-.panel-news       { flex-shrink: 0; max-height: 36vh; overflow-y: auto; }
+.panel-news       { flex: 0 0 auto; max-height: 120px; overflow-y: auto; }
 /* Chart panel grows to fill remaining center-column height */
 .panel-chart      { flex: 1; min-height: 0; overflow: hidden; }
 /* Chart frame fills the panel */
 .chart-frame      { display: flex; flex-direction: column; flex: 1; min-height: 0; }
-/* Canvas: viewport-relative height — reliable without depending on full parent-chain heights */
-.chart-frame canvas { height: clamp(180px, 22vh, 300px); }
+/* Canvas: flex-fill — grows to consume all remaining chart-frame height */
+.chart-frame canvas { flex: 1; min-height: 0; height: auto; width: 100%; }
 
 /* Right column: allow internal scroll as history grows */
 .panel-side { min-height: 0; overflow-y: auto; }
