@@ -2712,9 +2712,6 @@ function beginQuarter() {
   // This ensures getBoundingClientRect() returns correct coords for scroll centering.
   document.getElementById('panel-decision').classList.remove('hidden');
   document.getElementById('panel-result').classList.add('hidden');
-  // Restore advisors panel (was hidden during result phase)
-  const advisorsPanel = document.getElementById('panel-advisors');
-  if (advisorsPanel) advisorsPanel.classList.remove('hidden');
 
   renderRateSelector();
 }
@@ -2753,9 +2750,6 @@ function makeDecision() {
   renderResult(rateDelta, result.newInflation, result.newUnemployment, qPenalty);
   document.getElementById('panel-decision').classList.add('hidden');
   document.getElementById('panel-result').classList.remove('hidden');
-  // Hide advisors during result phase so the result panel + Next button are visible
-  const advisorsPanel = document.getElementById('panel-advisors');
-  if (advisorsPanel) advisorsPanel.classList.add('hidden');
   // Scroll the right column to the top so result panel is immediately visible
   const sideEl = document.querySelector('.panel-side');
   if (sideEl) sideEl.scrollTop = 0;
