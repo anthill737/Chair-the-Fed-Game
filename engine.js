@@ -3,11 +3,21 @@
    Pure simulation logic. No DOM dependencies.
 
    Exports (vanilla ES5 globals):
-     DIFFICULTY_PRESETS  — tuning constants per difficulty mode
-     mulberry32(seed)    — seeded PRNG factory
-     stepEconomy(...)    — quarterly economic update
-     penaltyToScore(...) — convert average penalty to 0-100 score
-     getDailySeed()      — date-based seed for daily challenge
+     DIFFICULTY_PRESETS      — tuning constants per difficulty mode
+     mulberry32(seed)        — seeded PRNG factory
+     stepEconomy(...)        — quarterly economic update (pure function)
+     penaltyToScore(...)     — convert average penalty to 0-100 score
+     getInitialConditions(d) — starting economic state per difficulty
+     hashString(str)         — FNV-1a string → uint32
+     getDailySeed()          — date-based seed for daily challenge
+     calcQuarterPenalty(...) — per-quarter scoring helper
+     calcFinalScore(history) — end-game score from history array
+     getOutcomeVerdict(score)— verdict title/text/className for end screen
+     checkSoftLanding(hist)  — true if all quarters near both targets
+     findBestWorstQuarters(h)— { best, worst } quarter objects
+     createInitialState(s,d) — create fresh game state (stateful API)
+     makeDecision(state,act) — advance state by one quarter (stateful API)
+     calculateFinalScore(st) — 0-100 score from state (stateful API)
    ========================================================================== */
 
 
@@ -161,8 +171,9 @@ function stepEconomy(
   var unempNoise = (rng() - 0.5) * 2 * diff.noise;
 
   // --- Event shocks (optional) ---
-  var eventInfl  = event ? (event.inflEffect  || 0) : 0;
-  var eventUnemp = event ? (event.unempEffect || 0) : 0;
+  // Support both naming conventions: inflShock (events.js) and inflEffect (legacy)
+  var eventInfl  = event ? (event.inflShock  || event.inflEffect  || 0) : 0;
+  var eventUnemp = event ? (event.unempShock || event.unempEffect || 0) : 0;
 
   // --- Combine all deltas ---
   var inflDelta  = immediateInfl  + lagInflEffect  + inflRevert  + inflMomContrib  + inflNoise  + eventInfl;
@@ -324,4 +335,128 @@ function findBestWorstQuarters(history) {
     if (worst === null || p > worst.penalty) worst = { quarter: history[i].quarter, penalty: p };
   }
   return { best: best, worst: worst };
+}
+
+
+/* --------------------------------------------------------------------------
+   9. HIGH-LEVEL STATEFUL API
+   Used by the smoke test and optionally by app.js.
+
+   createInitialState(seed, difficulty) → state
+   makeDecision(state, action)          → state   (action: 'hold'|'raise'|'lower')
+   calculateFinalScore(state)           → number 0-100
+
+   State shape:
+   {
+     quarter      : number      — quarters completed so far (0 = before first decision)
+     inflation    : number      — current inflation (%)
+     unemployment : number      — current unemployment (%)
+     fedRate      : number      — current fed funds rate (%)
+     lagInflEffect : number     — deferred infl effect to apply next quarter
+     lagUnempEffect: number     — deferred unemp effect to apply next quarter
+     inflMom      : number      — last quarter's inflation change (momentum)
+     unempMom     : number      — last quarter's unemployment change (momentum)
+     diff         : object      — DIFFICULTY_PRESETS entry in use
+     rng          : function    — stateful PRNG from mulberry32(seed)
+     history      : Array       — one entry per completed quarter
+   }
+   -------------------------------------------------------------------------- */
+
+var RATE_STEP = 0.25;
+var RATE_CLAMP_MIN = 0.0;
+var RATE_CLAMP_MAX = 20.0;
+
+/**
+ * Map 'normal' (legacy alias) → 'realworld', then look up DIFFICULTY_PRESETS.
+ * Falls back to 'realworld' for any unrecognised key.
+ */
+function resolveDifficulty(key) {
+  if (key === 'normal') key = 'realworld';
+  return DIFFICULTY_PRESETS[key] || DIFFICULTY_PRESETS.realworld;
+}
+
+/**
+ * Create a fresh game state.
+ * @param {number}  seed       — integer seed for the PRNG (use getDailySeed() for daily challenge)
+ * @param {string}  difficulty — 'textbook' | 'realworld' | 'crisis' | 'normal' (alias for realworld)
+ * @returns {object} Initial game state
+ */
+function createInitialState(seed, difficulty) {
+  var diff  = resolveDifficulty(difficulty || 'realworld');
+  var ic    = getInitialConditions(difficulty || 'realworld');
+  var rng   = mulberry32(seed || getDailySeed());
+  return {
+    quarter:       0,
+    inflation:     ic.inflation,
+    unemployment:  ic.unemployment,
+    fedRate:       ic.fedRate,
+    lagInflEffect:  0,
+    lagUnempEffect: 0,
+    inflMom:       0,
+    unempMom:      0,
+    diff:          diff,
+    rng:           rng,
+    history:       []
+  };
+}
+
+/**
+ * Advance the simulation by one quarter.
+ * @param {object} state  — current game state (immutably-styled: returns new state)
+ * @param {string} action — 'hold' | 'raise' | 'lower'
+ * @returns {object} New game state after applying the decision
+ */
+function makeDecision(state, action) {
+  var rateChange = 0;
+  if (action === 'raise') rateChange =  RATE_STEP;
+  if (action === 'lower') rateChange = -RATE_STEP;
+
+  var newFedRate      = Math.max(RATE_CLAMP_MIN, Math.min(RATE_CLAMP_MAX,
+                          Math.round((state.fedRate + rateChange) * 100) / 100));
+  var actualRateChange = Math.round((newFedRate - state.fedRate) * 100) / 100;
+
+  var result = stepEconomy(
+    state.inflation,
+    state.unemployment,
+    actualRateChange,
+    state.lagInflEffect,
+    state.lagUnempEffect,
+    state.inflMom,
+    state.unempMom,
+    null,         // event handled by events.js; pass null here for headless tests
+    state.diff,
+    state.rng
+  );
+
+  var newQuarter = state.quarter + 1;
+  var historyEntry = {
+    quarter:      newQuarter,
+    inflation:    result.newInfl,
+    unemployment: result.newUnemp,
+    rate:         newFedRate,
+    action:       action
+  };
+
+  return {
+    quarter:        newQuarter,
+    inflation:      result.newInfl,
+    unemployment:   result.newUnemp,
+    fedRate:        newFedRate,
+    lagInflEffect:  result.nextLagInfl,
+    lagUnempEffect: result.nextLagUnemp,
+    inflMom:        result.newInflMom,
+    unempMom:       result.newUnempMom,
+    diff:           state.diff,
+    rng:            state.rng,
+    history:        state.history.concat([historyEntry])
+  };
+}
+
+/**
+ * Compute final score (0-100) from a completed game state.
+ * @param {object} state — game state with history array
+ * @returns {number} Score 0-100
+ */
+function calculateFinalScore(state) {
+  return calcFinalScore(state.history);
 }
