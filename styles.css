@@ -2692,6 +2692,27 @@ html:has(#screen-game.active) body {
 
 /* News header tightened to give body more room */
 .panel-news .news-header {
-  margin-bottom: 5px;
-  padding-bottom: 4px;
+  margin-bottom: 4px;
+  padding-bottom: 3px;
+}
+
+/* Body budget at 180px ≈ 101px after alert+header.
+   event-title(17) + shock-text(2 lines,44) + sub(1 line,18) + context(1 line,18) = 97px.
+   Clamp sub-headline and context to 1 line so all four items stay visible. */
+.panel-news .news-body .news-sub-headline {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  margin-top: 2px;
+  font-size: 0.78rem;
+}
+
+.panel-news .news-body .news-context {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  margin-top: 2px;
+  font-size: 0.78rem;
 }
