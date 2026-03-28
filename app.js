@@ -94,7 +94,7 @@ const DIFFICULTY_PROFILES = {
     unempNoise:               0.06,
     inflMeanRevert:           0.12,   // economy corrects toward targets quickly
     unempMeanRevert:          0.10,
-    shocksPerRun:             7,      // fewer shocks
+    eventChance:              0.20,   // 20% chance of any event per quarter (~3 events/run)
     shockMagnitudeMultiplier: 0.7     // shocks are smaller
   },
   realworld: {
@@ -107,7 +107,7 @@ const DIFFICULTY_PROFILES = {
     unempNoise:               0.12,
     inflMeanRevert:           0.08,
     unempMeanRevert:          0.07,
-    shocksPerRun:             10,
+    eventChance:              0.30,   // 30% chance of any event per quarter (~4-5 events/run)
     shockMagnitudeMultiplier: 1.0
   },
   crisis: {
@@ -120,7 +120,7 @@ const DIFFICULTY_PROFILES = {
     unempNoise:               0.20,
     inflMeanRevert:           0.04,   // economy barely self-corrects
     unempMeanRevert:          0.03,
-    shocksPerRun:             13,     // near-constant shocks
+    eventChance:              0.40,   // 40% chance of any event per quarter (~6-7 events/run)
     shockMagnitudeMultiplier: 1.5,    // shocks are larger
     initInflation:            4.5,    // economy already running hot at game start
     initUnemployment:         7.0     // economy already strained at game start
@@ -177,6 +177,7 @@ const SHOCK_EVENTS = [
     id: 'oil_spike',
     title: 'Oil Price Spike',
     badge: 'BREAKING',
+    tier: 2,
     category: 'supply',
     duration: 2,
     text: 'Global oil prices have surged following supply disruptions in major producing regions. Energy costs for consumers and businesses are rising sharply, pushing up prices across the economy.',
@@ -189,6 +190,7 @@ const SHOCK_EVENTS = [
     id: 'supply_disruption',
     title: 'Supply Chain Disruption',
     badge: 'BREAKING',
+    tier: 2,
     category: 'supply',
     duration: 2,
     text: 'Major port congestion and transportation bottlenecks are causing widespread shortages of goods. Delivery times have lengthened and supplier prices are rising, adding to inflationary pressure.',
@@ -201,6 +203,7 @@ const SHOCK_EVENTS = [
     id: 'energy_drop',
     title: 'Energy Price Drop',
     badge: 'UPDATE',
+    tier: 1,
     category: 'supply',
     duration: 1,
     text: 'A surge in global energy production has sent oil and natural gas prices sharply lower. Consumers are seeing lower prices at the pump and in utility bills, providing a boost to real incomes.',
@@ -213,6 +216,7 @@ const SHOCK_EVENTS = [
     id: 'productivity',
     title: 'Productivity Improvement',
     badge: 'UPDATE',
+    tier: 1,
     category: 'supply',
     duration: 1,
     text: 'A wave of business efficiency gains — driven largely by technology adoption — is allowing companies to produce more with fewer resources. This is restraining both price and wage growth.',
@@ -225,6 +229,7 @@ const SHOCK_EVENTS = [
     id: 'oil_embargo',
     title: 'Oil Supply Embargo',
     badge: 'CRISIS',
+    tier: 3,
     category: 'supply',
     duration: 3,
     text: 'A major oil-producing bloc has announced a coordinated export embargo targeting Western nations. Fuel prices are spiking across the board and energy rationing is being discussed in several states.',
@@ -238,6 +243,7 @@ const SHOCK_EVENTS = [
     id: 'spending_slowdown',
     title: 'Consumer Spending Slowdown',
     badge: 'BREAKING',
+    tier: 2,
     category: 'demand',
     duration: 1,
     text: 'Retail sales fell for the second consecutive month as consumers pull back on discretionary spending. Businesses are responding by trimming payrolls and slowing investment.',
@@ -250,6 +256,7 @@ const SHOCK_EVENTS = [
     id: 'housing_boom',
     title: 'Housing Market Boom',
     badge: 'BREAKING',
+    tier: 2,
     category: 'demand',
     duration: 2,
     text: 'Home prices and construction activity are at multi-year highs. Strong demand for housing is spilling over into consumer confidence and broader spending, adding to inflationary pressure.',
@@ -262,6 +269,7 @@ const SHOCK_EVENTS = [
     id: 'fiscal_stimulus',
     title: 'Fiscal Stimulus Package',
     badge: 'BREAKING',
+    tier: 2,
     category: 'demand',
     duration: 2,
     text: 'Congress has passed a significant fiscal stimulus bill. Direct payments to households and infrastructure spending are expected to boost demand substantially over the coming quarters.',
@@ -274,6 +282,7 @@ const SHOCK_EVENTS = [
     id: 'consumer_confidence',
     title: 'Consumer Confidence Surge',
     badge: 'UPDATE',
+    tier: 1,
     category: 'demand',
     duration: 1,
     text: 'A widely watched consumer sentiment index hit its highest level in years. Households are increasing spending on big-ticket items, lifting demand and putting mild upward pressure on prices.',
@@ -286,6 +295,7 @@ const SHOCK_EVENTS = [
     id: 'spending_cuts',
     title: 'Government Spending Cuts',
     badge: 'UPDATE',
+    tier: 1,
     category: 'demand',
     duration: 1,
     text: 'Congress has reached a deficit reduction agreement that includes significant cuts to federal spending. The resulting fiscal drag is expected to weigh on economic activity over coming quarters.',
@@ -298,6 +308,7 @@ const SHOCK_EVENTS = [
     id: 'wage_price_spiral',
     title: 'Wage-Price Spiral',
     badge: 'CRISIS',
+    tier: 3,
     category: 'demand',
     duration: 3,
     text: 'Surging labor costs are feeding directly into consumer prices, which are in turn fueling demands for even higher wages. The feedback loop is accelerating — breaking it will require decisive policy action.',
@@ -311,6 +322,7 @@ const SHOCK_EVENTS = [
     id: 'financial_stress',
     title: 'Financial Market Stress',
     badge: 'BREAKING',
+    tier: 2,
     category: 'financial',
     duration: 1,
     text: 'Volatility in financial markets has tightened credit conditions significantly. Banks have pulled back on lending to consumers and businesses, threatening to slow economic growth.',
@@ -323,6 +335,7 @@ const SHOCK_EVENTS = [
     id: 'banking_stress',
     title: 'Banking Sector Stress',
     badge: 'BREAKING',
+    tier: 2,
     category: 'financial',
     duration: 1,
     text: 'Several regional banks are reporting significant losses. The resulting tightening of credit standards is damping investment and consumer spending, raising recession concerns.',
@@ -335,6 +348,7 @@ const SHOCK_EVENTS = [
     id: 'banking_crisis',
     title: 'Banking System Crisis',
     badge: 'CRISIS',
+    tier: 3,
     category: 'financial',
     duration: 3,
     text: 'Multiple large financial institutions are reporting severe balance-sheet stress. Interbank lending has seized up, credit is unavailable at nearly any price, and emergency Fed liquidity facilities are being activated.',
@@ -348,6 +362,7 @@ const SHOCK_EVENTS = [
     id: 'import_prices',
     title: 'Import Price Increase',
     badge: 'UPDATE',
+    tier: 1,
     category: 'demand',
     duration: 1,
     text: 'New tariffs and a weaker dollar are raising the cost of imported goods. Businesses are beginning to pass these higher costs on to consumers, adding upward pressure to inflation.',
@@ -360,6 +375,7 @@ const SHOCK_EVENTS = [
     id: 'strong_dollar',
     title: 'Stronger Dollar',
     badge: 'UPDATE',
+    tier: 1,
     category: 'demand',
     duration: 1,
     text: 'The U.S. dollar has strengthened significantly against major currencies. This is holding down import prices, providing relief on inflation, but American exporters are facing a competitive headwind.',
@@ -372,6 +388,7 @@ const SHOCK_EVENTS = [
     id: 'political_pressure',
     title: 'Congressional Pressure on Fed',
     badge: 'BREAKING',
+    tier: 2,
     category: 'political',
     duration: 2,
     text: 'Senate hearings are targeting the Fed\'s independence. Lawmakers are publicly demanding lower rates to boost employment ahead of elections. Markets are pricing in policy uncertainty, and the Fed\'s credibility is being tested.',
@@ -385,6 +402,7 @@ const SHOCK_EVENTS = [
     id: 'global_slowdown',
     title: 'Global Economic Slowdown',
     badge: 'BREAKING',
+    tier: 2,
     category: 'global',
     duration: 1,
     text: 'Growth is decelerating sharply in major trading partners. Weakening overseas demand is hitting U.S. exports, and business investment plans are being scaled back.',
@@ -397,6 +415,7 @@ const SHOCK_EVENTS = [
     id: 'global_recession',
     title: 'Global Recession',
     badge: 'CRISIS',
+    tier: 3,
     category: 'global',
     duration: 3,
     text: 'The world\'s largest economies have simultaneously tipped into contraction. Global trade volumes are collapsing, commodity prices are plummeting, and the IMF has issued an emergency coordinated response call. The U.S. cannot escape the downdraft.',
@@ -410,6 +429,7 @@ const SHOCK_EVENTS = [
     id: 'wage_surge',
     title: 'Wage Growth Acceleration',
     badge: 'UPDATE',
+    tier: 1,
     category: 'supply',
     duration: 1,
     text: 'Labor Department data shows wage growth running well above recent norms. While workers benefit from rising paychecks, the wage-price spiral risk is drawing attention from policymakers.',
@@ -422,6 +442,7 @@ const SHOCK_EVENTS = [
     id: 'tech_boom',
     title: 'Technology Sector Boom',
     badge: 'UPDATE',
+    tier: 1,
     category: 'demand',
     duration: 1,
     text: 'Investment and hiring in the technology sector are accelerating. Tech companies are absorbing a large share of the workforce, pushing down headline unemployment while keeping a lid on goods prices.',
@@ -434,6 +455,7 @@ const SHOCK_EVENTS = [
     id: 'inflation_spike',
     title: 'Domestic Inflation Spike',
     badge: 'CRISIS',
+    tier: 3,
     category: 'demand',
     duration: 2,
     text: 'A sudden acceleration in broad-based consumer prices has caught markets off guard. Shelter, food, and services are all rising faster than expected. Inflation expectations are becoming unanchored — a dangerous sign.',
@@ -447,6 +469,7 @@ const SHOCK_EVENTS = [
     id: 'trade_deal',
     title: 'Major Trade Agreement Reached',
     badge: 'UPDATE',
+    tier: 1,
     category: 'global',
     duration: 2,
     text: 'A landmark trade agreement with key trading partners has eliminated tariffs on a wide range of goods. Cheaper imports are pulling down consumer prices while new export markets are opening up hiring across manufacturing and agriculture.',
@@ -459,6 +482,7 @@ const SHOCK_EVENTS = [
     id: 'reshoring_boom',
     title: 'Manufacturing Reshoring Wave',
     badge: 'UPDATE',
+    tier: 1,
     category: 'supply',
     duration: 2,
     text: 'A surge of domestic factory investment is bringing production back to the United States. Companies are hiring rapidly across the industrial heartland, pushing unemployment lower, while competition is keeping a lid on goods prices.',
@@ -471,6 +495,7 @@ const SHOCK_EVENTS = [
     id: 'food_prices_drop',
     title: 'Global Food Price Decline',
     badge: 'UPDATE',
+    tier: 1,
     category: 'supply',
     duration: 1,
     text: 'Bumper harvests worldwide and improved agricultural logistics have sent food commodity prices sharply lower. Grocery store prices are falling for the first time in years, providing direct relief to household budgets.',
@@ -483,6 +508,7 @@ const SHOCK_EVENTS = [
     id: 'hiring_boom',
     title: 'Sector Hiring Boom',
     badge: 'BOOM',
+    tier: 1,
     category: 'labor',
     duration: 2,
     text: 'A major expansion across construction, clean energy, and infrastructure is driving rapid job creation. Unemployment is falling sharply as firms compete aggressively for workers. Rising wage pressures add a mild inflationary undertone — a tricky balance for the Fed.',
@@ -495,6 +521,7 @@ const SHOCK_EVENTS = [
     id: 'ai_productivity_surge',
     title: 'Technology Productivity Surge',
     badge: 'BOOM',
+    tier: 1,
     category: 'supply',
     duration: 2,
     text: 'A broad wave of automation and AI adoption is dramatically boosting output across sectors. Firms are producing more with the same workforce, easing cost pressures and lifting real wages simultaneously. Policymakers must decide how much to accommodate the expansion.',
@@ -826,13 +853,16 @@ function seededRandom(seed) {
   };
 }
 
-// Build a shuffled schedule assigning shocks to quarters.
+// Build a probabilistic shock schedule for a 16-quarter game.
 // Pass an integer seed for deterministic (seeded) runs; omit for random.
-// Multi-turn shocks (duration > 1) are spaced so they do not overlap.
-function buildShockSchedule(seed) {
+// eventChance: probability (0–1) that any given quarter has an event.
+// Tier distribution when an event fires: ~65% tier-1, ~27% tier-2, ~8% tier-3.
+// After a tier-3 event, a 2-quarter cooldown prevents back-to-back major shocks.
+function buildShockSchedule(seed, eventChance) {
   const rng = (seed != null) ? seededRandom(seed) : Math.random.bind(Math);
+  const chance = (eventChance != null) ? eventChance : 0.30;
 
-  // Fisher-Yates shuffle using rng
+  // Fisher-Yates shuffle using rng — used to randomise each tier pool
   function shuffle(arr) {
     const a = [...arr];
     for (let i = a.length - 1; i > 0; i--) {
@@ -842,25 +872,57 @@ function buildShockSchedule(seed) {
     return a;
   }
 
-  // Prioritise variety: ensure no two CRISIS-badge shocks land in the same run
-  // by picking at most 2 CRISIS events and filling the rest from non-CRISIS pool.
-  const crisisShocks  = shuffle(SHOCK_EVENTS.filter(e => e.badge === 'CRISIS'));
-  const normalShocks  = shuffle(SHOCK_EVENTS.filter(e => e.badge !== 'CRISIS'));
-  const chosen = [...crisisShocks.slice(0, 2), ...normalShocks].slice(0, 10);
+  // Pre-shuffle each tier pool so we cycle through them without repetition
+  let tier1Pool = shuffle(SHOCK_EVENTS.filter(e => e.tier === 1));
+  let tier2Pool = shuffle(SHOCK_EVENTS.filter(e => e.tier === 2));
+  let tier3Pool = shuffle(SHOCK_EVENTS.filter(e => e.tier === 3));
+  let t1Idx = 0, t2Idx = 0, t3Idx = 0;
 
-  // Create 16-slot array: chosen shocks + 6 null (routine), then shuffle
-  const slots = shuffle([...chosen, null, null, null, null, null, null]);
+  function pickFromTier(pool, idx) {
+    if (pool.length === 0) return null;
+    // Wrap around when pool is exhausted (re-shuffle for variety)
+    if (idx >= pool.length) {
+      pool = shuffle(pool); idx = 0;
+    }
+    return pool[idx];
+  }
 
-  // Post-process: prevent two long shocks (duration >= 2) from being adjacent
-  // by swapping one of them with a later null slot when a clash is detected.
-  for (let i = 0; i < slots.length - 1; i++) {
-    const cur  = slots[i];
-    const next = slots[i + 1];
-    if (cur && next && (cur.duration || 1) >= 2 && (next.duration || 1) >= 2) {
-      // Find a null slot after i+1 to swap with
-      const nullIdx = slots.findIndex((v, idx) => idx > i + 1 && v === null);
-      if (nullIdx !== -1) {
-        [slots[i + 1], slots[nullIdx]] = [slots[nullIdx], slots[i + 1]];
+  function pickEvent() {
+    const roll = rng();
+    if (roll < 0.65) {
+      // Tier 1 (minor) — ~65%
+      const ev = pickFromTier(tier1Pool, t1Idx);
+      t1Idx = (t1Idx + 1) % Math.max(1, tier1Pool.length);
+      return ev;
+    } else if (roll < 0.92) {
+      // Tier 2 (moderate) — ~27%
+      const ev = pickFromTier(tier2Pool, t2Idx);
+      t2Idx = (t2Idx + 1) % Math.max(1, tier2Pool.length);
+      return ev;
+    } else {
+      // Tier 3 (major) — ~8%
+      const ev = pickFromTier(tier3Pool, t3Idx);
+      t3Idx = (t3Idx + 1) % Math.max(1, tier3Pool.length);
+      return ev;
+    }
+  }
+
+  const slots = new Array(TOTAL_QUARTERS).fill(null);
+  let cooldown = 0; // quarters remaining in post-major-event cooldown
+
+  for (let i = 0; i < TOTAL_QUARTERS; i++) {
+    if (cooldown > 0) {
+      // Cooldown active after a tier-3 event — no event this quarter
+      cooldown--;
+      slots[i] = null;
+      continue;
+    }
+    if (rng() < chance) {
+      const ev = pickEvent();
+      slots[i] = ev;
+      // Trigger cooldown after a major (tier-3) event
+      if (ev && ev.tier === 3) {
+        cooldown = 2;
       }
     }
   }
@@ -1944,8 +2006,13 @@ function renderNews() {
 
   label.textContent = quarterInfo.label + ' - Economic Briefing';
 
-  // Determine severity tier: use shock.tier if present, fall back to 'major' for legacy events
-  var tier = shock ? (shock.tier || 'major') : null;
+  // Determine severity tier: use shock.tier if present, fall back to 'major' for legacy events.
+  // Normalise numeric tiers (1/2/3) to strings in case SHOCK_EVENTS uses either convention.
+  var tier = shock ? (function(t) {
+    if (t === 1 || t === 'minor')    return 'minor';
+    if (t === 2 || t === 'moderate') return 'moderate';
+    return 'major'; // 3, 'major', or missing
+  })(shock.tier) : null;
 
   if (shock) {
     if (continuingShock) {
