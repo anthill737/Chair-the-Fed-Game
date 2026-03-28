@@ -446,6 +446,22 @@ html, body {
   margin-bottom: 6px;
 }
 
+/* Status pill shown below the indicator value — uses non-chart colors to avoid confusion */
+.indicator-status {
+  display: inline-block;
+  font-family: Arial, sans-serif;
+  font-size: 0.64rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-top: 2px;
+  padding: 2px 7px;
+  border-radius: 3px;
+}
+.ind-status--good  { background: #e8ede6; color: #3a4a38; border: 1px solid #b4c8b0; }
+.ind-status--over  { background: #fdf3e0; color: #7a3e00; border: 1px solid #dfbb60; }
+.ind-status--under { background: #ededf8; color: #2a2a70; border: 1px solid #b4b4d8; }
+
 /* Center and side columns */
 .panel-center {
   display: flex;
@@ -1843,10 +1859,10 @@ html, body {
   transition: border-color 0.4s ease;
   padding-left: 8px;
 }
-/* Border uses distinct colors: amber (over), indigo (under), teal (near) — none match chart lines */
-.indicator.state-over  { border-left-color: #b45309; }
-.indicator.state-under { border-left-color: #4338ca; }
-.indicator.state-near  { border-left-color: #0b7c6c; }
+/* Border + subtle background tint — none of these colors match chart lines (#b22222 red / #1a2a4a navy) */
+.indicator.state-over  { border-left-color: #b45309; background: #fff8f0; }
+.indicator.state-under { border-left-color: #4338ca; background: #f4f4fd; }
+.indicator.state-near  { border-left-color: #0b7c6c; background: #f0f9f7; }
 
 /* Quarter progress marker — prevent clipping at position 0% */
 .quarter-progress-marker {
