@@ -1,17 +1,14 @@
 /* ==========================================================================
    CHAIR THE FED — app.js
-   Static UI Shell — all gameplay simulation removed.
-
-   Economic values are frozen constants. Nothing changes over time.
-   Buttons work visually but have no effect on the economy.
+   Live simulation wired to engine.js and events.js (both loaded before this).
 
    Architecture:
-     1. CONSTANTS           — display targets and static values
-     2. GAME STATE          — minimal static state, no simulation fields
-     3. RENDERING / UI      — DOM updates, advisors, news, rate selector
-     4. CHART               — main chart and end-screen charts
-     5. GAME FLOW           — init, decision (no-op), next quarter, reset
-     6. MISC                — menu, keyboard, resize, DOMContentLoaded
+     1. CONSTANTS              — display targets, rate bounds
+     2. GAME STATE             — createInitialState with full sim fields
+     3. RENDERING / UI         — DOM updates, news, advisors, rate selector
+     4. CHART                  — main chart with lag ghost lines, end-screen
+     5. GAME FLOW              — init, makeDecision, nextQuarter, reset
+     6. MISC                   — menu, keyboard, resize, DOMContentLoaded
    ========================================================================== */
 
 
@@ -19,47 +16,95 @@
    1. CONSTANTS
    ========================================================================== */
 
-// Fed mandate targets (display only — not used in simulation)
-const TARGET_INFLATION    = 2.0;
-const TARGET_UNEMPLOYMENT = 5.0;
+// Fed mandate targets — used for display and scoring
+var TARGET_INFLATION    = 2.0;
+var TARGET_UNEMPLOYMENT = 5.0;
 
-// Static economic values — these NEVER change
-const STATIC_INFLATION    = 2.0;
-const STATIC_UNEMPLOYMENT = 5.0;
-const STATIC_RATE         = 2.5;
+// Rate selector bounds — NOTE: use var to avoid conflict with engine.js globals
+var RATE_MIN  = 0.00;
+var RATE_MAX  = 10.0;
+var RATE_STEP = 0.25;
 
-// Rate selector bounds (display only)
-const RATE_MIN  = 0.25;
-const RATE_MAX  = 10.0;
-const RATE_STEP = 0.25;
+var TOTAL_QUARTERS   = 16;
+var START_YEAR       = 2014;
+var GRAPH_ANIMATION_MS = 1100;
 
-const TOTAL_QUARTERS = 16;
-const START_YEAR     = 2014;
+// Difficulty selector descriptions
+var DIFFICULTY_DESCRIPTIONS = {
+  textbook:  'Forgiving economy with smaller shocks. Good for learning the basics.',
+  realworld: 'Calibrated to historical Fed data. The intended experience.',
+  crisis:    'Volatile economy. Policy lags hurt more. Not for the faint of heart.'
+};
 
-const GRAPH_ANIMATION_MS = 1100;
+// Tracks difficulty across startGame calls (set by selectDifficulty)
+var selectedDifficulty = 'realworld';
 
-// No-op stubs for HTML onclick attrs that reference removed functions
-function selectDifficulty(k) {}  // difficulty selector — no effect in static shell
-function getDailySeed() { return null; }  // daily challenge seed — not used in static shell
+// No-op stubs for HTML onclick attrs that reference these before game starts
+function getDailySeed() {
+  var d = new Date();
+  return d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate();
+}
+function selectDifficulty(key) {
+  selectedDifficulty = key;
+  document.querySelectorAll('.btn-difficulty').forEach(function(btn) {
+    btn.classList.toggle('active', btn.dataset.diff === key);
+  });
+  var descEl = document.getElementById('difficulty-description');
+  if (descEl) descEl.textContent = DIFFICULTY_DESCRIPTIONS[key] || '';
+  if (typeof state !== 'undefined' && state && state.difficulty !== undefined) {
+    state.difficulty = key;
+    if (state.diff !== undefined) state.diff = DIFFICULTY_PRESETS[key] || DIFFICULTY_PRESETS.realworld;
+  }
+}
+
+
+// Global game state — initialized by startGame(), referenced by all rendering functions
+var state = {};
 
 
 /* ==========================================================================
    2. GAME STATE
-   Minimal — no simulation fields (lag, drift, noise, shocks, scoring).
    ========================================================================== */
 
-let state = {};
+/**
+ * Create the initial game state for a new run.
+ * @param {string}      difficulty — 'textbook' | 'realworld' | 'crisis'
+ * @param {number|null} seed       — integer seed (null = random)
+ */
+function createInitialState(difficulty, seed) {
+  var diff    = difficulty || 'realworld';
+  var s       = (seed != null) ? (seed >>> 0) : (Math.floor(Math.random() * 0x100000000) >>> 0);
+  var rng     = mulberry32(s);
+  var initial = getInitialConditions(diff);
+  var preset  = DIFFICULTY_PRESETS[diff] || DIFFICULTY_PRESETS.realworld;
 
-function createInitialState() {
   return {
-    quarter:          1,
-    inflation:        STATIC_INFLATION,
-    unemployment:     STATIC_UNEMPLOYMENT,
-    fedRate:          STATIC_RATE,
-    pendingRate:      STATIC_RATE,
-    history:          [],
+    quarter:      1,
+    inflation:    initial.inflation,
+    unemployment: initial.unemployment,
+    fedRate:      initial.fedRate,
+    pendingRate:  initial.fedRate,
+
+    // Simulation fields
+    difficulty:      diff,
+    diff:            preset,        // resolved preset object — passed to stepEconomy
+    seed:            s,
+    rng:             rng,
+    lagInflEffect:   0,             // deferred inflation effect carried from last quarter
+    lagUnempEffect:  0,             // deferred unemployment effect carried from last quarter
+    inflMom:         0,             // momentum: last quarter's inflation delta
+    unempMom:        0,             // momentum: last quarter's unemployment delta
+    nextLagInfl:     0,             // lag to apply after this quarter's animation finishes
+    nextLagUnemp:    0,
+    nextInflMom:     0,
+    nextUnempMom:    0,
+    totalPenalty:    0,             // cumulative quarter penalties
+    currentEvent:    null,          // event that fired this quarter (set in makeDecision)
+
+    // UI state
     phase:            'decision',   // 'decision' | 'animating' | 'result'
-    chartPoints:      [buildChartPoint(0, STATIC_INFLATION, STATIC_UNEMPLOYMENT, STATIC_RATE)],
+    history:          [],
+    chartPoints:      [buildChartPoint(0, initial.inflation, initial.unemployment, initial.fedRate)],
     chartAnimation:   null,
     animationFrameId: 0,
     totalQuarters:    TOTAL_QUARTERS
@@ -73,7 +118,7 @@ function createInitialState() {
 
 /** Toggle between named screens */
 function showScreen(id, scrollTarget) {
-  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.screen').forEach(function(s) { s.classList.remove('active'); });
   var target = document.getElementById(id);
   target.classList.add('active');
   target.scrollTop = 0;
@@ -126,7 +171,7 @@ function renderQuarterProgress() {
   if (progressMarker) progressMarker.style.left   = progress + '%';
 }
 
-/** Update the game header (quarter counter — no score in static shell) */
+/** Update the game header: quarter counter and running score */
 function renderHeader() {
   var totalQ  = state.totalQuarters || TOTAL_QUARTERS;
   document.getElementById('hdr-quarter').textContent =
@@ -134,8 +179,17 @@ function renderHeader() {
 
   var scoreEl = document.getElementById('hdr-score');
   if (scoreEl) {
-    scoreEl.textContent = '\u2014';
-    scoreEl.classList.remove('hdr-score--good', 'hdr-score--ok', 'hdr-score--poor');
+    if (state.history && state.history.length > 0) {
+      var currentScore = calcFinalScore(state.history);
+      scoreEl.textContent = currentScore;
+      scoreEl.classList.remove('hdr-score--good', 'hdr-score--ok', 'hdr-score--poor');
+      if (currentScore >= 75)       scoreEl.classList.add('hdr-score--good');
+      else if (currentScore >= 50)  scoreEl.classList.add('hdr-score--ok');
+      else                          scoreEl.classList.add('hdr-score--poor');
+    } else {
+      scoreEl.textContent = '\u2014';
+      scoreEl.classList.remove('hdr-score--good', 'hdr-score--ok', 'hdr-score--poor');
+    }
   }
 
   renderQuarterProgress();
@@ -212,7 +266,11 @@ function setIndicatorClass(el, val, target, nearThresh, warnThresh) {
   }
 }
 
-/** Render a static news briefing — no shocks, no dynamic headlines */
+/**
+ * Render the news panel.
+ * If state.currentEvent is set (fires after GO), show event details with alert.
+ * Otherwise show the rotating routine briefing from events.js ROUTINE_NEWS.
+ */
 function renderNews() {
   var quarterInfo = getQuarterInfo(state.quarter || 1);
   var label = document.getElementById('news-quarter-label');
@@ -220,47 +278,82 @@ function renderNews() {
   var body  = document.getElementById('news-body');
   var alert = document.getElementById('news-alert');
 
-  if (label) label.textContent = quarterInfo.label + ' \u2014 Economic Briefing';
-  if (badge) { badge.textContent = 'MARKET UPDATE'; badge.className = 'news-badge routine'; }
-  if (body) {
-    body.innerHTML =
-      '<p>Economic conditions remain stable. The labor market is healthy and price pressures are contained.</p>' +
-      '<p class="news-context">Inflation is near the Fed\u2019s 2% target. Unemployment is near its natural rate of 5%.</p>';
-  }
-  if (alert) {
-    alert.classList.add('hidden');
-    alert.classList.remove('news-alert--flash', 'news-alert--panic');
-    var alertHeadline = document.getElementById('news-alert-headline');
-    var alertText     = document.getElementById('news-alert-text');
-    if (alertHeadline) alertHeadline.textContent = '';
-    if (alertText)     alertText.textContent     = '';
+  var evt = state.currentEvent;
+
+  if (evt) {
+    // Map severity to badge CSS class
+    var badgeClass = evt.severity === 'major'    ? 'critical' :
+                     evt.severity === 'moderate' ? 'warning'  : 'routine';
+
+    if (label) label.textContent = quarterInfo.label + ' \u2014 ' + evt.headline;
+    if (badge) {
+      badge.textContent = evt.severity ? evt.severity.toUpperCase() : 'EVENT';
+      badge.className   = 'news-badge ' + badgeClass;
+    }
+    if (body) body.innerHTML = evt.body;
+    if (alert) {
+      alert.classList.remove('hidden', 'news-alert--flash', 'news-alert--panic');
+      var alertHeadline = document.getElementById('news-alert-headline');
+      var alertText     = document.getElementById('news-alert-text');
+      if (alertHeadline) alertHeadline.textContent = evt.headline;
+      if (alertText)     alertText.textContent     = evt.title || '';
+      // Trigger flash animation
+      setTimeout(function() {
+        if (alert) alert.classList.add('news-alert--flash');
+      }, 0);
+    }
+  } else {
+    // Routine briefing from events.js ROUTINE_NEWS
+    var entry = ROUTINE_NEWS[(( state.quarter || 1) - 1) % ROUTINE_NEWS.length];
+    if (label) label.textContent = quarterInfo.label + ' \u2014 Economic Briefing';
+    if (badge) {
+      badge.textContent = entry ? entry.badge : 'MARKET UPDATE';
+      badge.className   = 'news-badge routine';
+    }
+    if (body)  body.innerHTML = entry ? entry.body : '<p>Economic conditions remain stable.</p>';
+    if (alert) {
+      alert.classList.add('hidden');
+      alert.classList.remove('news-alert--flash', 'news-alert--panic');
+      var ah = document.getElementById('news-alert-headline');
+      var at = document.getElementById('news-alert-text');
+      if (ah) ah.textContent = '';
+      if (at) at.textContent = '';
+    }
   }
 
   var shockBannerEl = document.getElementById('shock-status-banner');
   if (shockBannerEl) shockBannerEl.style.display = 'none';
 }
 
-/** Static advisor panel — all advisors recommend Hold */
-var ADVISORS = [
-  { name: 'Dr. Chen',    title: 'Chief Economist', avatar: 'C' },
-  { name: 'Gov. Rivera', title: 'Board Governor',  avatar: 'R' },
-  { name: 'Sec. Park',   title: 'Market Analyst',  avatar: 'P' }
-];
-
+/**
+ * Render advisor panel using getAdvisorRecs() from events.js.
+ * Each advisor has { name, title, avatar, rec, rationale }.
+ */
 function renderAdvisors() {
   var container = document.getElementById('advisors-list');
   if (!container) return;
-  container.innerHTML = ADVISORS.map(function(advisor) {
-    return '<div class="advisor-card advisor-card--calm">'
+
+  var recs = getAdvisorRecs(
+    state.inflation    || TARGET_INFLATION,
+    state.unemployment || TARGET_UNEMPLOYMENT,
+    state.fedRate      || 0,
+    state.difficulty   || 'realworld'
+  );
+
+  container.innerHTML = recs.map(function(advisor) {
+    var recLower  = (advisor.rec || 'hold').toLowerCase();
+    var recClass  = 'advisor-rec--' + recLower;
+    // Use calm for Hold, concerned for Raise/Lower (urgency not in events.js schema)
+    var cardClass = recLower === 'hold' ? 'advisor-card--calm' : 'advisor-card--concerned';
+    return '<div class="advisor-card ' + cardClass + '">'
       + '<div class="advisor-avatar">' + advisor.avatar + '</div>'
       + '<div class="advisor-content">'
       + '<div class="advisor-header-row">'
       + '<span class="advisor-name">' + advisor.name + '</span>'
       + '<span class="advisor-title-text">' + advisor.title + '</span>'
-      + '<span class="advisor-rec advisor-rec--hold">Hold</span>'
+      + '<span class="advisor-rec ' + recClass + '">' + advisor.rec + '</span>'
       + '</div>'
-      + '<div class="advisor-rationale">Economic conditions are stable. Hold rates steady at '
-      + fmt(STATIC_RATE) + '%.</div>'
+      + '<div class="advisor-rationale">' + advisor.rationale + '</div>'
       + '</div>'
       + '</div>';
   }).join('');
@@ -353,8 +446,15 @@ function getDeviationClass(val, target, thresh) {
   return '';
 }
 
-/** Render the result panel after a decision */
-function renderResult(rateDelta) {
+/**
+ * Render the result panel after a decision with real economy values.
+ * @param {number} rateDelta  — rate change this quarter (signed)
+ * @param {object} record     — history record: { inflation, unemployment, rate }
+ * @param {number} qPenalty   — quarter penalty
+ * @param {number} prevInfl   — inflation before this quarter's update
+ * @param {number} prevUnemp  — unemployment before this quarter's update
+ */
+function renderResult(rateDelta, record, qPenalty, prevInfl, prevUnemp) {
   var body = document.getElementById('result-body');
 
   var decisionText = Math.abs(rateDelta) < 0.001
@@ -363,25 +463,41 @@ function renderResult(rateDelta) {
     ? 'You raised the rate by ' + fmt(rateDelta) + '% to ' + fmt(state.pendingRate) + '%.'
     : 'You lowered the rate by ' + fmt(Math.abs(rateDelta)) + '% to ' + fmt(state.pendingRate) + '%.';
 
+  var newInfl  = record ? record.inflation    : state.inflation;
+  var newUnemp = record ? record.unemployment : state.unemployment;
+  var inflDelta  = (prevInfl  != null) ? (newInfl  - prevInfl)  : 0;
+  var unempDelta = (prevUnemp != null) ? (newUnemp - prevUnemp) : 0;
+
+  var inflArrow  = Math.abs(inflDelta)  < 0.005 ? '' :
+    (inflDelta  > 0 ? ' \u25b2 +' + fmt(inflDelta)        : ' \u25bc \u2212' + fmt(Math.abs(inflDelta)));
+  var unempArrow = Math.abs(unempDelta) < 0.005 ? '' :
+    (unempDelta > 0 ? ' \u25b2 +' + fmt(unempDelta)       : ' \u25bc \u2212' + fmt(Math.abs(unempDelta)));
+
   if (body) {
     body.innerHTML =
       '<p style="margin-bottom:10px;">' + decisionText + '</p>' +
       '<div class="result-stat">' +
         '<span class="label">Inflation</span>' +
-        '<span>' + fmt(STATIC_INFLATION) + '% <span style="color:#888;font-size:0.78rem;">(target 2.0%)</span></span>' +
+        '<span>' + fmt(newInfl) + '%' + inflArrow +
+          ' <span style="color:#888;font-size:0.78rem;">(target 2.0%)</span></span>' +
       '</div>' +
       '<div class="result-stat">' +
         '<span class="label">Unemployment</span>' +
-        '<span>' + fmt(STATIC_UNEMPLOYMENT) + '% <span style="color:#888;font-size:0.78rem;">(target 5.0%)</span></span>' +
+        '<span>' + fmt(newUnemp) + '%' + unempArrow +
+          ' <span style="color:#888;font-size:0.78rem;">(target 5.0%)</span></span>' +
       '</div>' +
       '<div class="result-stat">' +
         '<span class="label">Fed Funds Rate</span>' +
-        '<span>' + fmt(STATIC_RATE) + '%</span>' +
+        '<span>' + fmt(state.pendingRate) + '%</span>' +
       '</div>';
   }
 
   var qs = document.getElementById('result-quarter-score');
-  if (qs) { qs.textContent = ''; qs.style.color = ''; }
+  if (qs && qPenalty != null) {
+    qs.textContent = fmt(qPenalty, 2) + ' pts penalty \u2014 lower is better';
+    qs.style.color = qPenalty <= 0.5 ? '#1a6b1a' :
+                     qPenalty <= 1.5 ? '#c8a400' : '#b22222';
+  }
 
   var nextBtn = document.getElementById('btn-next');
   if (nextBtn) {
@@ -413,77 +529,142 @@ function renderEndHistory() {
   });
 }
 
-/** Render the end screen — no scoring, no verdict, no achievements */
+/** Render the end screen with real scoring and verdict from engine.js helpers */
 function renderEndScreen() {
+  var history    = state.history || [];
+  var finalScore = calcFinalScore(history);
+  var verdict    = getOutcomeVerdict(finalScore);
+  var softLand   = checkSoftLanding(history);
+  var bestWorst  = findBestWorstQuarters(history);
+
+  // Verdict card
   var card = document.getElementById('end-verdict-card');
   if (card) {
-    card.className = 'end-verdict-card good';
+    card.className = 'end-verdict-card ' + verdict.className;
     card.querySelectorAll('.end-shock-note').forEach(function(el) { el.remove(); });
   }
 
   var titleEl = document.getElementById('end-verdict-title');
-  if (titleEl) titleEl.textContent = 'Simulation Complete';
+  if (titleEl) titleEl.textContent = verdict.title;
 
   var scoreEl = document.getElementById('end-score');
-  if (scoreEl) scoreEl.textContent = '\u2014';
-
-  var subtitleEl = document.getElementById('end-verdict-subtitle');
-  if (subtitleEl) subtitleEl.textContent = 'Stable Economy';
+  if (scoreEl) scoreEl.textContent = finalScore;
 
   var textEl = document.getElementById('end-verdict-text');
-  if (textEl) {
-    textEl.textContent =
-      'You have completed your term as Federal Reserve Chair. ' +
-      'Economic conditions remained stable throughout your tenure.';
-  }
+  if (textEl) textEl.textContent = verdict.text;
 
-  var avgInflEl       = document.getElementById('end-avg-infl');
-  var avgUnempEl      = document.getElementById('end-avg-unemp');
-  var finalRateEl     = document.getElementById('end-final-rate');
+  // Summary stats from history
+  var avgInfl = 0, avgUnemp = 0;
+  if (history.length > 0) {
+    for (var i = 0; i < history.length; i++) {
+      avgInfl  += history[i].inflation;
+      avgUnemp += history[i].unemployment;
+    }
+    avgInfl  /= history.length;
+    avgUnemp /= history.length;
+  }
+  var finalRate = history.length > 0 ? history[history.length - 1].rate : state.fedRate;
+  var initial   = getInitialConditions(state.difficulty || 'realworld');
+
+  var avgInflEl        = document.getElementById('end-avg-infl');
+  var avgUnempEl       = document.getElementById('end-avg-unemp');
+  var finalRateEl      = document.getElementById('end-final-rate');
   var finalRateStartEl = document.getElementById('end-final-rate-start');
 
   if (avgInflEl) {
-    avgInflEl.textContent = fmt(STATIC_INFLATION) + '%';
-    setIndicatorClass(avgInflEl, STATIC_INFLATION, TARGET_INFLATION, 0.5, 1.5);
+    avgInflEl.textContent = fmt(avgInfl) + '%';
+    setIndicatorClass(avgInflEl, avgInfl, TARGET_INFLATION, 0.5, 1.5);
   }
   if (avgUnempEl) {
-    avgUnempEl.textContent = fmt(STATIC_UNEMPLOYMENT) + '%';
-    setIndicatorClass(avgUnempEl, STATIC_UNEMPLOYMENT, TARGET_UNEMPLOYMENT, 0.5, 1.5);
+    avgUnempEl.textContent = fmt(avgUnemp) + '%';
+    setIndicatorClass(avgUnempEl, avgUnemp, TARGET_UNEMPLOYMENT, 0.5, 1.5);
   }
-  if (finalRateEl)      finalRateEl.textContent      = fmt(STATIC_RATE) + '%';
-  if (finalRateStartEl) finalRateStartEl.textContent = 'Started: ' + fmt(STATIC_RATE) + '%';
+  if (finalRateEl)      finalRateEl.textContent      = fmt(finalRate) + '%';
+  if (finalRateStartEl) finalRateStartEl.textContent = 'Started: ' + fmt(initial.fedRate) + '%';
 
+  // Soft landing badge
   var softEl = document.getElementById('end-soft-landing');
   if (softEl) {
     var valEl = softEl.querySelector('.end-soft-landing-value');
     if (valEl) {
-      valEl.textContent  = 'Yes \u2014 Achieved!';
-      valEl.style.color  = '#1a6b1a';
-      valEl.style.fontWeight = 'bold';
+      if (softLand) {
+        valEl.textContent  = 'Yes \u2014 Achieved!';
+        valEl.style.color  = '#1a6b1a';
+        valEl.style.fontWeight = 'bold';
+      } else {
+        valEl.textContent  = 'No';
+        valEl.style.color  = '#b22222';
+        valEl.style.fontWeight = 'normal';
+      }
     }
   }
 
+  // Best / worst quarters
   var bestWorstEl = document.getElementById('end-best-worst');
-  if (bestWorstEl) bestWorstEl.innerHTML = '';
+  if (bestWorstEl) {
+    if (bestWorst.best && bestWorst.worst) {
+      var bestInfo  = getQuarterInfo(bestWorst.best.quarter);
+      var worstInfo = getQuarterInfo(bestWorst.worst.quarter);
+      bestWorstEl.innerHTML =
+        '<div class="end-best-worst-item">'
+        + '<span class="end-bw-label">Best Quarter</span> '
+        + '<span class="end-bw-val cell-low">' + bestInfo.label + '</span>'
+        + ' \u2014 ' + fmt(bestWorst.best.penalty, 2) + ' pts penalty'
+        + '</div>'
+        + '<div class="end-best-worst-item">'
+        + '<span class="end-bw-label">Worst Quarter</span> '
+        + '<span class="end-bw-val cell-high">' + worstInfo.label + '</span>'
+        + ' \u2014 ' + fmt(bestWorst.worst.penalty, 2) + ' pts penalty'
+        + '</div>';
+    } else {
+      bestWorstEl.innerHTML = '';
+    }
+  }
 
+  // Score breakdown by dimension
   var breakdownEl = document.getElementById('end-score-breakdown');
-  if (breakdownEl) breakdownEl.innerHTML = '';
+  if (breakdownEl) {
+    var inflTotal = 0, unempTotal = 0;
+    for (var j = 0; j < history.length; j++) {
+      inflTotal  += Math.abs(history[j].inflation    - TARGET_INFLATION);
+      unempTotal += Math.abs(history[j].unemployment - TARGET_UNEMPLOYMENT);
+    }
+    var n = history.length || 1;
+    var inflScore  = Math.max(0, Math.round(100 - (inflTotal  / n / 2.5) * 100));
+    var unempScore = Math.max(0, Math.round(100 - (unempTotal / n / 2.5) * 100));
+    breakdownEl.innerHTML =
+      '<div class="end-breakdown-item">'
+      + '<span class="end-bd-label">Inflation Control</span>'
+      + '<span class="end-bd-score">' + inflScore + '/100</span>'
+      + '</div>'
+      + '<div class="end-breakdown-item">'
+      + '<span class="end-bd-label">Employment Stability</span>'
+      + '<span class="end-bd-score">' + unempScore + '/100</span>'
+      + '</div>';
+  }
 
-  var achievementsPanel = document.getElementById('end-achievements-panel');
-  if (achievementsPanel) achievementsPanel.innerHTML = '';
-
+  // Share text
   var shareEl = document.getElementById('end-share-text');
-  if (shareEl) shareEl.value = 'I completed the Chair the Fed simulation!';
+  if (shareEl) {
+    shareEl.value = 'Fed Chair Score: ' + finalScore + '/100 \u2014 ' + verdict.title
+      + ' | Infl avg: ' + fmt(avgInfl) + '%'
+      + ' | Unemp avg: ' + fmt(avgUnemp) + '%'
+      + ' | Seed: ' + (state.seed || 'random');
+  }
 
   var endSeedEl = document.getElementById('end-seed-display');
   if (endSeedEl) endSeedEl.style.display = 'none';
+
+  var achievementsPanel = document.getElementById('end-achievements-panel');
+  if (achievementsPanel) achievementsPanel.innerHTML = '';
 
   renderEndCharts();
   renderEndHistory();
 }
 
 function copyResultToClipboard() {
-  var text = 'I completed the Chair the Fed simulation!';
+  var shareEl = document.getElementById('end-share-text');
+  var text = shareEl ? shareEl.value : 'I completed the Chair the Fed simulation!';
   var btn  = document.getElementById('btn-share-result');
   if (navigator.clipboard && navigator.clipboard.writeText) {
     navigator.clipboard.writeText(text).then(function() {
@@ -500,13 +681,12 @@ function copyResultToClipboard() {
 
 /* ==========================================================================
    4. CHART
-   Canvas-based main chart and end-screen charts.
-   Values never change so lines are flat, but chart infrastructure is intact.
+   Canvas-based main chart and end-screen sparklines.
    ========================================================================== */
 
-const MAIN_CHART_Y_MIN = 0;
-const MAIN_CHART_Y_MAX = 10;
-const MAIN_CHART_COLORS = {
+var MAIN_CHART_Y_MIN = 0;
+var MAIN_CHART_Y_MAX = 10;
+var MAIN_CHART_COLORS = {
   inflation:    '#b22222',
   unemployment: '#1a2a4a',
   rate:         '#c8a400',
@@ -553,7 +733,7 @@ function syncCanvasSize(canvas) {
 }
 
 function getWorkingChartPoints() {
-  var points = (state.chartPoints || [buildChartPoint(0, STATIC_INFLATION, STATIC_UNEMPLOYMENT, STATIC_RATE)])
+  var points = (state.chartPoints || [])
     .map(function(point) { return Object.assign({}, point); });
 
   if (!state.chartAnimation) return points;
@@ -599,6 +779,37 @@ function drawSharedSeries(ctx, points, accessor, color, toX, toY) {
   ctx.beginPath();
   ctx.arc(toX(lastPoint.completedQuarter), toY(accessor(lastPoint)), 4, 0, Math.PI * 2);
   ctx.fill();
+  ctx.restore();
+}
+
+/**
+ * Draw a dashed ghost line projecting 1 quarter forward to show pending lag effect.
+ * Only visible during the result phase (after GO, before Next Quarter).
+ */
+function drawLagGhostLine(ctx, currentQuarter, currentValue, lagEffect, color, toX, toY) {
+  if (Math.abs(lagEffect) < 0.01) return;
+  if (state.phase === 'animating') return;
+
+  var projectedValue = currentValue + lagEffect;
+
+  ctx.save();
+  ctx.setLineDash([5, 5]);
+  ctx.strokeStyle  = color;
+  ctx.globalAlpha  = 0.45;
+  ctx.lineWidth    = 2;
+  ctx.lineCap      = 'round';
+
+  ctx.beginPath();
+  ctx.moveTo(toX(currentQuarter), toY(currentValue));
+  ctx.lineTo(toX(currentQuarter + 1), toY(projectedValue));
+  ctx.stroke();
+
+  ctx.setLineDash([]);
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.arc(toX(currentQuarter + 1), toY(projectedValue), 3, 0, Math.PI * 2);
+  ctx.fill();
+
   ctx.restore();
 }
 
@@ -683,6 +894,14 @@ function renderMainChart() {
   drawSharedSeries(ctx, points, function(p) { return p.unemployment; }, MAIN_CHART_COLORS.unemployment, toX, toY);
   drawSharedSeries(ctx, points, function(p) { return p.rate;         }, MAIN_CHART_COLORS.rate,         toX, toY);
 
+  // Policy lag ghost lines — show pending deferred effects during result phase
+  if (state.phase === 'result' && state.chartPoints && state.chartPoints.length > 0) {
+    var lastPt = state.chartPoints[state.chartPoints.length - 1];
+    var currQ  = lastPt.completedQuarter;
+    drawLagGhostLine(ctx, currQ, lastPt.inflation,    state.lagInflEffect,  'rgba(178, 34, 34, 0.7)',  toX, toY);
+    drawLagGhostLine(ctx, currQ, lastPt.unemployment, state.lagUnempEffect, 'rgba(26, 42, 74, 0.7)',   toX, toY);
+  }
+
   ctx.font         = '11px Arial';
   ctx.textAlign    = 'center';
   ctx.textBaseline = 'top';
@@ -701,7 +920,6 @@ function renderMainChart() {
   ctx.restore();
 }
 
-/** renderSparklines is called in some paths — delegate to renderMainChart */
 function renderSparklines() {
   renderMainChart();
 }
@@ -721,13 +939,11 @@ function drawEndChart(canvasId, values, target, color, yMin, yMax) {
   var toX = function(i) { return pad + (i / Math.max(n - 1, 1)) * (W - pad * 2); };
   var toY = function(v) { return pad + (1 - (v - yMin) / (yMax - yMin)) * (H - pad * 2); };
 
-  // Background target zone
   ctx.save();
   ctx.fillStyle = 'rgba(100,180,100,0.06)';
   ctx.fillRect(pad, toY(target + 0.5), W - pad * 2, toY(target - 0.5) - toY(target + 0.5));
   ctx.restore();
 
-  // Target dashed line
   ctx.save();
   ctx.setLineDash([4, 4]);
   ctx.strokeStyle = '#bbb';
@@ -740,7 +956,6 @@ function drawEndChart(canvasId, values, target, color, yMin, yMax) {
 
   if (n < 2) return;
 
-  // Area fill
   ctx.save();
   ctx.beginPath();
   values.forEach(function(v, i) {
@@ -755,7 +970,6 @@ function drawEndChart(canvasId, values, target, color, yMin, yMax) {
   ctx.globalAlpha = 1;
   ctx.restore();
 
-  // Line
   ctx.save();
   ctx.strokeStyle = color;
   ctx.lineWidth   = 2;
@@ -767,7 +981,6 @@ function drawEndChart(canvasId, values, target, color, yMin, yMax) {
   });
   ctx.stroke();
 
-  // Dots
   values.forEach(function(v, i) {
     ctx.fillStyle = color;
     ctx.beginPath();
@@ -779,9 +992,10 @@ function drawEndChart(canvasId, values, target, color, yMin, yMax) {
 
 function renderEndCharts() {
   var points = (state.chartPoints || []).slice(1);
+  var initial = getInitialConditions(state.difficulty || 'realworld');
   drawEndChart('end-chart-inflation',    points.map(function(p) { return p.inflation;    }), TARGET_INFLATION,    '#b22222', 0,  8);
   drawEndChart('end-chart-unemployment', points.map(function(p) { return p.unemployment; }), TARGET_UNEMPLOYMENT, '#1a2a4a', 2, 12);
-  drawEndChart('end-chart-rate',         points.map(function(p) { return p.rate;         }), STATIC_RATE,         '#c8a400', 0, 10);
+  drawEndChart('end-chart-rate',         points.map(function(p) { return p.rate;         }), initial.fedRate,     '#c8a400', 0, 10);
 }
 
 function finishMainChartAnimation() {
@@ -794,6 +1008,13 @@ function finishMainChartAnimation() {
   state.inflation    = animation.to.inflation;
   state.unemployment = animation.to.unemployment;
   state.fedRate      = animation.to.rate;
+
+  // Transfer deferred lag and momentum from this quarter's stepEconomy result
+  state.lagInflEffect  = animation.nextLagInfl  || 0;
+  state.lagUnempEffect = animation.nextLagUnemp || 0;
+  state.inflMom        = animation.newInflMom   || 0;
+  state.unempMom       = animation.newUnempMom  || 0;
+
   state.phase = 'result';
 
   renderIndicators();
@@ -846,13 +1067,15 @@ function startMainChartAnimation(animation) {
 
 /* ==========================================================================
    5. GAME FLOW
-   Buttons work visually but economic values never change.
    ========================================================================== */
 
-/** Called by "Begin Simulation" button on the intro screen */
-function startGame() {
+/** Called by "Random Run →" button and internally for seeded/daily starts */
+function startGame(seed) {
   stopMainChartAnimation();
-  state = createInitialState();
+
+  var s = (seed != null) ? (seed >>> 0) : null;
+  state = createInitialState(selectedDifficulty, s);
+
   document.getElementById('history-tbody').innerHTML     = '';
   document.getElementById('end-history-tbody').innerHTML = '';
   var verdictCard = document.getElementById('end-verdict-card');
@@ -861,8 +1084,17 @@ function startGame() {
   var sandboxBannerEl = document.getElementById('sandbox-banner');
   if (sandboxBannerEl) sandboxBannerEl.style.display = 'none';
 
+  // Show seed in header if a specific seed was provided
   var seedContainer = document.getElementById('hdr-seed-container');
-  if (seedContainer) seedContainer.style.display = 'none';
+  var seedEl        = document.getElementById('hdr-seed');
+  if (seedContainer && seedEl) {
+    if (seed != null) {
+      seedEl.textContent = state.seed;
+      seedContainer.style.display = '';
+    } else {
+      seedContainer.style.display = 'none';
+    }
+  }
 
   showScreen('screen-game');
   beginQuarter();
@@ -870,12 +1102,13 @@ function startGame() {
 
 function beginQuarter() {
   stopMainChartAnimation();
-  state.phase       = 'decision';
-  state.pendingRate = state.fedRate;
+  state.phase        = 'decision';
+  state.pendingRate  = state.fedRate;
+  state.currentEvent = null;   // event fires in makeDecision
 
   renderHeader();
   renderIndicators();
-  renderNews();
+  renderNews();       // shows routine news; event will show after GO
   renderAdvisors();
   renderMainChart();
 
@@ -885,33 +1118,62 @@ function beginQuarter() {
   renderRateSelector();
 }
 
-/** Process the player's rate decision.
- *  Records the decision but economic values NEVER change. */
+/** Process the player's rate decision — runs the real economy simulation */
 function makeDecision() {
   if (state.phase !== 'decision') return;
 
   var previousPoint = state.chartPoints[state.chartPoints.length - 1];
-  var rateDelta     = Math.round((state.pendingRate - state.fedRate) * 100) / 100;
+  var rateChange    = Math.round((state.pendingRate - state.fedRate) * 100) / 100;
 
   var decisionLabel = 'Hold';
-  if (rateDelta > 0) decisionLabel = 'Raise +' + fmt(rateDelta) + '%';
-  if (rateDelta < 0) decisionLabel = 'Lower -' + fmt(Math.abs(rateDelta)) + '%';
+  if (rateChange > 0) decisionLabel = 'Raise +' + fmt(rateChange) + '%';
+  if (rateChange < 0) decisionLabel = 'Lower \u2212' + fmt(Math.abs(rateChange)) + '%';
 
-  // Record the decision — inflation, unemployment, and rate never change
+  // 1. Select event using events.js selectEvent(rng, diffPreset)
+  var diff  = state.diff || DIFFICULTY_PRESETS[state.difficulty] || DIFFICULTY_PRESETS.realworld;
+  var event = selectEvent(state.rng, diff);
+  state.currentEvent = event;
+
+  var prevInfl  = state.inflation;
+  var prevUnemp = state.unemployment;
+
+  // 2. Run economy update — map inflShock/unempShock to inflEffect/unempEffect for engine.js
+  var result = stepEconomy(
+    prevInfl,
+    prevUnemp,
+    rateChange,
+    state.lagInflEffect,
+    state.lagUnempEffect,
+    state.inflMom,
+    state.unempMom,
+    event ? { inflEffect: event.inflShock, unempEffect: event.unempShock } : null,
+    diff,
+    state.rng
+  );
+
+  // 3. Compute quarter penalty and accumulate
+  var qPenalty = calcQuarterPenalty(result.newInfl, result.newUnemp);
+  state.totalPenalty += qPenalty;
+
+  // 4. Build history record
   var record = {
     quarter:      state.quarter,
-    inflation:    STATIC_INFLATION,
-    unemployment: STATIC_UNEMPLOYMENT,
-    rate:         STATIC_RATE,
+    inflation:    result.newInfl,
+    unemployment: result.newUnemp,
+    rate:         state.pendingRate,
     decision:     decisionLabel,
-    eventTitle:   null
+    eventTitle:   event ? event.title : null,
+    penalty:      qPenalty
   };
 
   state.phase = 'animating';
   state.history.push(record);
   appendHistoryRow(record);
 
-  renderResult(rateDelta);
+  // 5. Update news panel (now shows the event if one fired)
+  renderNews();
+  renderResult(rateChange, record, qPenalty, prevInfl, prevUnemp);
+
   document.getElementById('panel-decision').classList.add('hidden');
   document.getElementById('panel-result').classList.remove('hidden');
 
@@ -923,13 +1185,15 @@ function makeDecision() {
 
   renderIndicators();
 
-  // Animate the chart — always to the same static values (flat line)
+  // 6. Animate chart to new economy values, carrying lag/momentum forward
   startMainChartAnimation({
-    from:         previousPoint,
-    to:           buildChartPoint(state.quarter, STATIC_INFLATION, STATIC_UNEMPLOYMENT, STATIC_RATE),
-    nextLagInfl:  0,
-    nextLagUnemp: 0,
-    qPenalty:     0
+    from:        previousPoint,
+    to:          buildChartPoint(state.quarter, result.newInfl, result.newUnemp, state.pendingRate),
+    nextLagInfl: result.nextLagInfl,
+    nextLagUnemp: result.nextLagUnemp,
+    newInflMom:  result.newInflMom,
+    newUnempMom: result.newUnempMom,
+    qPenalty:    qPenalty
   });
 }
 
@@ -960,36 +1224,38 @@ function resetGame() {
   showScreen('screen-intro');
 }
 
-/** Called by difficulty selector buttons — no-op in static shell (UI only) */
-function selectDifficulty(key) {
-  document.querySelectorAll('.btn-difficulty').forEach(function(btn) {
-    btn.classList.toggle('active', btn.dataset.diff === key);
-  });
-  var descEl = document.getElementById('difficulty-description');
-  if (descEl) descEl.textContent = 'All difficulty modes use the same static economy in this version.';
-}
-
-/** Stub — daily seed not used in static shell, but called from index.html buttons */
-function getDailySeed() { return null; }
-
-/** Reads #seed-input — seeds are not used in static shell */
+/** Read seed input, parse as integer or hash string, then start game */
 function startGameWithSeedInput() {
-  startGame();
+  var raw = '';
+  var inputEl = document.getElementById('seed-input');
+  if (inputEl) raw = inputEl.value.trim();
+  var seed = null;
+  if (raw) {
+    var n = Number(raw);
+    seed = isNaN(n) ? hashString(raw) : (Math.floor(n) >>> 0);
+  }
+  startGame(seed);
 }
 
-/** Replay — starts a fresh game in static shell */
+/** Replay the current run with the same seed and difficulty */
 function replayWithSameSeed() {
-  startGame();
+  startGame(state && state.seed != null ? state.seed : null);
 }
 
-/** Sandbox mode — extends to 24 quarters with static values */
+/** Sandbox mode — extends to 24 quarters after the regular 16 are done */
 function startSandboxMode() {
+  if (!state || !state.quarter) {
+    startGame();
+    return;
+  }
   state.totalQuarters = 24;
   var sandboxBanner = document.getElementById('sandbox-banner');
   if (sandboxBanner) sandboxBanner.style.display = '';
-  showScreen('screen-game');
-  state.quarter += 1;
+  if (state.phase === 'result') {
+    state.quarter += 1;
+  }
   state.phase = 'decision';
+  showScreen('screen-game');
   beginQuarter();
 }
 
@@ -1031,9 +1297,12 @@ document.addEventListener('click', function(e) {
 
 // Initialise timeline labels and rate display on load
 document.addEventListener('DOMContentLoaded', function() {
+  if (!state || !state.quarter) {
+    state = { quarter: 1, totalQuarters: TOTAL_QUARTERS };
+  }
   renderQuarterProgress();
   var endStart = document.getElementById('end-final-rate-start');
-  if (endStart) endStart.textContent = 'Started: ' + fmt(STATIC_RATE) + '%';
+  if (endStart) endStart.textContent = 'Started: ' + fmt(getInitialConditions(selectedDifficulty).fedRate) + '%';
 });
 
 // Inject rate selector markup into the decision panel
