@@ -154,15 +154,16 @@
 
     <!-- Hamburger menu -->
     <div class="hdr-menu-wrap" id="hdr-menu-wrap">
-      <button class="hdr-menu-btn" id="hdr-menu-btn" onclick="toggleGameMenu()" aria-label="Game menu" aria-haspopup="true" aria-expanded="false">
+      <button class="btn-hamburger" id="btn-hamburger" onclick="toggleGameMenu()" aria-label="Game menu" aria-expanded="false">
         <span></span><span></span><span></span>
       </button>
-      <div class="hdr-menu-dropdown hidden" id="hdr-menu-dropdown" role="menu">
-        <button class="hdr-menu-item" onclick="closeGameMenu(); startNewRun()">&#9654; New Run</button>
-        <button class="hdr-menu-item" onclick="closeGameMenu(); replayWithSameSeed()">&#8635; Replay Same Seed</button>
-        <button class="hdr-menu-item" onclick="closeGameMenu(); startSandboxMode()">&#9645; Sandbox Mode</button>
-        <div class="hdr-menu-divider"></div>
-        <button class="hdr-menu-item" onclick="closeGameMenu(); resetGame()">&#8962; Return to Menu</button>
+      <div class="game-menu hidden" id="game-menu" role="menu">
+        <button class="game-menu-item" onclick="closeGameMenu(); startNewRun()">&#8635; New Game</button>
+        <button class="game-menu-item" onclick="closeGameMenu(); replayWithSameSeed()">&#9654; Replay Same Seed</button>
+        <button class="game-menu-item" onclick="closeGameMenu(); startGame(getDailySeed())">&#128197; Daily Challenge</button>
+        <button class="game-menu-item" onclick="closeGameMenu(); startSandboxMode()">&#9881; Sandbox Mode</button>
+        <hr class="game-menu-divider">
+        <button class="game-menu-item" onclick="closeGameMenu(); resetGame()">&#8592; Back to Start</button>
       </div>
     </div>
   </header>

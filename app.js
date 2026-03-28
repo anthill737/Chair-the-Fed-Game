@@ -2782,8 +2782,11 @@ function nextQuarter() {
 
   const limit = (state.totalQuarters != null) ? state.totalQuarters : TOTAL_QUARTERS;
   if (state.quarter >= limit) {
-    renderEndScreen();
+    // Show screen first (makes elements visible for canvas drawing),
+    // then populate content. showScreen's rAF scrolls to the breakdown
+    // after layout settles; the double-rAF in renderEndScreen animates bars.
     showScreen('screen-end', 'end-score-breakdown');
+    renderEndScreen();
     return;
   }
 
@@ -2793,42 +2796,31 @@ function nextQuarter() {
 
 /** Hamburger menu toggle */
 function toggleGameMenu() {
-  var drop = document.getElementById('hdr-menu-dropdown');
-  var btn  = document.getElementById('hdr-menu-btn');
-  if (!drop) return;
-  var isOpen = !drop.classList.contains('hidden');
-  if (isOpen) {
-    drop.classList.add('hidden');
-    if (btn) btn.setAttribute('aria-expanded', 'false');
-  } else {
-    drop.classList.remove('hidden');
-    if (btn) btn.setAttribute('aria-expanded', 'true');
-    // Close when clicking outside or pressing Escape
-    setTimeout(function() {
-      function outsideClick(e) {
-        var wrap = document.getElementById('hdr-menu-wrap');
-        if (wrap && !wrap.contains(e.target)) { closeAndClean(); }
-      }
-      function escKey(e) {
-        if (e.key === 'Escape') { closeAndClean(); }
-      }
-      function closeAndClean() {
-        closeGameMenu();
-        document.removeEventListener('click', outsideClick);
-        document.removeEventListener('keydown', escKey);
-      }
-      document.addEventListener('click', outsideClick);
-      document.addEventListener('keydown', escKey);
-    }, 0);
-  }
+  var menu = document.getElementById('game-menu');
+  var btn  = document.getElementById('btn-hamburger');
+  if (!menu || !btn) return;
+  var isOpen = !menu.classList.contains('hidden');
+  menu.classList.toggle('hidden', isOpen);
+  btn.setAttribute('aria-expanded', String(!isOpen));
+  btn.classList.toggle('is-open', !isOpen);
 }
 
 function closeGameMenu() {
-  var drop = document.getElementById('hdr-menu-dropdown');
-  var btn  = document.getElementById('hdr-menu-btn');
-  if (drop) drop.classList.add('hidden');
-  if (btn) btn.setAttribute('aria-expanded', 'false');
+  var menu = document.getElementById('game-menu');
+  var btn  = document.getElementById('btn-hamburger');
+  if (menu) menu.classList.add('hidden');
+  if (btn)  { btn.setAttribute('aria-expanded', 'false'); btn.classList.remove('is-open'); }
 }
+
+// Close menu when clicking outside
+document.addEventListener('click', function(e) {
+  var btn  = document.getElementById('btn-hamburger');
+  var menu = document.getElementById('game-menu');
+  if (!btn || !menu) return;
+  if (!btn.contains(e.target) && !menu.contains(e.target)) {
+    closeGameMenu();
+  }
+});
 
 function resetGame() {
   stopMainChartAnimation();
