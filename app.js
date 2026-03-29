@@ -6,7 +6,7 @@
      1. CONSTANTS              — display targets, rate bounds
      2. GAME STATE             — createInitialState with full sim fields
      3. RENDERING / UI         — DOM updates, news, advisors, rate selector
-     4. CHART                  — main chart with lag ghost lines, end-screen
+     4. CHART                  — main chart, end-screen sparklines
      5. GAME FLOW              — init, makeDecision, nextQuarter, reset
      6. MISC                   — menu, keyboard, resize, DOMContentLoaded
    ========================================================================== */
@@ -366,53 +366,53 @@ function renderAdvisors() {
   function chenRationale() { // hawkish — leads with inflation signal
     if (direction === 'Raise') {
       if (infl > TARGET_INFLATION && unemp < TARGET_UNEMPLOYMENT)
-        return 'Inflation at ' + f1(infl) + '% is ' + inflWord() + ' above target and the labor market is tight \u2014 raising rates is overdue.';
+        return 'Inflation\u2019s at ' + f1(infl) + '% and the job market is running hot. We\u2019re behind the curve \u2014 I\u2019d raise now.';
       if (infl > TARGET_INFLATION)
-        return 'Inflation at ' + f1(infl) + '% is ' + inflWord() + ' above 2%; price stability requires tightening.';
-      return 'Unemployment at ' + f1(unemp) + '% signals an overheating labor market \u2014 higher rates are warranted.';
+        return 'Inflation\u2019s at ' + f1(infl) + '%, ' + inflWord() + ' above 2%. We can\u2019t afford to wait \u2014 raise rates and get ahead of it.';
+      return 'Unemployment at ' + f1(unemp) + '% is overheating. I\u2019d raise before this turns into a wage-price problem.';
     }
     if (direction === 'Lower') {
       if (infl < TARGET_INFLATION && unemp > TARGET_UNEMPLOYMENT)
-        return 'With inflation at ' + f1(infl) + '% and unemployment at ' + f1(unemp) + '%, both mandates point toward easing policy.';
+        return 'Both sides of the mandate are pointing the same way. Inflation at ' + f1(infl) + '%, unemployment at ' + f1(unemp) + '% \u2014 cut rates.';
       if (infl < TARGET_INFLATION)
-        return 'Inflation at ' + f1(infl) + '% is running ' + inflWord() + ' below 2% \u2014 accommodation is warranted.';
-      return 'Unemployment at ' + f1(unemp) + '% is ' + unempWord() + ' elevated; easing would support the labor market.';
+        return 'Inflation\u2019s slipped to ' + f1(infl) + '%, below our target. Even I\u2019d ease here \u2014 we can\u2019t ignore the mandate.';
+      return 'Unemployment at ' + f1(unemp) + '% is ' + unempWord() + ' too high. I\u2019d ease to shore up the labor market.';
     }
-    return 'Inflation at ' + f1(infl) + '% and unemployment at ' + f1(unemp) + '% are near mandate \u2014 no adjustment is necessary.';
+    return 'Inflation at ' + f1(infl) + '%, unemployment at ' + f1(unemp) + '% \u2014 we\u2019re close to mandate. I\u2019d hold for now.';
   }
 
   function riveraRationale() { // balanced — weighs both mandates equally
     if (direction === 'Raise') {
       if (strong)
-        return 'Both inflation at ' + f1(infl) + '% and tight labor at ' + f1(unemp) + '% point toward tightening \u2014 a raise is the right move.';
+        return 'Inflation at ' + f1(infl) + '% and tight labor at ' + f1(unemp) + '% \u2014 both sides are pointing up. A raise makes sense to me.';
       if (infl > TARGET_INFLATION)
-        return 'Inflation at ' + f1(infl) + '% is ' + inflWord() + ' above target; a balanced view supports a modest rate increase.';
-      return 'The labor market at ' + f1(unemp) + '% unemployment is ' + unempWord() + ' tighter than natural \u2014 raising rates would cool it.';
+        return 'Inflation\u2019s a bit above target at ' + f1(infl) + '%. Nothing alarming, but I\u2019d nudge rates up to keep expectations anchored.';
+      return 'The labor market\u2019s tighter than normal at ' + f1(unemp) + '%. I\u2019d raise gently \u2014 no need to rush, but a small move is sensible.';
     }
     if (direction === 'Lower') {
       if (strong)
-        return 'Below-target inflation of ' + f1(infl) + '% and elevated unemployment of ' + f1(unemp) + '% both argue for easing.';
+        return 'Inflation at ' + f1(infl) + '%, unemployment at ' + f1(unemp) + '% \u2014 both say ease. I\u2019d cut rates.';
       if (unemp > TARGET_UNEMPLOYMENT)
-        return 'Unemployment at ' + f1(unemp) + '% is ' + unempWord() + ' elevated \u2014 lowering rates would support the labor market.';
-      return 'Inflation at ' + f1(infl) + '% is running ' + inflWord() + ' below 2% \u2014 a modest cut is warranted.';
+        return 'Unemployment\u2019s at ' + f1(unemp) + '%, a bit elevated. I\u2019d lean toward cutting to support the labor market.';
+      return 'Inflation\u2019s at ' + f1(infl) + '%, below our 2% target. A small cut would help close the gap.';
     }
-    return 'With inflation at ' + f1(infl) + '% and unemployment at ' + f1(unemp) + '%, conditions are balanced \u2014 holding steady is appropriate.';
+    return 'Inflation at ' + f1(infl) + '%, unemployment at ' + f1(unemp) + '% \u2014 things look pretty balanced. I\u2019d hold and watch how it develops.';
   }
 
   function parkRationale() { // dovish — leads with unemployment signal
     if (direction === 'Raise') {
       if (strong)
-        return 'Even with a full-employment focus, inflation at ' + f1(infl) + '% and unemployment at ' + f1(unemp) + '% justify raising rates.';
+        return 'Even with my focus on jobs, inflation at ' + f1(infl) + '% and unemployment at ' + f1(unemp) + '% make a careful raise hard to argue against.';
       if (unemp < TARGET_UNEMPLOYMENT)
-        return 'Unemployment at ' + f1(unemp) + '% is ' + unempWord() + ' below the natural rate \u2014 gradual tightening is justified.';
-      return 'Inflation at ' + f1(infl) + '% is ' + inflWord() + ' above target \u2014 a modest raise would reduce the risk of a larger correction.';
+        return 'Unemployment\u2019s at ' + f1(unemp) + '%, below the natural rate. I can see the argument for a small nudge up.';
+      return 'Inflation\u2019s at ' + f1(infl) + '%, above target. A small raise now is better than a harder correction later.';
     }
     if (direction === 'Lower') {
       if (unemp > TARGET_UNEMPLOYMENT)
-        return 'Unemployment at ' + f1(unemp) + '% is ' + unempWord() + ' above 5% \u2014 lowering rates is the right call to support workers.';
-      return 'Inflation at ' + f1(infl) + '% is running well below target \u2014 accommodative policy is needed.';
+        return 'Unemployment\u2019s at ' + f1(unemp) + '% \u2014 too many people out of work. Cut rates and get more people hired.';
+      return 'Inflation\u2019s at ' + f1(infl) + '%, below target. Lower rates would nudge prices and growth in the right direction.';
     }
-    return 'Both indicators are near mandate; holding the rate steady lets the economy find its footing.';
+    return 'Inflation at ' + f1(infl) + '% and unemployment at ' + f1(unemp) + '% are both close to where we want them. I\u2019d hold and watch for now.';
   }
 
   var advisors = [
@@ -863,36 +863,7 @@ function drawSharedSeries(ctx, points, accessor, color, toX, toY) {
   ctx.restore();
 }
 
-/**
- * Draw a dashed ghost line projecting 1 quarter forward to show pending lag effect.
- * Only visible during the result phase (after GO, before Next Quarter).
- */
-function drawLagGhostLine(ctx, currentQuarter, currentValue, lagEffect, color, toX, toY) {
-  if (Math.abs(lagEffect) < 0.01) return;
-  if (state.phase === 'animating') return;
-
-  var projectedValue = currentValue + lagEffect;
-
-  ctx.save();
-  ctx.setLineDash([5, 5]);
-  ctx.strokeStyle  = color;
-  ctx.globalAlpha  = 0.45;
-  ctx.lineWidth    = 2;
-  ctx.lineCap      = 'round';
-
-  ctx.beginPath();
-  ctx.moveTo(toX(currentQuarter), toY(currentValue));
-  ctx.lineTo(toX(currentQuarter + 1), toY(projectedValue));
-  ctx.stroke();
-
-  ctx.setLineDash([]);
-  ctx.fillStyle = color;
-  ctx.beginPath();
-  ctx.arc(toX(currentQuarter + 1), toY(projectedValue), 3, 0, Math.PI * 2);
-  ctx.fill();
-
-  ctx.restore();
-}
+// drawLagGhostLine removed — ghost projection line disabled per operator requirement.
 
 function renderMainChart() {
   var canvas = document.getElementById('main-chart');
@@ -975,13 +946,7 @@ function renderMainChart() {
   drawSharedSeries(ctx, points, function(p) { return p.unemployment; }, MAIN_CHART_COLORS.unemployment, toX, toY);
   drawSharedSeries(ctx, points, function(p) { return p.rate;         }, MAIN_CHART_COLORS.rate,         toX, toY);
 
-  // Policy lag ghost lines — show pending deferred effects during result phase
-  if (state.phase === 'result' && state.chartPoints && state.chartPoints.length > 0) {
-    var lastPt = state.chartPoints[state.chartPoints.length - 1];
-    var currQ  = lastPt.completedQuarter;
-    drawLagGhostLine(ctx, currQ, lastPt.inflation,    state.lagInflEffect,  'rgba(178, 34, 34, 0.7)',  toX, toY);
-    drawLagGhostLine(ctx, currQ, lastPt.unemployment, state.lagUnempEffect, 'rgba(26, 42, 74, 0.7)',   toX, toY);
-  }
+  // Ghost line projection removed — chart shows historical data only.
 
   ctx.font         = '11px Arial';
   ctx.textAlign    = 'center';

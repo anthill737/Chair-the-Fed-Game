@@ -22,137 +22,137 @@
 var SHOCK_EVENTS = [
   {
     title:     'Oil Price Crash',
-    headline:  'Global Oil Prices Plunge on Supply Glut',
-    body:      '<p>Crude oil inventories have surged as OPEC nations refused to cut production, sending benchmark prices to multi-year lows. Energy costs are falling across the supply chain.</p>' +
-               '<p class="news-context">Lower energy prices reduce headline inflation and compress margins for energy-sector employers.</p>',
-    inflShock:  -0.3,
-    unempShock:  0.2,
+    headline:  'Crude Prices Collapse as OPEC Floods the Market',
+    body:      '<p>Benchmark crude tumbled more than 25% after OPEC members abandoned output limits, triggering a supply glut. Gasoline prices dropped sharply at the pump, and energy-sector payrolls fell for the second month running.</p>' +
+               '<p class="news-context">Cheaper energy pulls headline CPI lower and squeezes margins in oil-producing regions, weighing on employment there.</p>',
+    inflShock:  -0.36,
+    unempShock:  0.24,
     severity:   'minor'
   },
   {
     title:     'Tech Sector Surge',
-    headline:  'Technology Investment Boom Drives Hiring Wave',
-    body:      '<p>Major technology firms announced record capital expenditure plans, with start-up funding at a cycle high. The sector added jobs at twice the national average pace last quarter.</p>' +
-               '<p class="news-context">Strong tech hiring tightens the labor market without adding significant price pressure.</p>',
-    inflShock:   0.1,
-    unempShock: -0.3,
+    headline:  'Tech Hiring Boom Adds 90,000 Jobs in a Single Quarter',
+    body:      '<p>Major technology firms announced record capital spending plans, and venture funding hit a post-pandemic high. The sector added roughly 90,000 jobs last quarter — twice the pace of the broader economy.</p>' +
+               '<p class="news-context">Strong tech hiring tightens the labor market and lifts consumer spending without generating significant goods-price inflation.</p>',
+    inflShock:   0.12,
+    unempShock: -0.36,
     severity:   'minor'
   },
   {
     title:     'Banking Stress',
-    headline:  'Regional Bank Failures Raise Credit-Market Concerns',
-    body:      '<p>Three mid-sized regional banks have failed following losses on commercial real-estate portfolios. Credit spreads widened sharply as lenders tightened standards across the board.</p>' +
-               '<p class="news-context">Credit tightening can slow spending and investment, putting downward pressure on inflation while raising unemployment risk.</p>',
-    inflShock:  -0.2,
-    unempShock:  0.5,
+    headline:  'Regional Bank Failures Spark Credit Crunch Fears',
+    body:      '<p>Three mid-sized regional banks failed after losses on commercial real-estate portfolios triggered a deposit run. The Fed\'s Senior Loan Officer Survey showed the steepest tightening of lending standards since the financial crisis.</p>' +
+               '<p class="news-context">A credit crunch slows business investment and consumer borrowing, cooling demand and raising unemployment risk.</p>',
+    inflShock:  -0.24,
+    unempShock:  0.60,
     severity:   'moderate'
   },
   {
     title:     'Trade Policy Shock',
-    headline:  'New Tariffs Imposed on Major Trading Partners',
-    body:      '<p>The administration announced broad tariff increases on imports from several major trading partners. Retailers and manufacturers warned of significant cost pass-throughs to consumers.</p>' +
-               '<p class="news-context">Import tariffs raise consumer prices and disrupt supply chains, increasing both inflation and unemployment risk.</p>',
-    inflShock:   0.4,
-    unempShock:  0.3,
+    headline:  'Sweeping Tariffs Hit Imports; Retailers Warn of Price Hikes',
+    body:      '<p>The administration imposed broad tariff increases on imports from key trading partners. Major retailers projected price increases of 5–10% on affected goods within two quarters, and manufacturers began reviewing supply-chain shifts.</p>' +
+               '<p class="news-context">Tariffs push consumer prices higher while supply-chain uncertainty dampens hiring and business investment.</p>',
+    inflShock:   0.48,
+    unempShock:  0.36,
     severity:   'moderate'
   },
   {
     title:     'Housing Boom',
-    headline:  'Home Prices Post Strongest Gain in a Decade',
-    body:      '<p>Residential real estate prices accelerated sharply, driven by low inventory and robust demand. Construction activity is picking up, adding jobs in building trades.</p>' +
-               '<p class="news-context">A housing boom lifts consumer wealth and construction employment, but also adds upward pressure to shelter inflation.</p>',
-    inflShock:   0.2,
-    unempShock: -0.2,
+    headline:  'Home Prices Surge 8% Year-Over-Year; Construction Hiring Accelerates',
+    body:      '<p>Residential property values posted their strongest annual gain in a decade, driven by tight inventory and robust demand. Homebuilder payrolls grew by 35,000 last quarter, and shelter costs — the largest CPI component — ticked higher.</p>' +
+               '<p class="news-context">Rising home prices add to shelter inflation and lift consumer wealth, supporting spending and tightening the labor market.</p>',
+    inflShock:   0.24,
+    unempShock: -0.24,
     severity:   'minor'
   },
   {
     title:     'Wage Pressure Surge',
-    headline:  'Wage Growth Hits Seven-Year High Amid Tight Labor Market',
-    body:      '<p>Average hourly earnings jumped 0.5% last month, the sharpest monthly gain since the recovery began. Employers in services, healthcare, and logistics report intense competition for workers.</p>' +
-               '<p class="news-context">Rapid wage growth raises household incomes and consumption, but also pushes up business costs and prices.</p>',
-    inflShock:   0.5,
-    unempShock: -0.1,
+    headline:  'Average Hourly Earnings Up 4.8% — Fastest Pace in Seven Years',
+    body:      '<p>Average hourly earnings rose at their fastest annual rate since the last recovery. Employers in services, healthcare, and logistics reported intense competition for workers, with signing bonuses becoming routine.</p>' +
+               '<p class="news-context">Accelerating wages raise household purchasing power and business input costs, feeding through to consumer prices over the following quarters.</p>',
+    inflShock:   0.60,
+    unempShock: -0.12,
     severity:   'moderate'
   },
   {
     title:     'Supply Chain Disruption',
-    headline:  'Port Congestion and Freight Delays Squeeze Retailers',
-    body:      '<p>A combination of labor disputes and record container volumes has created severe congestion at major ports. Lead times for goods have extended to record lengths, driving up input costs for manufacturers.</p>' +
-               '<p class="news-context">Supply bottlenecks raise prices for goods and slow business output, putting pressure on both inflation and employment.</p>',
-    inflShock:   0.4,
-    unempShock:  0.2,
+    headline:  'Port Backlogs Stretch Lead Times; Input Costs Jump',
+    body:      '<p>Labor disputes combined with record container volumes created severe congestion at major ports. Import lead times hit all-time highs, and producer prices for intermediate goods rose 1.2% in a single month.</p>' +
+               '<p class="news-context">Supply bottlenecks push goods prices higher while slowing output — a combination that pressures both inflation and employment.</p>',
+    inflShock:   0.48,
+    unempShock:  0.24,
     severity:   'moderate'
   },
   {
     title:     'Strong Jobs Report',
-    headline:  'Payrolls Surge; Unemployment Falls to Cycle Low',
-    body:      '<p>The Bureau of Labor Statistics reported far stronger-than-expected job creation last month. Unemployment edged down while labor force participation rose, a rare combination pointing to broad-based hiring.</p>' +
-               '<p class="news-context">A robust labor market raises consumer confidence and spending, putting mild upward pressure on wages and prices.</p>',
-    inflShock:   0.1,
-    unempShock: -0.4,
+    headline:  'Payrolls Beat Forecasts by 80,000; Unemployment Drops to Cycle Low',
+    body:      '<p>The Bureau of Labor Statistics reported 280,000 jobs added last month — well above the consensus estimate. Unemployment fell to its lowest point in the current cycle, and labor force participation rose for the third consecutive month.</p>' +
+               '<p class="news-context">A tight labor market boosts consumer confidence and spending, putting mild upward pressure on wages and prices.</p>',
+    inflShock:   0.12,
+    unempShock: -0.48,
     severity:   'minor'
   },
   {
     title:     'Global Slowdown',
-    headline:  'IMF Cuts World Growth Forecast as Trade Weakens',
-    body:      '<p>The International Monetary Fund revised down its global growth outlook for the second consecutive quarter. Export orders fell sharply as demand from key trading partners deteriorated.</p>' +
-               '<p class="news-context">A global slowdown reduces demand for U.S. exports, weighing on domestic growth and employment while easing commodity prices.</p>',
-    inflShock:  -0.3,
-    unempShock:  0.4,
+    headline:  'IMF Slashes World Growth Forecast; U.S. Export Orders Slide',
+    body:      '<p>The IMF cut its global growth projection by 0.6 percentage points — the second downgrade in a row. U.S. export orders fell sharply as demand from Europe and Asia deteriorated, with manufacturing hit hardest.</p>' +
+               '<p class="news-context">Weakening foreign demand reduces U.S. output and hiring while easing commodity-price pressures.</p>',
+    inflShock:  -0.36,
+    unempShock:  0.48,
     severity:   'moderate'
   },
   {
     title:     'Consumer Confidence Spike',
-    headline:  'Consumer Sentiment Jumps to Post-Crisis High',
-    body:      '<p>The Conference Board Consumer Confidence Index surged to its highest reading since the financial crisis. Households reported improved financial conditions and strengthening expectations for jobs and income.</p>' +
-               '<p class="news-context">High consumer confidence fuels spending, lifting growth, employment, and mild inflationary pressure.</p>',
-    inflShock:   0.2,
-    unempShock: -0.3,
+    headline:  'Consumer Sentiment Hits 15-Year High; Retail Sales Jump 1.4%',
+    body:      '<p>The Conference Board Consumer Confidence Index surged to its highest reading in 15 years. Retail sales rose 1.4% in a single month, led by big-ticket durable goods. Households are borrowing more and saving less.</p>' +
+               '<p class="news-context">Strong consumer demand tightens the labor market and adds to inflationary pressure across goods and services.</p>',
+    inflShock:   0.24,
+    unempShock: -0.36,
     severity:   'minor'
   },
   {
     title:     'Credit Tightening',
-    headline:  'Banks Tighten Lending Standards Across Consumer and Business Loans',
-    body:      '<p>The Fed\'s Senior Loan Officer Survey showed the sharpest tightening of lending standards in three years. Both consumer and commercial borrowers reported reduced credit availability and higher costs.</p>' +
-               '<p class="news-context">Tighter credit restricts investment and consumption, slowing growth and easing price pressures.</p>',
-    inflShock:  -0.2,
-    unempShock:  0.3,
+    headline:  'Banks Pull Back on Lending; Business Investment Plans Cut',
+    body:      '<p>The Fed\'s quarterly survey of loan officers showed the sharpest pullback in credit availability in three years. Both consumer and business borrowers faced higher rates and stricter terms, and corporate capital spending plans were revised down.</p>' +
+               '<p class="news-context">Tighter credit conditions slow investment and consumption, cooling demand and easing price pressures — but also raising layoff risk.</p>',
+    inflShock:  -0.24,
+    unempShock:  0.36,
     severity:   'moderate'
   },
   {
     title:     'Energy Price Spike',
-    headline:  'Geopolitical Tensions Send Energy Prices Sharply Higher',
-    body:      '<p>Escalating conflict in a major oil-producing region triggered a rapid surge in crude and natural gas prices. Gasoline prices at the pump are up over 20% in three weeks, squeezing household budgets and business costs.</p>' +
-               '<p class="news-context">A large energy shock raises headline inflation significantly and dampens growth, risking a stagflationary impulse.</p>',
-    inflShock:   0.7,
-    unempShock:  0.2,
+    headline:  'Oil Surges 30% on Geopolitical Shock; Gas Prices Hit Decade High',
+    body:      '<p>Escalating conflict in a major oil-producing region sent crude prices up 30% in three weeks. Gasoline at the pump hit a decade high, and trucking and airline costs surged, fanning broader price pressures across the economy.</p>' +
+               '<p class="news-context">A large energy shock raises headline CPI sharply, squeezes real incomes, and dampens growth — a classic stagflationary impulse.</p>',
+    inflShock:   0.84,
+    unempShock:  0.24,
     severity:   'major'
   },
   {
     title:     'Dollar Strengthening',
-    headline:  'U.S. Dollar Reaches Multi-Year High Against Major Currencies',
-    body:      '<p>The Dollar Index climbed to its highest level in over four years as safe-haven flows and relative U.S. growth strength drove demand. Import prices fell sharply while U.S. exporters reported increased competitive pressure.</p>' +
-               '<p class="news-context">A stronger dollar lowers import prices, reducing inflation, but can weigh on export competitiveness.</p>',
-    inflShock:  -0.2,
-    unempShock:  0.0,
+    headline:  'Dollar Index Climbs to 4-Year High; Import Prices Fall',
+    body:      '<p>The Dollar Index reached its highest level in four years as safe-haven flows and U.S. rate differentials drove demand. Import prices dropped 1.8% over the quarter, providing a meaningful drag on headline CPI.</p>' +
+               '<p class="news-context">A stronger dollar reduces import costs and inflation but puts U.S. exporters at a competitive disadvantage, weighing on manufacturing employment.</p>',
+    inflShock:  -0.24,
+    unempShock:  0.00,
     severity:   'minor'
   },
   {
     title:     'Manufacturing Decline',
-    headline:  'Factory Activity Contracts for Third Straight Month',
-    body:      '<p>The ISM Manufacturing Index fell further into contraction territory as new orders, production, and employment sub-indexes all declined. Industrial companies announced layoffs and deferred capital spending.</p>' +
-               '<p class="news-context">A manufacturing downturn reduces employment in goods-producing sectors and can pull inflation lower via weaker demand.</p>',
-    inflShock:  -0.1,
-    unempShock:  0.4,
+    headline:  'ISM Factory Index Signals Contraction; Layoffs Rise in Industrial States',
+    body:      '<p>The ISM Manufacturing Index fell to its lowest level in two years, with new orders, production, and employment sub-indexes all deep in contraction. Industrial companies announced layoffs and deferred planned capital spending.</p>' +
+               '<p class="news-context">A manufacturing downturn reduces payrolls in goods-producing sectors and weakens demand, putting downward pressure on prices.</p>',
+    inflShock:  -0.12,
+    unempShock:  0.48,
     severity:   'moderate'
   },
   {
     title:     'Productivity Boom',
-    headline:  'Business Productivity Posts Sharpest Quarterly Gain in a Decade',
-    body:      '<p>The Bureau of Labor Statistics reported a surge in non-farm business sector productivity, driven by technology adoption and process improvements. Unit labor costs fell for the first time in two years.</p>' +
-               '<p class="news-context">Higher productivity enables businesses to raise output without raising prices, putting downward pressure on inflation and supporting employment growth.</p>',
-    inflShock:  -0.1,
-    unempShock: -0.3,
+    headline:  'Productivity Surges 3.2% — Best Reading in a Decade; Unit Labor Costs Fall',
+    body:      '<p>Non-farm business productivity posted its strongest quarterly gain in ten years, driven by technology adoption and process improvements. Unit labor costs fell for the first time in two years, reducing cost pressures on businesses.</p>' +
+               '<p class="news-context">Higher productivity lets businesses expand output without raising prices or cutting staff — a positive supply-side development for the Fed.</p>',
+    inflShock:  -0.12,
+    unempShock: -0.36,
     severity:   'minor'
   }
 ];
@@ -200,76 +200,76 @@ function selectEvent(rng, difficulty) {
 
 var ROUTINE_NEWS = [
   {
-    badge:    'MARKET UPDATE',
-    headline: 'Quarterly Economic Briefing',
-    body:     '<p>Financial conditions remain broadly stable. Equity markets held near recent levels while credit spreads were little changed. Treasury yields edged up slightly on solid economic data.</p>' +
-              '<p class="news-context">No significant shocks this quarter. The economy is evolving according to underlying fundamentals.</p>'
+    badge:    'LABOR MARKET',
+    headline: 'Payrolls Add 165,000 Jobs; Unemployment Holds Steady',
+    body:     '<p>The economy added 165,000 payroll jobs last month, roughly in line with recent quarterly averages. Unemployment was little changed, and average hourly earnings grew 0.2% — consistent with contained wage inflation.</p>' +
+              '<p class="news-context">Solid but unspectacular job growth. No material shift in labor-market conditions this quarter.</p>'
   },
   {
-    badge:    'MARKET UPDATE',
-    headline: 'Economic Conditions Summary',
-    body:     '<p>Consumer spending grew at a moderate pace last quarter, supported by steady job gains and rising household net worth. Business investment was mixed, with services firms outpacing manufacturers.</p>' +
-              '<p class="news-context">Domestic demand remains the primary driver of growth. No major external shocks this period.</p>'
+    badge:    'INFLATION DATA',
+    headline: 'CPI Rises 0.2%; Core Inflation Holds Below Prior Quarter',
+    body:     '<p>The Consumer Price Index rose 0.2% last month. Core inflation — stripping out food and energy — came in slightly below the prior quarter\'s pace. Services prices edged up while goods prices were flat.</p>' +
+              '<p class="news-context">Inflation is moving in line with the recent trend. No acceleration or deceleration large enough to change the near-term outlook.</p>'
   },
   {
-    badge:    'MARKET UPDATE',
-    headline: 'Labor Market Briefing',
-    body:     '<p>Payroll growth was in line with recent trends. Job openings held near cycle highs while quit rates — a proxy for worker confidence — remained elevated. Wage growth was steady but not accelerating.</p>' +
-              '<p class="news-context">The labor market is evolving in line with prior-quarter conditions. No unexpected developments to report.</p>'
+    badge:    'CONSUMER SPENDING',
+    headline: 'Retail Sales Up 0.4%; Consumer Confidence Holds Firm',
+    body:     '<p>Retail sales rose 0.4% last month, led by autos and online purchases. The Conference Board consumer confidence reading was little changed, suggesting households remain willing to spend despite modest headwinds.</p>' +
+              '<p class="news-context">Consumer demand is steady. Spending growth is not accelerating enough to meaningfully add inflationary pressure.</p>'
   },
   {
-    badge:    'MARKET UPDATE',
-    headline: 'Inflation Monitor',
-    body:     '<p>Consumer prices rose at a pace consistent with recent readings. Core goods prices were flat, while services inflation remained slightly elevated. Energy and food costs were stable.</p>' +
-              '<p class="news-context">Inflation dynamics are broadly unchanged from last quarter. Monitor for any shifts in services pricing.</p>'
+    badge:    'LABOR MARKET',
+    headline: 'Job Openings Dip Modestly; Quit Rate Stays Elevated',
+    body:     '<p>Job openings edged down slightly from their recent peak, though total vacancies remain historically high. The quit rate — a sign workers feel confident enough to switch jobs — held firm, suggesting wages should keep rising gradually.</p>' +
+              '<p class="news-context">The labor market is cooling at the margins but is not loose. Wage growth is unlikely to slow sharply in the near term.</p>'
   },
   {
-    badge:    'MARKET UPDATE',
-    headline: 'Global Conditions Update',
-    body:     '<p>International growth was mixed. European activity improved marginally while Asian export data was softer than expected. U.S. trade flows were broadly balanced, with no sharp moves in either direction.</p>' +
-              '<p class="news-context">External conditions are neither providing a significant boost nor a material drag on the U.S. economy this quarter.</p>'
+    badge:    'GLOBAL ECONOMY',
+    headline: 'U.S. Exports Stable; Global Demand Mixed',
+    body:     '<p>U.S. goods exports were little changed last quarter as stronger demand from Latin America offset softer orders from Europe. The trade deficit narrowed marginally, and commodity prices were broadly stable.</p>' +
+              '<p class="news-context">External conditions are neither a tailwind nor a headwind this quarter. Global dynamics are not changing the domestic inflation or employment picture.</p>'
   },
   {
-    badge:    'MARKET UPDATE',
-    headline: 'Credit and Financial Markets',
-    body:     '<p>Bank lending standards were unchanged. Household credit quality remained high, and delinquency rates on mortgages and auto loans held near cycle lows. Corporate bond issuance was active at favorable rates.</p>' +
-              '<p class="news-context">Financial conditions remain accommodative. No tightening pressures in credit markets this quarter.</p>'
+    badge:    'FINANCIAL CONDITIONS',
+    headline: 'Credit Spreads Narrow; Equities Advance Modestly',
+    body:     '<p>Investment-grade and high-yield credit spreads narrowed slightly, reflecting improved risk appetite. Equity markets posted modest gains for the quarter, and corporate debt issuance remained healthy at competitive rates.</p>' +
+              '<p class="news-context">Financial conditions are supportive without being overly loose. Credit is flowing freely, which is a mild positive for growth.</p>'
   },
   {
-    badge:    'MARKET UPDATE',
-    headline: 'Housing and Construction Briefing',
-    body:     '<p>Residential construction permits held near recent levels. Existing home sales were steady, supported by low inventory and solid demand. Homebuilder sentiment was stable.</p>' +
-              '<p class="news-context">The housing sector continues to contribute modestly to growth without generating outsized inflationary pressure.</p>'
+    badge:    'WAGES & GROWTH',
+    headline: 'Wage Growth Steady at 3.5%; GDP Tracking at 2.1%',
+    body:     '<p>Average hourly earnings rose 3.5% year-over-year, in line with recent quarters. Early GDP estimates for the current quarter are tracking near 2.1%, suggesting the economy is expanding at a moderate, sustainable pace.</p>' +
+              '<p class="news-context">Wage growth and GDP are both near levels consistent with stable inflation. No sign of overheating or significant slowdown.</p>'
   },
   {
-    badge:    'MARKET UPDATE',
-    headline: 'Business Conditions Snapshot',
-    body:     '<p>Small business optimism edged up in the latest survey, with respondents citing improved sales and hiring intentions. Large-cap earnings reports were broadly in line with expectations.</p>' +
-              '<p class="news-context">Business confidence is holding steady. Conditions support continued moderate expansion.</p>'
+    badge:    'HOUSING & CONSTRUCTION',
+    headline: 'Housing Starts Steady; Shelter Inflation Edges Lower',
+    body:     '<p>Residential construction starts held near recent levels as mortgage rates stabilized. Shelter costs — the single largest component of core CPI — eased slightly, providing a modest drag on headline inflation.</p>' +
+              '<p class="news-context">The cooling in shelter inflation is a positive signal. If it continues, it will put meaningful downward pressure on core CPI over the next several quarters.</p>'
   },
   {
-    badge:    'MARKET UPDATE',
-    headline: 'Federal Reserve Monitoring Report',
-    body:     '<p>Market expectations for future policy moves were little changed following recent economic data. Longer-term inflation expectations remain anchored near the 2% target, a positive sign for credibility.</p>' +
-              '<p class="news-context">The Fed\'s policy stance is being transmitted through financial markets in an orderly fashion this quarter.</p>'
+    badge:    'INFLATION DATA',
+    headline: 'Producer Prices Flat; Supply Chain Pressures Ease',
+    body:     '<p>The Producer Price Index for final demand was unchanged last month, the second consecutive flat reading. Supplier delivery times improved and input cost indices fell across manufacturing surveys, suggesting pipeline inflation pressures are fading.</p>' +
+              '<p class="news-context">Easing producer prices typically flow through to consumer prices with a one-to-two quarter lag — a mild disinflationary signal.</p>'
   },
   {
-    badge:    'MARKET UPDATE',
-    headline: 'Consumer and Household Finance Update',
-    body:     '<p>Retail sales grew modestly, led by non-discretionary categories. Household debt-service ratios held near historic lows, suggesting consumers have financial room to absorb modest shocks.</p>' +
-              '<p class="news-context">The consumer sector is on solid footing. Spending is growing but not accelerating in a way that would meaningfully change the inflation outlook.</p>'
+    badge:    'LABOR MARKET',
+    headline: 'Payrolls Miss Slightly at 120,000; Unemployment Edges Up',
+    body:     '<p>Job growth came in slightly below consensus estimates at 120,000. Unemployment ticked up a tenth of a percentage point, though layoffs remained low. Part-time employment for economic reasons held steady.</p>' +
+              '<p class="news-context">A modest miss but not a warning sign. The labor market is softening gradually rather than deteriorating sharply.</p>'
   },
   {
-    badge:    'MARKET UPDATE',
-    headline: 'Productivity and Supply-Side Update',
-    body:     '<p>Non-farm productivity growth was positive but modest, in line with the post-crisis trend. Unit labor costs increased marginally, consistent with stable underlying inflation pressure.</p>' +
-              '<p class="news-context">Supply-side conditions are evolving gradually. No significant productivity surprise this quarter.</p>'
+    badge:    'CONSUMER SPENDING',
+    headline: 'Real Consumer Spending Slows; Saving Rate Ticks Up',
+    body:     '<p>Inflation-adjusted consumer spending grew just 0.1% last month as households shifted from spending to saving. The personal saving rate rose to its highest level in three quarters, partly reflecting caution about the economic outlook.</p>' +
+              '<p class="news-context">Slowing consumer demand will ease inflationary pressure if sustained, but it also signals weaker growth ahead.</p>'
   },
   {
-    badge:    'MARKET UPDATE',
-    headline: 'Mid-Year Economic Assessment',
-    body:     '<p>The economy continues on its current trajectory. Growth is moderate, labor markets are firm, and price pressures are contained. Financial markets are functioning normally with no signs of stress.</p>' +
-              '<p class="news-context">A broadly uneventful quarter allows you to focus policy on fine-tuning the path toward your targets.</p>'
+    badge:    'FINANCIAL CONDITIONS',
+    headline: 'Lending Standards Ease Slightly; Business Investment Picks Up',
+    body:     '<p>Bank lending standards for commercial and industrial loans eased modestly in the latest quarterly survey. Business investment in equipment and software rose 1.3% — the strongest gain in four quarters — suggesting firms are regaining confidence.</p>' +
+              '<p class="news-context">Improving financial conditions and rising investment are mild positives for growth, with some upside risk to labor demand over the coming quarters.</p>'
   }
 ];
 
