@@ -657,9 +657,9 @@ html:has(#screen-game.active) body {
 
 .news-body { overflow: hidden; }
 .news-body p {
-  font-size: 0.88rem;
+  font-size: 1.00rem;
   color: #2a2a2a;
-  line-height: 1.4;
+  line-height: 1.6;
   margin-bottom: 4px;
   overflow: hidden;
   display: -webkit-box;
@@ -670,7 +670,7 @@ html:has(#screen-game.active) body {
 
 .news-body .event-title {
   font-family: Arial, sans-serif;
-  font-size: 0.9rem;
+  font-size: 0.95rem;
   font-weight: bold;
   color: #1a2a4a;
   margin-bottom: 4px;
@@ -680,7 +680,7 @@ html:has(#screen-game.active) body {
   margin-top: 4px;
   font-style: italic;
   color: #555;
-  font-size: 0.83rem;
+  font-size: 0.93rem;
 }
 
 /* Main chart */
@@ -709,7 +709,7 @@ html:has(#screen-game.active) body {
   justify-content: flex-end;
   gap: 8px 16px;
   font-family: Arial, sans-serif;
-  font-size: 0.76rem;
+  font-size: 0.84rem;
   color: #4a433a;
 }
 
@@ -974,17 +974,26 @@ html:has(#screen-game.active) body {
 .history-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.80rem;
+  font-size: 0.86rem;
   font-family: Arial, sans-serif;
-  min-width: 520px;
+  min-width: 560px;
+  table-layout: fixed;
 }
+
+/* Explicit column widths */
+.history-table col.col-qtr   { width: 56px; }
+.history-table col.col-infl  { width: 90px; }
+.history-table col.col-unemp { width: 110px; }
+.history-table col.col-rate  { width: 80px; }
+.history-table col.col-dec   { width: 90px; }
+.history-table col.col-event { width: auto; }
 
 .history-table thead th {
   background: #1a2a4a;
   color: #fff;
-  padding: 6px 10px;
+  padding: 7px 12px;
   text-align: left;
-  font-size: 0.70rem;
+  font-size: 0.75rem;
   letter-spacing: 0.10em;
   text-transform: uppercase;
   white-space: nowrap;
@@ -994,10 +1003,17 @@ html:has(#screen-game.active) body {
 .history-table tbody tr:nth-child(even) { background: #fff; }
 
 .history-table tbody td {
-  padding: 5px 10px;
+  padding: 7px 12px;
   color: #2a2a2a;
   border-bottom: 1px solid #e8e4dc;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Event column may wrap */
+.history-table tbody td:last-child {
+  white-space: normal;
 }
 
 .history-table tbody td:first-child {
@@ -1743,12 +1759,12 @@ html:has(#screen-game.active) body {
   display: flex;
   align-items: flex-start;
   gap: 10px;
-  padding: 9px 10px;
+  padding: 10px 12px;
   margin-bottom: 8px;
   border-radius: 3px;
   border-left: 3px solid #c8c0b0;
   background: #faf8f4;
-  font-size: 0.83rem;
+  font-size: 0.86rem;
 }
 .advisor-card:last-child { margin-bottom: 0; }
 
@@ -1771,47 +1787,55 @@ html:has(#screen-game.active) body {
   justify-content: center;
 }
 
-.advisor-content   { flex: 1; min-width: 0; }
+.advisor-content   { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 
 .advisor-header-row {
   display: flex;
-  align-items: baseline;
-  flex-wrap: wrap;
+  align-items: center;
+  flex-wrap: nowrap;
   gap: 4px 8px;
-  margin-bottom: 4px;
+  margin-bottom: 5px;
 }
 
 .advisor-name {
   font-weight: bold;
   color: #1a2a4a;
-  font-size: 0.83rem;
+  font-size: 0.86rem;
   font-family: Arial, sans-serif;
+  white-space: nowrap;
 }
 
 .advisor-title-text {
-  font-size: 0.75rem;
+  font-size: 0.76rem;
   color: #777;
   flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .advisor-rec {
-  font-size: 0.68rem;
+  font-size: 0.70rem;
   font-weight: bold;
   font-family: Arial, sans-serif;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  padding: 1px 7px;
+  padding: 2px 8px;
   border-radius: 2px;
   white-space: nowrap;
+  flex-shrink: 0;
+  margin-left: auto;
 }
 .advisor-rec--raise { background: #b22222; color: #fff; }
+.advisor-rec--lower { background: #2a6e2a; color: #fff; }
 .advisor-rec--cut   { background: #2a6e2a; color: #fff; }
 .advisor-rec--hold  { background: #5b564b; color: #fff; }
 
 .advisor-rationale {
   color: #3a3530;
-  line-height: 1.80;
-  font-size: 0.95rem;
+  line-height: 1.65;
+  font-size: 0.92rem;
+  flex: 1;
 }
 
 @media (max-width: 860px) {
@@ -2106,10 +2130,10 @@ html:has(#screen-game.active) body {
   margin: 0 10px;
   padding: 6px 10px;
   gap: 8px;
-  flex: 0 0 110px;
-  height: 110px;
-  min-height: 110px;
-  max-height: 110px;
+  flex: 0 0 122px;
+  height: 122px;
+  min-height: 122px;
+  max-height: 122px;
   overflow: hidden;
 }
 
@@ -2186,9 +2210,39 @@ html:has(#screen-game.active) body {
   flex: 1 1 0;
   min-width: 0;
   margin-bottom: 0;
-  padding: 6px 10px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+}
+
+/* Header row: avatar + name/title + badge all on one line */
+.advisors-row .advisor-card .advisor-header-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 6px;
+  margin-bottom: 5px;
+}
+
+/* Badge anchored to right of header row */
+.advisors-row .advisor-card .advisor-rec {
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+/* Name + title stacked, truncated */
+.advisors-row .advisor-card .advisor-name-block {
   display: flex;
   flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+
+/* Rationale wraps naturally — no clipping */
+.advisors-row .advisor-card .advisor-rationale {
+  overflow: visible;
 }
 
 /* Override panel-title inside advisors-row */
@@ -2202,19 +2256,18 @@ html:has(#screen-game.active) body {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  font-size: 0.86rem;
 }
 .advisors-row .advisor-title-text {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  font-size: 0.75rem;
+  flex: unset;
 }
 .advisors-row .advisor-rationale {
   font-size: 0.88rem;
-  line-height: 1.65;
-  overflow: hidden;
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
+  line-height: 1.55;
 }
 
 /* === CENTER COLUMN — news + chart + history === */

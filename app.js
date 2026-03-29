@@ -500,11 +500,13 @@ function renderAdvisors() {
     var recClass  = 'advisor-rec--' + recLower;
     var cardClass = recLower === 'hold' ? 'advisor-card--calm' : 'advisor-card--concerned';
     return '<div class="advisor-card ' + cardClass + '">'
-      + '<div class="advisor-avatar">' + advisor.avatar + '</div>'
       + '<div class="advisor-content">'
       + '<div class="advisor-header-row">'
+      + '<div class="advisor-avatar">' + advisor.avatar + '</div>'
+      + '<div class="advisor-name-block">'
       + '<span class="advisor-name">' + advisor.name + '</span>'
       + '<span class="advisor-title-text">' + advisor.title + '</span>'
+      + '</div>'
       + '<span class="advisor-rec ' + recClass + '">' + advisor.rec + '</span>'
       + '</div>'
       + '<div class="advisor-rationale">' + advisor.rationale + '</div>'
@@ -966,7 +968,7 @@ function renderMainChart() {
   ctx.lineWidth   = 1;
   ctx.strokeRect(plot.left, plot.top, plot.width, plot.height);
 
-  ctx.font         = '11px Arial';
+  ctx.font         = '12px Arial';
   ctx.fillStyle    = MAIN_CHART_COLORS.axis;
   ctx.textAlign    = 'right';
   ctx.textBaseline = 'middle';
@@ -1008,7 +1010,7 @@ function renderMainChart() {
   ctx.stroke();
   ctx.restore();
 
-  ctx.font         = '10px Arial';
+  ctx.font         = '11px Arial';
   ctx.textAlign    = 'left';
   ctx.textBaseline = 'bottom';
   ctx.fillStyle    = 'rgba(178, 34, 34, 0.8)';
@@ -1022,7 +1024,7 @@ function renderMainChart() {
 
   // Ghost line projection removed — chart shows historical data only.
 
-  ctx.font         = '11px Arial';
+  ctx.font         = '12px Arial';
   ctx.textAlign    = 'center';
   ctx.textBaseline = 'top';
   ctx.fillStyle    = MAIN_CHART_COLORS.axis;
@@ -1033,7 +1035,7 @@ function renderMainChart() {
   ctx.save();
   ctx.translate(16, plot.top + plot.height / 2);
   ctx.rotate(-Math.PI / 2);
-  ctx.font         = '12px Arial';
+  ctx.font         = '13px Arial';
   ctx.textAlign    = 'center';
   ctx.textBaseline = 'top';
   ctx.fillText('Percent', 0, 0);
