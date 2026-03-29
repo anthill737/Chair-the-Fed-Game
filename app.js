@@ -377,14 +377,20 @@ function renderNews() {
       }, 0);
     }
   } else {
-    // Routine briefing from events.js ROUTINE_NEWS
-    var entry = ROUTINE_NEWS[(( state.quarter || 1) - 1) % ROUTINE_NEWS.length];
+    // Dynamic briefing from current economic state
+    var prevRecord = state.history && state.history.length > 0 ? state.history[state.history.length - 1] : null;
     if (label) label.textContent = quarterInfo.label + ' \u2014 Economic Briefing';
     if (badge) {
-      badge.textContent = entry ? entry.badge : 'MARKET UPDATE';
+      badge.textContent = 'MARKET UPDATE';
       badge.className   = 'news-badge routine';
     }
-    if (body)  body.innerHTML = entry ? entry.body : '<p>Economic conditions remain stable.</p>';
+    if (body) body.innerHTML = buildDynamicBriefing(
+      state.inflation    || TARGET_INFLATION,
+      state.unemployment || TARGET_UNEMPLOYMENT,
+      prevRecord ? prevRecord.inflation    : null,
+      prevRecord ? prevRecord.unemployment : null,
+      state.fedRate || 0
+    );
     if (alert) {
       alert.classList.add('hidden');
       alert.classList.remove('news-alert--flash', 'news-alert--panic');
