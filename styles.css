@@ -1810,8 +1810,8 @@ html:has(#screen-game.active) body {
 
 .advisor-rationale {
   color: #3a3530;
-  line-height: 1.45;
-  font-size: 0.80rem;
+  line-height: 1.80;
+  font-size: 0.95rem;
 }
 
 @media (max-width: 860px) {
@@ -2209,11 +2209,11 @@ html:has(#screen-game.active) body {
   text-overflow: ellipsis;
 }
 .advisors-row .advisor-rationale {
-  font-size: 0.72rem;
-  line-height: 1.3;
+  font-size: 0.88rem;
+  line-height: 1.65;
   overflow: hidden;
   display: -webkit-box;
-  -webkit-line-clamp: 2;
+  -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
 }
 
