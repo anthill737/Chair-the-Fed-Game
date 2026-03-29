@@ -201,9 +201,9 @@ function selectEvent(rng, difficulty) {
 var ROUTINE_NEWS = [
   {
     badge:    'LABOR MARKET',
-    headline: 'Payrolls Add 165,000 Jobs; Unemployment Holds Steady',
-    body:     '<p>The economy added 165,000 payroll jobs last month, roughly in line with recent quarterly averages. Unemployment was little changed, and average hourly earnings grew 0.2% — consistent with contained wage inflation.</p>' +
-              '<p class="news-context">Solid but unspectacular job growth. No material shift in labor-market conditions this quarter.</p>'
+    headline: 'Unemployment Holds at 4.8%; Job Market Steady, In Line with Forecasts',
+    body:     '<p>The unemployment rate held at 4.8% last month, matching analyst expectations. Job openings remained elevated and layoffs were subdued, pointing to continued labor-market resilience without clear signs of overheating.</p>' +
+              '<p class="news-context">Steady unemployment at this level is consistent with full employment. No material shift in labor-market conditions this quarter.</p>'
   },
   {
     badge:    'INFLATION DATA',
@@ -254,10 +254,10 @@ var ROUTINE_NEWS = [
               '<p class="news-context">Easing producer prices typically flow through to consumer prices with a one-to-two quarter lag — a mild disinflationary signal.</p>'
   },
   {
-    badge:    'LABOR MARKET',
-    headline: 'Payrolls Miss Slightly at 120,000; Unemployment Edges Up',
-    body:     '<p>Job growth came in slightly below consensus estimates at 120,000. Unemployment ticked up a tenth of a percentage point, though layoffs remained low. Part-time employment for economic reasons held steady.</p>' +
-              '<p class="news-context">A modest miss but not a warning sign. The labor market is softening gradually rather than deteriorating sharply.</p>'
+    badge:    'WAGES & LABOR',
+    headline: 'Wage Growth Slows to 3.1%, Below Expectations; Hiring Cools',
+    body:     '<p>Average hourly earnings rose just 3.1% year-over-year — below the 3.4% consensus forecast. Hiring slowed across several service sectors, and the share of workers voluntarily quitting edged lower, a sign of diminishing worker bargaining power.</p>' +
+              '<p class="news-context">Softer wage growth eases cost pressures for businesses and is a mild disinflationary signal, but sustained weakness could weigh on consumer spending.</p>'
   },
   {
     badge:    'CONSUMER SPENDING',
@@ -304,6 +304,10 @@ var ROUTINE_NEWS = [
    Mixed signal (net = 0, not both near target) → all Hold; signals cancel out.
    ========================================================================== */
 
+// NOTE: As of the current build, app.js implements its own inline advisor logic and does NOT
+// call getAdvisorRecs(). This function is currently dead code but is preserved here because
+// its hawkish/dovish/balanced logic and rationale strings are the intended implementation.
+// Builder 3 may wire this up to replace the inline logic in app.js.
 function getAdvisorRecs(inflation, unemployment, fedRate, difficulty) {
   function f1(n) { return n.toFixed(1); }
 
