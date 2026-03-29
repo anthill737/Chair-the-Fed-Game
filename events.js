@@ -201,9 +201,9 @@ function selectEvent(rng, difficulty) {
 var ROUTINE_NEWS = [
   {
     badge:    'LABOR MARKET',
-    headline: 'Payrolls Add 165,000 Jobs; Unemployment Holds Steady',
-    body:     '<p>The economy added 165,000 payroll jobs last month, roughly in line with recent quarterly averages. Unemployment was little changed, and average hourly earnings grew 0.2% — consistent with contained wage inflation.</p>' +
-              '<p class="news-context">Solid but unspectacular job growth. No material shift in labor-market conditions this quarter.</p>'
+    headline: 'Unemployment Holds at 4.8%; Job Market Steady, In Line with Forecasts',
+    body:     '<p>The unemployment rate held at 4.8% last month, matching analyst expectations. Job openings remained elevated and layoffs were subdued, pointing to continued labor-market resilience without clear signs of overheating.</p>' +
+              '<p class="news-context">Steady unemployment at this level is consistent with full employment. No material shift in labor-market conditions this quarter.</p>'
   },
   {
     badge:    'INFLATION DATA',
@@ -254,10 +254,10 @@ var ROUTINE_NEWS = [
               '<p class="news-context">Easing producer prices typically flow through to consumer prices with a one-to-two quarter lag — a mild disinflationary signal.</p>'
   },
   {
-    badge:    'LABOR MARKET',
-    headline: 'Payrolls Miss Slightly at 120,000; Unemployment Edges Up',
-    body:     '<p>Job growth came in slightly below consensus estimates at 120,000. Unemployment ticked up a tenth of a percentage point, though layoffs remained low. Part-time employment for economic reasons held steady.</p>' +
-              '<p class="news-context">A modest miss but not a warning sign. The labor market is softening gradually rather than deteriorating sharply.</p>'
+    badge:    'WAGES & LABOR',
+    headline: 'Wage Growth Slows to 3.1%, Below Expectations; Hiring Cools',
+    body:     '<p>Average hourly earnings rose just 3.1% year-over-year — below the 3.4% consensus forecast. Hiring slowed across several service sectors, and the share of workers voluntarily quitting edged lower, a sign of diminishing worker bargaining power.</p>' +
+              '<p class="news-context">Softer wage growth eases cost pressures for businesses and is a mild disinflationary signal, but sustained weakness could weigh on consumer spending.</p>'
   },
   {
     badge:    'CONSUMER SPENDING',
@@ -296,20 +296,19 @@ var ROUTINE_NEWS = [
 
    Both-near-target override: |infl-2| ≤ 0.3 AND |unemp-5| ≤ 0.3 → Hold.
 
-   Advisor personalities (differ in how much net is required before acting):
-     Dr. Chen    — hawkish: Raise on net ≥ +1; Lower only on net = -2 (needs both)
-     Gov. Rivera — balanced: Raise on net ≥ +1; Lower on net ≤ -1 (symmetric)
-     Sec. Park   — dovish:  Lower on net ≤ -1; Raise only on net = +2 (needs both)
-
-   Mixed signal (net = 0, not both near target) → all Hold; signals cancel out.
+   Advisor personalities (deliberate divergence given the same data):
+     Dr. Chen    — hawkish: Raise on net ≥ +1 or net = 0; Hold on net = -1;
+                   Lower on net = -2 only if inflDev < -0.3 (clearly below target).
+     Gov. Rivera — balanced: Raise on net ≥ +1; Lower on net ≤ -1 (symmetric).
+     Sec. Park   — dovish: Lower on net ≤ -1 or net = 0 when infl below target or
+                   labor slack > inflation overshoot; Hold on net = +1;
+                   Raise on net = +2 only if inflDev > 0.3 (clearly above target).
    ========================================================================== */
 
 function getAdvisorRecs(inflation, unemployment, fedRate, difficulty) {
   function f1(n) { return n.toFixed(1); }
 
   // --- Directional signals ---
-  // inflSignal:  +1 = inflation above 2% (Raise bias),  -1 = below 2% (Lower bias)
-  // unempSignal: +1 = unemployment below 5% (Raise bias), -1 = above 5% (Lower bias)
   var inflSignal  = inflation    > 2.0 ? 1 : (inflation    < 2.0 ? -1 : 0);
   var unempSignal = unemployment < 5.0 ? 1 : (unemployment > 5.0 ? -1 : 0);
   var net = inflSignal + unempSignal;  // ranges: -2, -1, 0, +1, +2
@@ -317,109 +316,167 @@ function getAdvisorRecs(inflation, unemployment, fedRate, difficulty) {
   // Both-near-target: economy in the comfort zone → no urgency to move
   var bothNear = Math.abs(inflation - 2.0) <= 0.3 && Math.abs(unemployment - 5.0) <= 0.3;
 
-  // Dr. Chen: hawkish — Raise on any positive net; Lower only when BOTH signals point down
+  // Signed deviations from mandate targets
+  var inflDev  = inflation - 2.0;     // positive = above target
+  var unempDev = unemployment - 5.0;  // positive = above target (slack)
+  var SLIGHT   = 0.3;                 // "barely off target" threshold
+
+  // Dr. Chen: hawkish — inflation-first; raises early, cuts reluctantly.
+  // On net=0: still leans Raise (any signal concerns him).
+  // On net=-2: only cuts if inflation is clearly below target (inflDev < -SLIGHT).
   function chenRec() {
-    if (bothNear)  return 'Hold';
-    if (net >= 1)  return 'Raise';
-    if (net <= -2) return 'Lower';  // requires both inflation and unemployment to signal Lower
-    return 'Hold';
+    if (bothNear)   return 'Hold';
+    if (net >= 1)   return 'Raise';
+    if (net === 0)  return 'Raise';  // mixed signal still triggers hawkish caution
+    if (net === -1) return 'Hold';   // one lower signal is not enough for Chen
+    // net === -2: both mandate signals lower
+    // Use direct comparison to avoid floating-point precision issues (e.g. 1.7-2.0 ≠ -0.3 exactly)
+    return inflation < 2.0 - SLIGHT ? 'Lower' : 'Hold';
   }
 
-  // Gov. Rivera: balanced — symmetric, acts on net ±1
+  // Gov. Rivera: balanced — symmetric on both mandates.
   function riveraRec() {
-    if (bothNear)  return 'Hold';
-    if (net >= 1)  return 'Raise';
-    if (net <= -1) return 'Lower';
-    return 'Hold';
+    if (bothNear)   return 'Hold';
+    if (net >= 1)   return 'Raise';
+    if (net <= -1)  return 'Lower';
+    return 'Hold';  // net=0: signals cancel, wait for clearer data
   }
 
-  // Sec. Park: dovish — Lower on any negative net; Raise only when BOTH signals point up
+  // Sec. Park: dovish — employment-first; cuts readily, raises only under clear pressure.
+  // On net=+1: Hold — wants stronger evidence before tightening.
+  // On net=+2: Raise only if inflation is clearly above target (inflDev > SLIGHT).
+  // On net=0: Lower if inflation below target, or if labor slack outweighs inflation overshoot.
   function parkRec() {
-    if (bothNear)  return 'Hold';
-    if (net >= 2)  return 'Raise';  // requires both inflation and unemployment to signal Raise
-    if (net <= -1) return 'Lower';
-    return 'Hold';
+    if (bothNear)   return 'Hold';
+    if (net <= -1)  return 'Lower';
+    if (net === 0) {
+      if (inflSignal === -1) return 'Lower';  // inflation below target → ease
+      // inflSignal=+1, unempSignal=-1 (stagflation): ease if labor gap > inflation overshoot
+      if (unempDev > inflDev) return 'Lower';
+      return 'Hold';
+    }
+    if (net === 1)  return 'Hold';  // one raise signal — Park needs more evidence
+    // net === 2: both signals Raise — Park raises only if inflation clearly above target
+    return inflDev > SLIGHT ? 'Raise' : 'Hold';
   }
 
   // Magnitude helpers for rationale wording
-  function inflWord()  {
-    var d = Math.abs(inflation - 2.0);
+  function inflWord() {
+    var d = Math.abs(inflDev);
     if (d < 0.2) return 'slightly';
     if (d < 0.6) return 'moderately';
     return 'significantly';
   }
   function unempWord() {
-    var d = Math.abs(unemployment - 5.0);
+    var d = Math.abs(unempDev);
     if (d < 0.2) return 'slightly';
     if (d < 0.6) return 'moderately';
     return 'significantly';
   }
 
-  // Build rationale strings — conversational, first-person, plain English
+  // --- Rationale strings — each advisor has a distinct voice ---
+
+  // Dr. Chen: terse, data-first, authoritative. Short declarative sentences.
   function chenRationale(rec) {
     if (rec === 'Raise') {
       if (inflation > 2.0 && unemployment < 5.0) {
-        return 'Inflation at ' + f1(inflation) + '% and the labor market this tight? I\'d raise rates. Waiting only makes the job harder later.';
+        return 'Inflation at ' + f1(inflation) + '%, unemployment at ' + f1(unemployment) + '%. Both sides of the mandate call for tighter policy. Move.';
+      }
+      if (inflation > 2.0 && unemployment > 5.0) {
+        return 'Inflation at ' + f1(inflation) + '% is above target. Yes, unemployment is elevated — but price stability is the primary mandate. I\'d raise.';
       }
       if (inflation > 2.0) {
-        return 'At ' + f1(inflation) + '%, inflation is running ' + inflWord() + ' above target. I\'d tighten now before price expectations start to drift.';
+        return 'At ' + f1(inflation) + '%, inflation is running ' + inflWord() + ' above target. I\'d tighten before price expectations drift.';
       }
-      return 'Unemployment at ' + f1(unemployment) + '% — the labor market is ' + unempWord() + ' overheated. A rate hike would take some pressure off.';
+      // net=0 with tight labor and low inflation: Chen sees forward inflation risk
+      return 'The labor market is running hot at ' + f1(unemployment) + '%. Wage pressures will feed into prices. Better to act now than later.';
     }
     if (rec === 'Lower') {
-      if (inflation < 2.0 && unemployment > 5.0) {
-        return 'Inflation at ' + f1(inflation) + '% and unemployment at ' + f1(unemployment) + '% — both mandates point the same way. Even I\'d cut here.';
-      }
-      if (unemployment > 5.0) {
-        return 'Unemployment at ' + f1(unemployment) + '% is elevated. I\'d support a cut, though I\'ll be watching inflation closely.';
-      }
-      return 'Inflation at ' + f1(inflation) + '% is below target. Some accommodation makes sense, though I wouldn\'t go far.';
+      return 'Inflation at ' + f1(inflation) + '%, unemployment at ' + f1(unemployment) + '%. Both mandates point the same way. Even I\'d cut.';
     }
-    return 'Inflation ' + f1(inflation) + '%, unemployment ' + f1(unemployment) + '% — we\'re in a good place. Hold the line.';
+    // Hold
+    if (bothNear) {
+      return 'Inflation ' + f1(inflation) + '%, unemployment ' + f1(unemployment) + '% — we\'re in the zone. Hold and don\'t overcorrect.';
+    }
+    if (net === -2) {
+      return 'Inflation at ' + f1(inflation) + '% is only barely below target. Not convinced a cut is warranted yet. I\'d wait another quarter.';
+    }
+    if (net === -1) {
+      return 'One signal pointing lower isn\'t enough to act on. Hold and let the data develop.';
+    }
+    return 'The picture isn\'t clear enough to move. Hold.';
   }
 
+  // Gov. Rivera: measured, analytical. Weighs both sides before concluding.
   function riveraRationale(rec) {
     if (rec === 'Raise') {
       if (inflation > 2.0 && unemployment < 5.0) {
-        return 'Inflation at ' + f1(inflation) + '% and unemployment at ' + f1(unemployment) + '% — both sides of the mandate favor a modest raise. Let\'s move.';
+        return 'Inflation at ' + f1(inflation) + '% and the labor market tight at ' + f1(unemployment) + '% — both sides of the mandate point toward a modest increase.';
       }
       if (inflation > 2.0) {
-        return 'Inflation at ' + f1(inflation) + '% is a bit ' + inflWord() + ' above where I\'d like it. A small nudge higher should keep things on track.';
+        return 'Inflation is running ' + inflWord() + ' above the 2% target at ' + f1(inflation) + '%. A small adjustment higher should keep the trajectory on track.';
       }
-      return 'The labor market is running pretty tight at ' + f1(unemployment) + '%. I\'d lean toward raising before it pushes inflation up further.';
+      return 'Unemployment at ' + f1(unemployment) + '% is tighter than the natural rate. I\'d nudge rates up before labor costs push prices higher.';
     }
     if (rec === 'Lower') {
       if (inflation < 2.0 && unemployment > 5.0) {
-        return 'Inflation at ' + f1(inflation) + '% and unemployment at ' + f1(unemployment) + '% — both mandates are pointing toward easing. Time to cut.';
+        return 'Inflation at ' + f1(inflation) + '%, unemployment at ' + f1(unemployment) + '% — looking at both mandates, a cut is the right call.';
       }
       if (unemployment > 5.0) {
-        return 'Unemployment at ' + f1(unemployment) + '% is higher than I\'d like. Lowering rates would give the labor market some support.';
+        return 'Unemployment at ' + f1(unemployment) + '% is above where I\'d like it. Lower rates would give the labor market a meaningful boost.';
       }
-      return 'Inflation at ' + f1(inflation) + '% is running below the 2% goal. I\'d be comfortable with a small cut here.';
+      return 'Inflation at ' + f1(inflation) + '% is below the 2% target. I\'d ease slightly to bring it back toward goal.';
     }
-    return 'Inflation ' + f1(inflation) + '%, unemployment ' + f1(unemployment) + '% — pretty close to where we want to be. I\'d hold for now.';
+    // Hold
+    if (bothNear) {
+      return 'Inflation ' + f1(inflation) + '%, unemployment ' + f1(unemployment) + '% — both mandates are well-served. I\'d hold here.';
+    }
+    if (net === 0 && inflation > 2.0 && unemployment > 5.0) {
+      return 'Inflation at ' + f1(inflation) + '% and unemployment at ' + f1(unemployment) + '% — the signals are pulling in opposite directions. No clean move. I\'d hold and wait.';
+    }
+    if (net === 0) {
+      return 'The data are pointing in opposite directions right now. I\'d hold and gather more information before committing either way.';
+    }
+    return 'Inflation ' + f1(inflation) + '%, unemployment ' + f1(unemployment) + '% — close enough to balanced. I\'d hold for now.';
   }
 
+  // Sec. Park: emphatic, employment-focused. Shorter, punchier sentences.
   function parkRationale(rec) {
     if (rec === 'Raise') {
       if (inflation > 2.0 && unemployment < 5.0) {
-        return 'Both indicators are pushing toward tightening. Even with my growth focus, I\'d go along with a small raise here.';
+        return 'Both indicators are pushing toward tightening. Even with my bias, I can\'t argue against a modest raise here.';
       }
-      if (inflation > 2.0) {
-        return 'Inflation at ' + f1(inflation) + '% is above target. I\'d raise modestly — but I\'d want to stop before it starts hurting job growth.';
-      }
-      return 'Unemployment at ' + f1(unemployment) + '% is below the natural rate. A small increase wouldn\'t hurt — the labor market can handle it.';
+      return 'Inflation at ' + f1(inflation) + '% is clearly above target and conditions are tight. I\'d raise — reluctantly.';
     }
     if (rec === 'Lower') {
       if (inflation < 2.0 && unemployment > 5.0) {
-        return 'Unemployment at ' + f1(unemployment) + '% and inflation below target — workers are hurting and prices aren\'t a problem. Cut rates.';
+        return 'Unemployment at ' + f1(unemployment) + '% and inflation below target. Cut rates. Workers need support and prices aren\'t a threat.';
+      }
+      if (unemployment > 5.0 && inflation > 2.0) {
+        // stagflation: Park lowers because labor slack outweighs inflation overshoot
+        return 'The labor market at ' + f1(unemployment) + '% concerns me more than ' + f1(inflation) + '% inflation. I\'d ease — and monitor prices carefully.';
       }
       if (unemployment > 5.0) {
-        return 'At ' + f1(unemployment) + '% unemployment, too many people are out of work. Lower rates and get them hired.';
+        return 'At ' + f1(unemployment) + '% unemployment, too many people are out of work. Lower rates and let them get hired.';
       }
-      return 'Inflation at ' + f1(inflation) + '% is below the 2% target. Lower rates would help bring it back up and support growth.';
+      // net=0, inflSignal=-1: low inflation, Park eases on that signal
+      return 'Inflation at ' + f1(inflation) + '% is below target. I\'d ease — no reason to hold a tight stance when prices are this low.';
     }
-    return 'Inflation ' + f1(inflation) + '%, unemployment ' + f1(unemployment) + '% — we\'re close enough to target. No need to rock the boat.';
+    // Hold
+    if (bothNear) {
+      return 'We\'re close to both targets. Inflation ' + f1(inflation) + '%, unemployment ' + f1(unemployment) + '%. No need to move.';
+    }
+    if (net === 1) {
+      return 'One indicator pointing up isn\'t enough for me. I\'d want clearer evidence before tightening.';
+    }
+    if (net === 2 && inflDev <= SLIGHT) {
+      return 'Inflation at ' + f1(inflation) + '% is barely above 2%. I don\'t see the urgency to raise with the economy in decent shape.';
+    }
+    if (net === 0 && inflation > 2.0 && unemployment > 5.0) {
+      // stagflation, inflation overshoot outweighs labor slack: Park holds
+      return 'I won\'t raise into ' + f1(unemployment) + '% unemployment. Inflation at ' + f1(inflation) + '% is a concern, but not enough to justify hurting the labor market. Hold.';
+    }
+    return 'Hold. The economy doesn\'t need us to move right now.';
   }
 
   var chenR    = chenRec();
