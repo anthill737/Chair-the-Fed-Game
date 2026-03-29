@@ -657,9 +657,9 @@ html:has(#screen-game.active) body {
 
 .news-body { overflow: hidden; }
 .news-body p {
-  font-size: 0.88rem;
+  font-size: 1.10rem;
   color: #2a2a2a;
-  line-height: 1.4;
+  line-height: 1.65;
   margin-bottom: 4px;
   overflow: hidden;
   display: -webkit-box;
@@ -670,7 +670,7 @@ html:has(#screen-game.active) body {
 
 .news-body .event-title {
   font-family: Arial, sans-serif;
-  font-size: 0.9rem;
+  font-size: 1.05rem;
   font-weight: bold;
   color: #1a2a4a;
   margin-bottom: 4px;
@@ -680,7 +680,7 @@ html:has(#screen-game.active) body {
   margin-top: 4px;
   font-style: italic;
   color: #555;
-  font-size: 0.83rem;
+  font-size: 0.93rem;
 }
 
 /* Main chart */
@@ -709,7 +709,7 @@ html:has(#screen-game.active) body {
   justify-content: flex-end;
   gap: 8px 16px;
   font-family: Arial, sans-serif;
-  font-size: 0.76rem;
+  font-size: 0.90rem;
   color: #4a433a;
 }
 
@@ -974,18 +974,27 @@ html:has(#screen-game.active) body {
 .history-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.80rem;
+  font-size: 0.86rem;
   font-family: Arial, sans-serif;
-  min-width: 520px;
+  min-width: 560px;
+  table-layout: fixed;
 }
+
+/* Explicit column widths */
+.history-table col.col-qtr   { width: 56px; }
+.history-table col.col-infl  { width: 90px; }
+.history-table col.col-unemp { width: 110px; }
+.history-table col.col-rate  { width: 80px; }
+.history-table col.col-dec   { width: 90px; }
+.history-table col.col-event { width: auto; }
 
 .history-table thead th {
   background: #1a2a4a;
   color: #fff;
-  padding: 6px 10px;
+  padding: 8px 14px;
   text-align: left;
-  font-size: 0.70rem;
-  letter-spacing: 0.10em;
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   white-space: nowrap;
 }
@@ -994,10 +1003,19 @@ html:has(#screen-game.active) body {
 .history-table tbody tr:nth-child(even) { background: #fff; }
 
 .history-table tbody td {
-  padding: 5px 10px;
+  padding: 8px 14px;
   color: #2a2a2a;
   border-bottom: 1px solid #e8e4dc;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 0.88rem;
+  line-height: 1.4;
+}
+
+/* Event column may wrap */
+.history-table tbody td:last-child {
+  white-space: normal;
 }
 
 .history-table tbody td:first-child {
@@ -1743,12 +1761,12 @@ html:has(#screen-game.active) body {
   display: flex;
   align-items: flex-start;
   gap: 10px;
-  padding: 9px 10px;
+  padding: 10px 12px;
   margin-bottom: 8px;
   border-radius: 3px;
   border-left: 3px solid #c8c0b0;
   background: #faf8f4;
-  font-size: 0.83rem;
+  font-size: 0.86rem;
 }
 .advisor-card:last-child { margin-bottom: 0; }
 
@@ -1771,47 +1789,55 @@ html:has(#screen-game.active) body {
   justify-content: center;
 }
 
-.advisor-content   { flex: 1; min-width: 0; }
+.advisor-content   { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 
 .advisor-header-row {
   display: flex;
-  align-items: baseline;
-  flex-wrap: wrap;
+  align-items: center;
+  flex-wrap: nowrap;
   gap: 4px 8px;
-  margin-bottom: 4px;
+  margin-bottom: 5px;
 }
 
 .advisor-name {
   font-weight: bold;
   color: #1a2a4a;
-  font-size: 0.83rem;
+  font-size: 0.86rem;
   font-family: Arial, sans-serif;
+  white-space: nowrap;
 }
 
 .advisor-title-text {
-  font-size: 0.75rem;
+  font-size: 0.76rem;
   color: #777;
   flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .advisor-rec {
-  font-size: 0.68rem;
+  font-size: 0.70rem;
   font-weight: bold;
   font-family: Arial, sans-serif;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  padding: 1px 7px;
+  padding: 2px 8px;
   border-radius: 2px;
   white-space: nowrap;
+  flex-shrink: 0;
+  margin-left: auto;
 }
 .advisor-rec--raise { background: #b22222; color: #fff; }
+.advisor-rec--lower { background: #2a6e2a; color: #fff; }
 .advisor-rec--cut   { background: #2a6e2a; color: #fff; }
 .advisor-rec--hold  { background: #5b564b; color: #fff; }
 
 .advisor-rationale {
   color: #3a3530;
-  line-height: 1.80;
-  font-size: 0.95rem;
+  line-height: 1.65;
+  font-size: 0.92rem;
+  flex: 1;
 }
 
 @media (max-width: 860px) {
@@ -2106,10 +2132,10 @@ html:has(#screen-game.active) body {
   margin: 0 10px;
   padding: 6px 10px;
   gap: 8px;
-  flex: 0 0 110px;
-  height: 110px;
-  min-height: 110px;
-  max-height: 110px;
+  flex: 0 0 148px;
+  height: 148px;
+  min-height: 148px;
+  max-height: 148px;
   overflow: hidden;
 }
 
@@ -2186,9 +2212,52 @@ html:has(#screen-game.active) body {
   flex: 1 1 0;
   min-width: 0;
   margin-bottom: 0;
-  padding: 6px 10px;
+  padding: 10px 12px;
   display: flex;
   flex-direction: column;
+  align-items: stretch;
+}
+
+/* advisor-content fills card and stacks header + rationale */
+.advisors-row .advisor-card .advisor-content {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+
+/* Header row: avatar + name/title + badge all on one line */
+.advisors-row .advisor-card .advisor-header-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 6px;
+  margin-bottom: 5px;
+}
+
+/* Badge anchored to right of header row */
+.advisors-row .advisor-card .advisor-rec {
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+/* Name + title stacked, truncated */
+.advisors-row .advisor-card .advisor-name-block {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+
+/* Rationale clips to available space — no hard clamp */
+.advisors-row .advisor-card .advisor-rationale {
+  overflow: hidden;
+  flex: 1;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
 }
 
 /* Override panel-title inside advisors-row */
@@ -2202,19 +2271,18 @@ html:has(#screen-game.active) body {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  font-size: 0.86rem;
 }
 .advisors-row .advisor-title-text {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  font-size: 0.75rem;
+  flex: unset;
 }
 .advisors-row .advisor-rationale {
-  font-size: 0.88rem;
-  line-height: 1.65;
-  overflow: hidden;
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
+  font-size: 0.92rem;
+  line-height: 1.60;
 }
 
 /* === CENTER COLUMN — news + chart + history === */
@@ -2285,6 +2353,7 @@ html:has(#screen-game.active) body {
   min-width: 0;
 }
 
+/* Fixed columns — Quarter/Inflation/Unemp/Rate/Decision get explicit widths; Event is flexible */
 .panel-center .history-table th,
 .panel-center .history-table td {
   white-space: nowrap;
@@ -2292,29 +2361,37 @@ html:has(#screen-game.active) body {
   text-overflow: ellipsis;
 }
 
+/* Event column may wrap */
+.panel-center .history-table th:nth-child(6),
+.panel-center .history-table td:nth-child(6) {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: unset;
+}
+
 .panel-center .history-table th:nth-child(1),
-.panel-center .history-table td:nth-child(1) { width: 40px; }
+.panel-center .history-table td:nth-child(1) { width: 48px; }
 .panel-center .history-table th:nth-child(2),
-.panel-center .history-table td:nth-child(2) { width: 60px; }
+.panel-center .history-table td:nth-child(2) { width: 72px; }
 .panel-center .history-table th:nth-child(3),
-.panel-center .history-table td:nth-child(3) { width: 70px; }
+.panel-center .history-table td:nth-child(3) { width: 88px; }
 .panel-center .history-table th:nth-child(4),
-.panel-center .history-table td:nth-child(4) { width: 55px; }
+.panel-center .history-table td:nth-child(4) { width: 65px; }
 .panel-center .history-table th:nth-child(5),
-.panel-center .history-table td:nth-child(5) { width: 40px; }
+.panel-center .history-table td:nth-child(5) { width: 68px; }
 .panel-center .history-table th:nth-child(6),
 .panel-center .history-table td:nth-child(6) { width: auto; }
 
 .panel-center .history-table thead th {
-  padding: 5px 8px;
-  font-size: 0.68rem;
-  letter-spacing: 0.06em;
+  padding: 6px 10px;
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
   white-space: nowrap;
 }
 
 .panel-center .history-table tbody td {
-  padding: 4px 8px;
-  font-size: 0.72rem;
+  padding: 6px 10px;
+  font-size: 0.80rem;
 }
 
 /* === RIGHT COLUMN — policy panel only === */
@@ -2438,10 +2515,12 @@ html:has(#screen-game.active) body {
 }
 
 .panel-news .news-body p {
-  margin-bottom: 3px;
+  margin-bottom: 4px;
+  font-size: 1.10rem;
+  line-height: 1.60;
   overflow: hidden;
   display: -webkit-box;
-  -webkit-line-clamp: 3;
+  -webkit-line-clamp: 4;
   -webkit-box-orient: vertical;
 }
 
@@ -2456,9 +2535,9 @@ html:has(#screen-game.active) body {
 
 /* Allow headline to wrap up to 2 lines instead of truncating */
 .panel-news .news-alert-headline {
-  font-size: 1.0rem;
-  line-height: 1.15;
-  margin-bottom: 3px;
+  font-size: 1.08rem;
+  line-height: 1.20;
+  margin-bottom: 4px;
   white-space: normal;
   overflow: hidden;
   display: -webkit-box;
@@ -2468,11 +2547,11 @@ html:has(#screen-game.active) body {
 
 /* Alert body text: allow 2 lines */
 .panel-news .news-alert-text {
-  font-size: 0.76rem;
-  line-height: 1.3;
+  font-size: 0.86rem;
+  line-height: 1.40;
   overflow: hidden;
   display: -webkit-box;
-  -webkit-line-clamp: 2;
+  -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
 }
 
@@ -2848,4 +2927,151 @@ html:has(#screen-game.active) body {
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
+}
+
+/* ============================================================
+   UI-REFINEMENT: Typography & layout polish
+   1. Advisor cards — badge alignment, text overflow, equal height
+   2. Briefing text — slightly larger
+   3. Chart legend — slightly larger
+   4. History table — wider columns, better padding, larger text
+   5. Global text hierarchy — raise floor across all small text
+   ============================================================ */
+
+/* --- 1. ADVISOR CARDS ----------------------------------------------- */
+
+/* Header row: badge always anchored to the right — no wrapping */
+.advisor-header-row {
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Title: absorbs middle space, truncates if needed */
+.advisor-title-text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Badge: pinned right, never moves */
+.advisor-rec {
+  margin-left: auto;
+  flex-shrink: 0;
+  align-self: center;
+}
+
+/* Rationale: natural wrap, readable size */
+.advisor-rationale {
+  overflow: visible;
+  display: block;
+  white-space: normal;
+  font-size: 0.92rem;
+  line-height: 1.70;
+}
+
+/* Advisors row: cards stretch to equal height */
+.advisors-row {
+  align-items: stretch;
+}
+
+/* Card row layout — avatar left, content stretches to fill full card height */
+.advisors-row .advisor-card {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+}
+
+/* Avatar: top-aligned, never stretches */
+.advisors-row .advisor-card .advisor-avatar {
+  align-self: flex-start;
+  flex-shrink: 0;
+}
+
+.advisors-row .advisor-content {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+/* Rationale: fills remaining card height, no clamp, full wrap */
+.advisors-row .advisor-rationale {
+  flex: 1;
+  overflow: visible;
+  display: block;
+  -webkit-line-clamp: unset;
+  white-space: normal;
+  font-size: 0.90rem;
+  line-height: 1.65;
+}
+
+/* --- 2. BRIEFING TEXT ----------------------------------------------- */
+
+/* Context line: clearly readable */
+.news-context {
+  font-size: 0.95rem;
+}
+
+/* Briefing body text: slightly larger and more readable */
+.panel-news .news-body p {
+  font-size: 1.04rem;
+  line-height: 1.65;
+  -webkit-line-clamp: 3;
+}
+
+/* --- 3. CHART LEGEND ------------------------------------------------- */
+
+.chart-legend {
+  font-size: 0.92rem;
+}
+
+/* --- 4. HISTORY TABLE ----------------------------------------------- */
+
+/* Wider, clearly readable columns */
+.panel-center .history-table th:nth-child(1),
+.panel-center .history-table td:nth-child(1) { width: 72px; }
+
+.panel-center .history-table th:nth-child(2),
+.panel-center .history-table td:nth-child(2) { width: 70px; }
+
+.panel-center .history-table th:nth-child(3),
+.panel-center .history-table td:nth-child(3) { width: 88px; }
+
+.panel-center .history-table th:nth-child(4),
+.panel-center .history-table td:nth-child(4) { width: 65px; }
+
+.panel-center .history-table th:nth-child(5),
+.panel-center .history-table td:nth-child(5) { width: 68px; }
+
+.panel-center .history-table th:nth-child(6),
+.panel-center .history-table td:nth-child(6) { width: auto; }
+
+/* Header: fully visible, no truncation, comfortable padding */
+.panel-center .history-table thead th {
+  font-size: 0.78rem;
+  padding: 7px 12px;
+  overflow: visible;
+  text-overflow: clip;
+}
+
+/* Body cells: more padding, larger text */
+.panel-center .history-table tbody td {
+  font-size: 0.84rem;
+  padding: 6px 12px;
+}
+
+/* End-screen full history table: also larger */
+.history-table {
+  font-size: 0.84rem;
+}
+
+.history-table thead th {
+  padding: 7px 12px;
+}
+
+.history-table tbody td {
+  padding: 6px 12px;
 }
