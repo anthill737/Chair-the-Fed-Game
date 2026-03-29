@@ -285,59 +285,101 @@ function setIndicatorClass(el, val, target, nearThresh, warnThresh) {
  * @returns {string} HTML string for the news-body element
  */
 function buildDynamicBriefing(infl, unemp, prevInfl, prevUnemp, fedRate) {
-  var f1 = function(n) { return n.toFixed(1); };
+  var f1         = function(n) { return n.toFixed(1); };
+  var q          = (typeof state !== 'undefined' && state.quarter) ? state.quarter : 1;
+  var inflDelta  = prevInfl  != null ? infl  - prevInfl  : null;
+  var unempDelta = prevUnemp != null ? unemp - prevUnemp : null;
+  var wageRate   = unemp < 4.5 ? 4.2 : unemp < 5.0 ? 3.5 : unemp < 5.5 ? 2.8 : unemp < 6.0 ? 2.3 : 1.9;
 
-  var unempDelta = prevUnemp != null ? Math.round((unemp - prevUnemp) * 10) / 10 : null;
+  // Payrolls estimate (used only in payrolls slot)
+  var payrollAdj = unempDelta != null ? Math.round(-unempDelta * 1500) : 0;
+  var payrolls   = Math.max(-200, Math.min(390, 175 + payrollAdj));
 
-  // Implied monthly payrolls (thousands): baseline ~175K + labor market signal
-  var payrollBase = 175;
-  var payrollAdj  = unempDelta != null ? Math.round(-unempDelta * 1500) : 0;
-  var payrolls    = Math.max(-200, Math.min(390, payrollBase + payrollAdj));
-
-  // Sentence 1: payrolls + unemployment movement
-  var payrollStr;
-  if (payrolls >= 200)      payrollStr = 'Payrolls added ' + payrolls + ',000 jobs';
-  else if (payrolls >= 50)  payrollStr = 'Payrolls added a modest ' + payrolls + ',000 jobs';
-  else if (payrolls >= 0)   payrollStr = 'Payrolls came in flat, adding just ' + payrolls + ',000 jobs';
-  else                      payrollStr = 'Payrolls shed ' + Math.abs(payrolls) + ',000 jobs';
-
-  var unempStr;
-  if (unempDelta !== null && unempDelta < -0.09)      unempStr = 'unemployment fell to ' + f1(unemp) + '%';
-  else if (unempDelta !== null && unempDelta > 0.09)  unempStr = 'unemployment ticked up to ' + f1(unemp) + '%';
-  else                                                 unempStr = 'unemployment held at ' + f1(unemp) + '%';
-
-  var s1 = payrollStr + '; ' + unempStr + '.';
-
-  // Sentence 2: CPI reading
-  var s2;
-  if (infl > 2.5) {
-    s2 = 'CPI ran at ' + f1(infl) + '%, above the 2% target — price pressures are building in services and shelter.';
-  } else if (infl >= 1.8) {
-    s2 = 'Inflation held near target at ' + f1(infl) + '%. Core goods were flat; services costs edged slightly higher.';
-  } else {
-    s2 = 'CPI came in at ' + f1(infl) + '%, below the 2% target — soft commodity prices are keeping headline readings subdued.';
+  // Expectations language: compare actual vs prior quarter as baseline
+  function inflVsExp() {
+    if (prevInfl == null) return '';
+    var d = infl - prevInfl;
+    if (d >  0.2) return ', above expectations';
+    if (d < -0.2) return ', below expectations';
+    return ', in line with forecasts';
+  }
+  function unempVsExp() {
+    if (prevUnemp == null) return '';
+    var d = unemp - prevUnemp;
+    if (d >  0.15) return ', worse than expected';
+    if (d < -0.15) return ', better than expected';
+    return ', roughly in line with forecasts';
   }
 
-  // Implied annual wage growth from labor tightness
-  var wageRate = unemp < 4.5 ? 4.2 : unemp < 5.0 ? 3.5 : unemp < 5.5 ? 2.8 : unemp < 6.0 ? 2.3 : 1.9;
+  // Per-indicator sentence builders
+  var s = {
+    inflation: function() {
+      var ev = inflVsExp();
+      if (infl > 2.5)  return 'CPI came in at ' + f1(infl) + '%' + ev + ', running above the 2% target.';
+      if (infl >= 1.8) return 'Inflation held near target at ' + f1(infl) + '%' + ev + '.';
+      return 'CPI came in at ' + f1(infl) + '%' + ev + ', below the 2% target.';
+    },
+    unemployment: function() {
+      var ev = unempVsExp();
+      if (unempDelta !== null && unempDelta < -0.09)
+        return 'Unemployment fell to ' + f1(unemp) + '%' + ev + ', signaling continued labor market strength.';
+      if (unempDelta !== null && unempDelta > 0.09)
+        return 'Unemployment rose to ' + f1(unemp) + '%' + ev + ', reflecting some cooling in hiring.';
+      return 'Unemployment held at ' + f1(unemp) + '%' + ev + '.';
+    },
+    wages: function() {
+      var trend = unemp < 4.8 ? 'elevated' : unemp > 5.5 ? 'subdued' : 'moderate';
+      var ev    = prevUnemp != null ? ', roughly in line with forecasts' : '';
+      return 'Wage growth is running near ' + f1(wageRate) + '% annually' + ev + ' — ' + trend + ' by historical standards.';
+    },
+    spending: function() {
+      if (infl < 2.0 && unemp > 5.0)
+        return 'Consumer spending growth slowed, coming in below expectations, weighed by cautious household sentiment.';
+      if (infl > 2.4 && unemp < 4.8)
+        return 'Consumer spending held firm, slightly above expectations, supported by strong employment and wages.';
+      return 'Consumer spending growth held steady, roughly in line with forecasts.';
+    },
+    financial: function() {
+      var cond = fedRate >= 5.0 ? 'tight' : fedRate >= 3.5 ? 'moderately tight' : 'accommodative';
+      var vs   = fedRate >= 4.5 ? 'somewhat restrictive by recent standards' : fedRate <= 2.5 ? 'easier than the historical norm' : 'broadly stable';
+      return 'Financial conditions remain ' + cond + ' — ' + vs + '. Credit spreads have not widened materially.';
+    },
+    investment: function() {
+      if (infl > 2.5 || fedRate > 4.5)
+        return 'Business investment slowed, below expectations, as elevated rates weigh on capital spending plans.';
+      if (infl < 1.8 && fedRate < 3.0)
+        return 'Business investment picked up, ahead of expectations, as easier financial conditions supported capital outlays.';
+      return 'Business investment held steady this quarter, roughly in line with prior forecasts.';
+    },
+    payrolls: function() {
+      var ev = prevUnemp != null
+        ? (payrolls > 220 ? ', above expectations' : payrolls > 100 ? ', in line with forecasts' : ', below expectations')
+        : '';
+      if (payrolls >= 200) return 'Payrolls added ' + payrolls + ',000 jobs' + ev + '.';
+      if (payrolls >= 50)  return 'Payrolls rose by ' + payrolls + ',000' + ev + ', below the prior trend.';
+      if (payrolls >= 0)   return 'Job gains came in at just ' + payrolls + ',000' + ev + '.';
+      return 'Payrolls declined by ' + Math.abs(payrolls) + ',000' + ev + '.';
+    }
+  };
 
-  // Context sentence
-  var ctx;
-  if (infl > 2.4 && unemp < 5.0) {
-    ctx = 'Wage growth near ' + f1(wageRate) + '% annually is adding to services costs. A tight labor market leaves little room for accommodation.';
-  } else if (infl < 1.7 && unemp > 5.5) {
-    ctx = 'Consumer spending growth has softened. Subdued prices and a slack labor market suggest the economy could use more support.';
-  } else if (infl > 2.3) {
-    ctx = 'Wage growth near ' + f1(wageRate) + '% annually is keeping services inflation elevated. Watch core CPI in coming quarters.';
-  } else if (unemp > 5.5) {
-    ctx = 'Hiring is running below trend and consumer confidence has dipped. Financial conditions remain ' + (fedRate >= 4.0 ? 'tight' : 'stable') + '.';
-  } else if (unemp < 4.5) {
-    ctx = 'Strong labor demand has pushed wages to ~' + f1(wageRate) + '% growth annually. Consumer spending is healthy.';
-  } else {
-    ctx = 'Financial conditions remain ' + (fedRate >= 5.0 ? 'tight' : fedRate >= 3.5 ? 'moderate' : 'accommodative') + '. No major credit or market disruptions this quarter.';
-  }
+  // 8-slot rotation — payrolls in 1 of 8 slots (~12.5% of quarters)
+  var schedule = [
+    ['inflation',    'unemployment'],
+    ['wages',        'financial'],
+    ['unemployment', 'spending'],
+    ['inflation',    'investment'],
+    ['financial',    'unemployment'],
+    ['spending',     'wages'],
+    ['investment',   'inflation'],
+    ['payrolls',     'unemployment']
+  ];
 
-  return '<p>' + s1 + ' ' + s2 + '</p><p class="news-context">' + ctx + '</p>';
+  var slot  = (q - 1) % schedule.length;
+  var pair  = schedule[slot];
+  var line1 = s[pair[0]]();
+  var line2 = s[pair[1]]();
+
+  return '<p>' + line1 + ' ' + line2 + '</p>';
 }
 
 /**
@@ -406,12 +448,9 @@ function renderNews() {
 }
 
 /**
- * Render advisor panel with signal-combining logic derived from current state.
- * All three advisors agree on direction (no conflicts); rationales reflect persona.
- *
- *   inflSig  +1 = inflation above 2% → raise bias   -1 = below 2% → lower bias
- *   unempSig +1 = unemployment below 5% (tight) → raise   -1 = above 5% (slack) → lower
- *   combined: +2/-2 = strong signal; +1/-1 = mild; 0 = mixed/near-target → Hold
+ * Render advisor panel using per-advisor recommendations from getAdvisorRecs().
+ * Each advisor may independently Raise, Hold, or Lower based on their personality
+ * (hawkish Chen, balanced Rivera, dovish Park).
  */
 function renderAdvisors() {
   var container = document.getElementById('advisors-list');
@@ -419,81 +458,10 @@ function renderAdvisors() {
 
   var infl  = state.inflation    != null ? state.inflation    : TARGET_INFLATION;
   var unemp = state.unemployment != null ? state.unemployment : TARGET_UNEMPLOYMENT;
+  var rate  = state.fedRate      != null ? state.fedRate      : 0;
+  var diff  = state.difficulty   || 'normal';
 
-  var inflSig  = infl  > TARGET_INFLATION    ? 1 : infl  < TARGET_INFLATION    ? -1 : 0;
-  var unempSig = unemp < TARGET_UNEMPLOYMENT ? 1 : unemp > TARGET_UNEMPLOYMENT ? -1 : 0;
-
-  var combined = inflSig + unempSig;
-  var bothNear = Math.abs(infl  - TARGET_INFLATION)    <= 0.15
-              && Math.abs(unemp - TARGET_UNEMPLOYMENT) <= 0.15;
-
-  // All advisors share the same direction — no conflicts possible
-  var direction = (bothNear || combined === 0) ? 'Hold'
-                : combined > 0 ? 'Raise' : 'Lower';
-
-  var strong = Math.abs(combined) === 2; // both signals point same way
-
-  function f1(n) { return (n || 0).toFixed(1); }
-  function inflWord()  { var d = Math.abs(infl  - TARGET_INFLATION);    return d < 0.2 ? 'slightly' : d < 0.6 ? 'moderately' : 'significantly'; }
-  function unempWord() { var d = Math.abs(unemp - TARGET_UNEMPLOYMENT); return d < 0.2 ? 'slightly' : d < 0.6 ? 'moderately' : 'significantly'; }
-
-  function chenRationale() { // hawkish — leads with inflation signal
-    if (direction === 'Raise') {
-      if (infl > TARGET_INFLATION && unemp < TARGET_UNEMPLOYMENT)
-        return 'Inflation\u2019s at ' + f1(infl) + '% and the job market is running hot. We\u2019re behind the curve \u2014 I\u2019d raise now.';
-      if (infl > TARGET_INFLATION)
-        return 'Inflation\u2019s at ' + f1(infl) + '%, ' + inflWord() + ' above 2%. We can\u2019t afford to wait \u2014 raise rates and get ahead of it.';
-      return 'Unemployment at ' + f1(unemp) + '% is overheating. I\u2019d raise before this turns into a wage-price problem.';
-    }
-    if (direction === 'Lower') {
-      if (infl < TARGET_INFLATION && unemp > TARGET_UNEMPLOYMENT)
-        return 'Both sides of the mandate are pointing the same way. Inflation at ' + f1(infl) + '%, unemployment at ' + f1(unemp) + '% \u2014 cut rates.';
-      if (infl < TARGET_INFLATION)
-        return 'Inflation\u2019s slipped to ' + f1(infl) + '%, below our target. Even I\u2019d ease here \u2014 we can\u2019t ignore the mandate.';
-      return 'Unemployment at ' + f1(unemp) + '% is ' + unempWord() + ' too high. I\u2019d ease to shore up the labor market.';
-    }
-    return 'Inflation at ' + f1(infl) + '%, unemployment at ' + f1(unemp) + '% \u2014 we\u2019re close to mandate. I\u2019d hold for now.';
-  }
-
-  function riveraRationale() { // balanced — weighs both mandates equally
-    if (direction === 'Raise') {
-      if (strong)
-        return 'Inflation at ' + f1(infl) + '% and tight labor at ' + f1(unemp) + '% \u2014 both sides are pointing up. A raise makes sense to me.';
-      if (infl > TARGET_INFLATION)
-        return 'Inflation\u2019s a bit above target at ' + f1(infl) + '%. Nothing alarming, but I\u2019d nudge rates up to keep expectations anchored.';
-      return 'The labor market\u2019s tighter than normal at ' + f1(unemp) + '%. I\u2019d raise gently \u2014 no need to rush, but a small move is sensible.';
-    }
-    if (direction === 'Lower') {
-      if (strong)
-        return 'Inflation at ' + f1(infl) + '%, unemployment at ' + f1(unemp) + '% \u2014 both say ease. I\u2019d cut rates.';
-      if (unemp > TARGET_UNEMPLOYMENT)
-        return 'Unemployment\u2019s at ' + f1(unemp) + '%, a bit elevated. I\u2019d lean toward cutting to support the labor market.';
-      return 'Inflation\u2019s at ' + f1(infl) + '%, below our 2% target. A small cut would help close the gap.';
-    }
-    return 'Inflation at ' + f1(infl) + '%, unemployment at ' + f1(unemp) + '% \u2014 things look pretty balanced. I\u2019d hold and watch how it develops.';
-  }
-
-  function parkRationale() { // dovish — leads with unemployment signal
-    if (direction === 'Raise') {
-      if (strong)
-        return 'Even with my focus on jobs, inflation at ' + f1(infl) + '% and unemployment at ' + f1(unemp) + '% make a careful raise hard to argue against.';
-      if (unemp < TARGET_UNEMPLOYMENT)
-        return 'Unemployment\u2019s at ' + f1(unemp) + '%, below the natural rate. I can see the argument for a small nudge up.';
-      return 'Inflation\u2019s at ' + f1(infl) + '%, above target. A small raise now is better than a harder correction later.';
-    }
-    if (direction === 'Lower') {
-      if (unemp > TARGET_UNEMPLOYMENT)
-        return 'Unemployment\u2019s at ' + f1(unemp) + '% \u2014 too many people out of work. Cut rates and get more people hired.';
-      return 'Inflation\u2019s at ' + f1(infl) + '%, below target. Lower rates would nudge prices and growth in the right direction.';
-    }
-    return 'Inflation at ' + f1(infl) + '% and unemployment at ' + f1(unemp) + '% are both close to where we want them. I\u2019d hold and watch for now.';
-  }
-
-  var advisors = [
-    { name: 'Dr. Chen',    title: 'Chief Economist',  avatar: 'C', rec: direction, rationale: chenRationale()   },
-    { name: 'Gov. Rivera', title: 'Fed Governor',     avatar: 'R', rec: direction, rationale: riveraRationale() },
-    { name: 'Sec. Park',   title: 'Treasury Advisor', avatar: 'P', rec: direction, rationale: parkRationale()   }
-  ];
+  var advisors = getAdvisorRecs(infl, unemp, rate, diff);
 
   container.innerHTML = advisors.map(function(advisor) {
     var recLower  = advisor.rec.toLowerCase();
@@ -739,17 +707,17 @@ function renderEndScreen() {
   if (finalRateEl)      finalRateEl.textContent      = fmt(finalRate) + '%';
   if (finalRateStartEl) finalRateStartEl.textContent = 'Started: ' + fmt(initialFedRate) + '%';
 
-  // Soft landing badge
+  // Dual mandate achievement badge
   var softEl = document.getElementById('end-soft-landing');
   if (softEl) {
     var valEl = softEl.querySelector('.end-soft-landing-value');
     if (valEl) {
       if (softLand) {
-        valEl.textContent  = 'Yes \u2014 Achieved!';
+        valEl.textContent  = 'Dual Mandate Achieved';
         valEl.style.color  = '#1a6b1a';
         valEl.style.fontWeight = 'bold';
       } else {
-        valEl.textContent  = 'No';
+        valEl.textContent  = 'Not Achieved';
         valEl.style.color  = '#b22222';
         valEl.style.fontWeight = 'normal';
       }
