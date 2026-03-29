@@ -44,27 +44,27 @@ var ENGINE_TARGET_UNEMPLOYMENT = 5.0;
 var DIFFICULTY_PRESETS = {
   textbook: {
     noise:           0.08,   // unchanged — noise stays controlled
-    momentum:        0.24,   // +20%: was 0.20
+    momentum:        0.28,   // +15% responsiveness bump: was 0.24
     meanRevert:      0.10,
-    rateSensitivity: 0.42,   // +20%: was 0.35
+    rateSensitivity: 0.48,   // +15% responsiveness bump: was 0.42
     lagImmediate:    0.45,
     lagDeferred:     0.55,
     eventFreq:       0.12
   },
   realworld: {
     noise:           0.15,   // unchanged
-    momentum:        0.36,   // +20%: was 0.30
+    momentum:        0.41,   // +15% responsiveness bump: was 0.36
     meanRevert:      0.06,
-    rateSensitivity: 0.60,   // +20%: was 0.50
+    rateSensitivity: 0.69,   // +15% responsiveness bump: was 0.60
     lagImmediate:    0.45,
     lagDeferred:     0.55,
     eventFreq:       0.20
   },
   crisis: {
     noise:           0.25,   // unchanged
-    momentum:        0.48,   // +20%: was 0.40
+    momentum:        0.55,   // +15% responsiveness bump: was 0.48
     meanRevert:      0.03,
-    rateSensitivity: 0.78,   // +20%: was 0.65
+    rateSensitivity: 0.90,   // +15% responsiveness bump: was 0.78
     lagImmediate:    0.45,
     lagDeferred:     0.55,
     eventFreq:       0.30
