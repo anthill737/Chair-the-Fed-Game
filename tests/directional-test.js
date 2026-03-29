@@ -227,6 +227,96 @@ assert(
 );
 
 // ---------------------------------------------------------------------------
+// ── SECTION 2: Advisor Disagreement Tests ────────────────────────────────
+// Load events.js and verify per-advisor personality divergence.
+// NOTE: Tests 2a and 2b target post-fix behavior (may fail before T2 lands).
+// ---------------------------------------------------------------------------
+
+console.log('\n── Advisor Disagreement Checks ──\n');
+
+var eventsPath = path.join(__dirname, '..', 'events.js');
+var eventsAPI  = null;
+
+if (fs.existsSync(eventsPath)) {
+  var eventsCode    = fs.readFileSync(eventsPath, 'utf8');
+  var eventsSandbox = { Math: Math, console: console, module: { exports: {} }, exports: {} };
+  eventsSandbox.module.exports = eventsSandbox.exports;
+  vm.createContext(eventsSandbox);
+
+  // events.js uses `const` — wrap in IIFE so top-level consts are accessible on sandbox
+  var eventsExportNames = ['SHOCK_EVENTS', 'selectEvent', 'ROUTINE_NEWS', 'getAdvisorRecs'];
+  var exposeLines = eventsExportNames.map(function(n) {
+    return "try { if (typeof " + n + " !== 'undefined') this['" + n + "'] = " + n + "; } catch (_) {}";
+  }).join('\n');
+  vm.runInContext('(function () {\n' + eventsCode + '\n' + exposeLines + '\n}).call(this)', eventsSandbox);
+
+  eventsAPI = eventsSandbox;
+} else {
+  console.log('  SKIP: events.js not found — advisor tests skipped');
+}
+
+if (eventsAPI && typeof eventsAPI.getAdvisorRecs === 'function') {
+  var getAdvisorRecs   = eventsAPI.getAdvisorRecs;
+  var diffPreset       = DIFFICULTY_PRESETS.realworld;
+
+  // ── 2a. Mixed conflicting signals → at least 2 different advisor directions ─
+  // Inflation below target + unemployment above target: both mandate signals point
+  // toward easing, but a hawkish advisor should resist — expect ≥ 2 distinct recs.
+  // NOTE: may fail until Builder 3 (T2) adds per-personality divergence for net=-2.
+  var recsA = getAdvisorRecs(1.7, 5.5, 1.0, diffPreset);
+  assert(Array.isArray(recsA) && recsA.length === 3,
+    'Mixed signals (infl=1.7%, unemp=5.5%): getAdvisorRecs returns 3 advisors',
+    Array.isArray(recsA) ? recsA.length : typeof recsA);
+  if (Array.isArray(recsA) && recsA.length === 3) {
+    var uniqueDirectionsA = recsA.reduce(function(s, r) { return s.add(r.rec); }, new Set());
+    assert(uniqueDirectionsA.size >= 2,
+      'Mixed signals (infl=1.7%, unemp=5.5%): at least 2 different directions among advisors',
+      recsA.map(function(r) { return r.name + ':' + r.rec; }).join(', '));
+  }
+
+  // ── 2b. Hawkish Dr. Chen leans Raise when inflation is clearly elevated ───────
+  // Elevated inflation (3.0%) despite moderate labor slack (5.5%) — Chen should
+  // favor tightening even when unemployment is above target.
+  // NOTE: may fail until Builder 3 (T2) extends Chen's hawkish threshold.
+  var recsB = getAdvisorRecs(3.0, 5.5, 1.0, diffPreset);
+  if (Array.isArray(recsB) && recsB.length === 3) {
+    var chenB = recsB.find(function(r) { return r.name === 'Dr. Chen'; }) || recsB[0];
+    assert(chenB.rec === 'Raise',
+      'Hawkish Dr. Chen recommends Raise when infl=3.0% (elevated) despite unemp=5.5%',
+      chenB.rec);
+  }
+
+  // ── 2c. Dovish Sec. Park leans Lower when unemployment is high ────────────────
+  // High unemployment (6.5%) despite slightly above-target inflation (2.5%) — Park
+  // should prioritize labor market over minor inflation overshoot.
+  // NOTE: may fail until Builder 3 (T2) extends Park's dovish threshold.
+  var recsC = getAdvisorRecs(2.5, 6.5, 1.0, diffPreset);
+  if (Array.isArray(recsC) && recsC.length === 3) {
+    var parkC = recsC.find(function(r) { return r.name === 'Sec. Park'; }) || recsC[2];
+    assert(parkC.rec === 'Lower',
+      'Dovish Sec. Park recommends Lower when unemp=6.5% (high) despite infl=2.5% above target',
+      parkC.rec);
+  }
+
+  // ── 2d. Advisor rationale strings are non-empty and distinct from each other ──
+  // Even when advisors agree on direction, their reasoning should sound different.
+  var recsD = getAdvisorRecs(3.0, 4.0, 1.0, diffPreset);
+  if (Array.isArray(recsD) && recsD.length === 3) {
+    var rationalesD = recsD.map(function(r) { return r.rationale; });
+    assert(
+      rationalesD.every(function(r) { return typeof r === 'string' && r.length > 0; }),
+      'All 3 advisor rationale strings are non-empty',
+      rationalesD.map(function(r) { return typeof r === 'string' ? r.length + ' chars' : String(r); }));
+    assert(
+      new Set(rationalesD).size === 3,
+      'All 3 advisor rationale strings are distinct from each other',
+      rationalesD.map(function(r) { return '"' + (r || '').slice(0, 40) + '..."'; }));
+  }
+} else if (eventsAPI) {
+  console.log('  SKIP: getAdvisorRecs not found in events.js');
+}
+
+// ---------------------------------------------------------------------------
 // Summary
 // ---------------------------------------------------------------------------
 
