@@ -1010,7 +1010,7 @@ function renderMainChart() {
   ctx.stroke();
   ctx.restore();
 
-  ctx.font         = '11px Arial';
+  ctx.font         = '12px Arial';
   ctx.textAlign    = 'left';
   ctx.textBaseline = 'bottom';
   ctx.fillStyle    = 'rgba(178, 34, 34, 0.8)';
