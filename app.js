@@ -273,9 +273,77 @@ function setIndicatorClass(el, val, target, nearThresh, warnThresh) {
 }
 
 /**
+ * Build a dynamic quarterly briefing from real state values.
+ * Generates payroll, CPI, unemployment, and financial conditions sentences
+ * so each quarter's briefing references actual numbers rather than static text.
+ *
+ * @param {number}      infl      — current inflation (%)
+ * @param {number}      unemp     — current unemployment (%)
+ * @param {number|null} prevInfl  — inflation last quarter (null = no history yet)
+ * @param {number|null} prevUnemp — unemployment last quarter (null = no history yet)
+ * @param {number}      fedRate   — current fed funds rate (%)
+ * @returns {string} HTML string for the news-body element
+ */
+function buildDynamicBriefing(infl, unemp, prevInfl, prevUnemp, fedRate) {
+  var f1 = function(n) { return n.toFixed(1); };
+
+  var unempDelta = prevUnemp != null ? Math.round((unemp - prevUnemp) * 10) / 10 : null;
+
+  // Implied monthly payrolls (thousands): baseline ~175K + labor market signal
+  var payrollBase = 175;
+  var payrollAdj  = unempDelta != null ? Math.round(-unempDelta * 1500) : 0;
+  var payrolls    = Math.max(-200, Math.min(390, payrollBase + payrollAdj));
+
+  // Sentence 1: payrolls + unemployment movement
+  var payrollStr;
+  if (payrolls >= 200)      payrollStr = 'Payrolls added ' + payrolls + ',000 jobs';
+  else if (payrolls >= 50)  payrollStr = 'Payrolls added a modest ' + payrolls + ',000 jobs';
+  else if (payrolls >= 0)   payrollStr = 'Payrolls came in flat, adding just ' + payrolls + ',000 jobs';
+  else                      payrollStr = 'Payrolls shed ' + Math.abs(payrolls) + ',000 jobs';
+
+  var unempStr;
+  if (unempDelta !== null && unempDelta < -0.09)      unempStr = 'unemployment fell to ' + f1(unemp) + '%';
+  else if (unempDelta !== null && unempDelta > 0.09)  unempStr = 'unemployment ticked up to ' + f1(unemp) + '%';
+  else                                                 unempStr = 'unemployment held at ' + f1(unemp) + '%';
+
+  var s1 = payrollStr + '; ' + unempStr + '.';
+
+  // Sentence 2: CPI reading
+  var s2;
+  if (infl > 2.5) {
+    s2 = 'CPI ran at ' + f1(infl) + '%, above the 2% target — price pressures are building in services and shelter.';
+  } else if (infl >= 1.8) {
+    s2 = 'Inflation held near target at ' + f1(infl) + '%. Core goods were flat; services costs edged slightly higher.';
+  } else {
+    s2 = 'CPI came in at ' + f1(infl) + '%, below the 2% target — soft commodity prices are keeping headline readings subdued.';
+  }
+
+  // Implied annual wage growth from labor tightness
+  var wageRate = unemp < 4.5 ? 4.2 : unemp < 5.0 ? 3.5 : unemp < 5.5 ? 2.8 : unemp < 6.0 ? 2.3 : 1.9;
+
+  // Context sentence
+  var ctx;
+  if (infl > 2.4 && unemp < 5.0) {
+    ctx = 'Wage growth near ' + f1(wageRate) + '% annually is adding to services costs. A tight labor market leaves little room for accommodation.';
+  } else if (infl < 1.7 && unemp > 5.5) {
+    ctx = 'Consumer spending growth has softened. Subdued prices and a slack labor market suggest the economy could use more support.';
+  } else if (infl > 2.3) {
+    ctx = 'Wage growth near ' + f1(wageRate) + '% annually is keeping services inflation elevated. Watch core CPI in coming quarters.';
+  } else if (unemp > 5.5) {
+    ctx = 'Hiring is running below trend and consumer confidence has dipped. Financial conditions remain ' + (fedRate >= 4.0 ? 'tight' : 'stable') + '.';
+  } else if (unemp < 4.5) {
+    ctx = 'Strong labor demand has pushed wages to ~' + f1(wageRate) + '% growth annually. Consumer spending is healthy.';
+  } else {
+    ctx = 'Financial conditions remain ' + (fedRate >= 5.0 ? 'tight' : fedRate >= 3.5 ? 'moderate' : 'accommodative') + '. No major credit or market disruptions this quarter.';
+  }
+
+  return '<p>' + s1 + ' ' + s2 + '</p><p class="news-context">' + ctx + '</p>';
+}
+
+/**
  * Render the news panel.
  * If state.currentEvent is set (fires after GO), show event details with alert.
- * Otherwise show the rotating routine briefing from events.js ROUTINE_NEWS.
+ * Otherwise build a dynamic briefing from current state values.
  */
 function renderNews() {
   var quarterInfo = getQuarterInfo(state.quarter || 1);
