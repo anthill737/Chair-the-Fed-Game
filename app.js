@@ -968,7 +968,7 @@ function renderMainChart() {
   ctx.lineWidth   = 1;
   ctx.strokeRect(plot.left, plot.top, plot.width, plot.height);
 
-  ctx.font         = '12px Arial';
+  ctx.font         = '13px Arial';
   ctx.fillStyle    = MAIN_CHART_COLORS.axis;
   ctx.textAlign    = 'right';
   ctx.textBaseline = 'middle';
@@ -1024,7 +1024,7 @@ function renderMainChart() {
 
   // Ghost line projection removed — chart shows historical data only.
 
-  ctx.font         = '12px Arial';
+  ctx.font         = '13px Arial';
   ctx.textAlign    = 'center';
   ctx.textBaseline = 'top';
   ctx.fillStyle    = MAIN_CHART_COLORS.axis;
@@ -1035,7 +1035,7 @@ function renderMainChart() {
   ctx.save();
   ctx.translate(16, plot.top + plot.height / 2);
   ctx.rotate(-Math.PI / 2);
-  ctx.font         = '13px Arial';
+  ctx.font         = '14px Arial';
   ctx.textAlign    = 'center';
   ctx.textBaseline = 'top';
   ctx.fillText('Percent', 0, 0);

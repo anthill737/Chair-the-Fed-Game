@@ -2132,10 +2132,10 @@ html:has(#screen-game.active) body {
   margin: 0 10px;
   padding: 6px 10px;
   gap: 8px;
-  flex: 0 0 122px;
-  height: 122px;
-  min-height: 122px;
-  max-height: 122px;
+  flex: 0 0 148px;
+  height: 148px;
+  min-height: 148px;
+  max-height: 148px;
   overflow: hidden;
 }
 
@@ -2214,8 +2214,17 @@ html:has(#screen-game.active) body {
   margin-bottom: 0;
   padding: 10px 12px;
   display: flex;
-  flex-direction: row;
-  align-items: flex-start;
+  flex-direction: column;
+  align-items: stretch;
+}
+
+/* advisor-content fills card and stacks header + rationale */
+.advisors-row .advisor-card .advisor-content {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
 }
 
 /* Header row: avatar + name/title + badge all on one line */
@@ -2242,9 +2251,13 @@ html:has(#screen-game.active) body {
   flex: 1;
 }
 
-/* Rationale wraps naturally — no clipping */
+/* Rationale clips to available space — no hard clamp */
 .advisors-row .advisor-card .advisor-rationale {
-  overflow: visible;
+  overflow: hidden;
+  flex: 1;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
 }
 
 /* Override panel-title inside advisors-row */
@@ -2503,8 +2516,8 @@ html:has(#screen-game.active) body {
 
 .panel-news .news-body p {
   margin-bottom: 4px;
-  font-size: 1.00rem;
-  line-height: 1.55;
+  font-size: 1.10rem;
+  line-height: 1.60;
   overflow: hidden;
   display: -webkit-box;
   -webkit-line-clamp: 4;
@@ -2964,18 +2977,24 @@ html:has(#screen-game.active) body {
   align-items: stretch;
 }
 
-/* Card column layout — content fills full height */
+/* Card row layout — avatar left, content stretches to fill full card height */
 .advisors-row .advisor-card {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: stretch;
+}
+
+/* Avatar: top-aligned, never stretches */
+.advisors-row .advisor-card .advisor-avatar {
+  align-self: flex-start;
+  flex-shrink: 0;
 }
 
 .advisors-row .advisor-content {
   display: flex;
   flex-direction: column;
   flex: 1;
-  min-height: 0;
+  min-width: 0;
 }
 
 /* Rationale: fills remaining card height, no clamp, full wrap */
@@ -2996,50 +3015,52 @@ html:has(#screen-game.active) body {
   font-size: 0.95rem;
 }
 
-/* In the fixed-height panel: relax clamp to 3 lines for normal (no-alert) state */
+/* Briefing body text: slightly larger and more readable */
 .panel-news .news-body p {
+  font-size: 1.04rem;
+  line-height: 1.65;
   -webkit-line-clamp: 3;
 }
 
 /* --- 3. CHART LEGEND ------------------------------------------------- */
 
 .chart-legend {
-  font-size: 0.84rem;
+  font-size: 0.92rem;
 }
 
 /* --- 4. HISTORY TABLE ----------------------------------------------- */
 
 /* Wider, clearly readable columns */
 .panel-center .history-table th:nth-child(1),
-.panel-center .history-table td:nth-child(1) { width: 36px; }
+.panel-center .history-table td:nth-child(1) { width: 72px; }
 
 .panel-center .history-table th:nth-child(2),
-.panel-center .history-table td:nth-child(2) { width: 66px; }
+.panel-center .history-table td:nth-child(2) { width: 70px; }
 
 .panel-center .history-table th:nth-child(3),
-.panel-center .history-table td:nth-child(3) { width: 80px; }
+.panel-center .history-table td:nth-child(3) { width: 88px; }
 
 .panel-center .history-table th:nth-child(4),
-.panel-center .history-table td:nth-child(4) { width: 62px; }
+.panel-center .history-table td:nth-child(4) { width: 65px; }
 
 .panel-center .history-table th:nth-child(5),
-.panel-center .history-table td:nth-child(5) { width: 58px; }
+.panel-center .history-table td:nth-child(5) { width: 68px; }
 
 .panel-center .history-table th:nth-child(6),
 .panel-center .history-table td:nth-child(6) { width: auto; }
 
 /* Header: fully visible, no truncation, comfortable padding */
 .panel-center .history-table thead th {
-  font-size: 0.76rem;
-  padding: 6px 10px;
+  font-size: 0.78rem;
+  padding: 7px 12px;
   overflow: visible;
   text-overflow: clip;
 }
 
 /* Body cells: more padding, larger text */
 .panel-center .history-table tbody td {
-  font-size: 0.80rem;
-  padding: 5px 10px;
+  font-size: 0.84rem;
+  padding: 6px 12px;
 }
 
 /* End-screen full history table: also larger */
