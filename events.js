@@ -355,71 +355,71 @@ function getAdvisorRecs(inflation, unemployment, fedRate, difficulty) {
     return 'significantly';
   }
 
-  // Build rationale strings using directional language only — no specific rate targets
+  // Build rationale strings — conversational, first-person, plain English
   function chenRationale(rec) {
     if (rec === 'Raise') {
       if (inflation > 2.0 && unemployment < 5.0) {
-        return 'Inflation at ' + f1(inflation) + '% is ' + inflWord() + ' above the 2% target and the labor market is tight — raising rates is appropriate.';
+        return 'Inflation at ' + f1(inflation) + '% and the labor market this tight? I\'d raise rates. Waiting only makes the job harder later.';
       }
       if (inflation > 2.0) {
-        return 'Inflation at ' + f1(inflation) + '% is ' + inflWord() + ' above target; tightening is warranted before price pressures build further.';
+        return 'At ' + f1(inflation) + '%, inflation is running ' + inflWord() + ' above target. I\'d tighten now before price expectations start to drift.';
       }
-      return 'The labor market at ' + f1(unemployment) + '% unemployment is ' + unempWord() + ' below the natural rate — raising rates would ease overheating pressure.';
+      return 'Unemployment at ' + f1(unemployment) + '% — the labor market is ' + unempWord() + ' overheated. A rate hike would take some pressure off.';
     }
     if (rec === 'Lower') {
       if (inflation < 2.0 && unemployment > 5.0) {
-        return 'With inflation at ' + f1(inflation) + '% and unemployment at ' + f1(unemployment) + '%, both mandates point toward easing policy.';
+        return 'Inflation at ' + f1(inflation) + '% and unemployment at ' + f1(unemployment) + '% — both mandates point the same way. Even I\'d cut here.';
       }
       if (unemployment > 5.0) {
-        return 'Unemployment at ' + f1(unemployment) + '% is ' + unempWord() + ' above 5% — lowering rates would support the labor market.';
+        return 'Unemployment at ' + f1(unemployment) + '% is elevated. I\'d support a cut, though I\'ll be watching inflation closely.';
       }
-      return 'Inflation at ' + f1(inflation) + '% is ' + inflWord() + ' below the 2% target — accommodation is warranted.';
+      return 'Inflation at ' + f1(inflation) + '% is below target. Some accommodation makes sense, though I wouldn\'t go far.';
     }
-    return 'Inflation at ' + f1(inflation) + '% and unemployment at ' + f1(unemployment) + '% are near their targets — holding the current rate is appropriate.';
+    return 'Inflation ' + f1(inflation) + '%, unemployment ' + f1(unemployment) + '% — we\'re in a good place. Hold the line.';
   }
 
   function riveraRationale(rec) {
     if (rec === 'Raise') {
       if (inflation > 2.0 && unemployment < 5.0) {
-        return 'Both inflation at ' + f1(inflation) + '% and tight labor at ' + f1(unemployment) + '% point toward tightening — a modest raise is prudent.';
+        return 'Inflation at ' + f1(inflation) + '% and unemployment at ' + f1(unemployment) + '% — both sides of the mandate favor a modest raise. Let\'s move.';
       }
       if (inflation > 2.0) {
-        return 'Inflation at ' + f1(inflation) + '% is ' + inflWord() + ' above target; a balanced view supports raising rates to keep expectations anchored.';
+        return 'Inflation at ' + f1(inflation) + '% is a bit ' + inflWord() + ' above where I\'d like it. A small nudge higher should keep things on track.';
       }
-      return 'Unemployment at ' + f1(unemployment) + '% signals an overheating labor market — raising rates would help rebalance conditions.';
+      return 'The labor market is running pretty tight at ' + f1(unemployment) + '%. I\'d lean toward raising before it pushes inflation up further.';
     }
     if (rec === 'Lower') {
       if (inflation < 2.0 && unemployment > 5.0) {
-        return 'Below-target inflation of ' + f1(inflation) + '% combined with ' + f1(unemployment) + '% unemployment calls for an easing of policy.';
+        return 'Inflation at ' + f1(inflation) + '% and unemployment at ' + f1(unemployment) + '% — both mandates are pointing toward easing. Time to cut.';
       }
       if (unemployment > 5.0) {
-        return 'Unemployment at ' + f1(unemployment) + '% is ' + unempWord() + ' elevated — lowering rates would provide additional support for the labor market.';
+        return 'Unemployment at ' + f1(unemployment) + '% is higher than I\'d like. Lowering rates would give the labor market some support.';
       }
-      return 'Inflation at ' + f1(inflation) + '% is running ' + inflWord() + ' below the 2% target — some accommodation would be consistent with the mandate.';
+      return 'Inflation at ' + f1(inflation) + '% is running below the 2% goal. I\'d be comfortable with a small cut here.';
     }
-    return 'With inflation at ' + f1(inflation) + '% and unemployment at ' + f1(unemployment) + '%, conditions are balanced — holding steady is the appropriate call.';
+    return 'Inflation ' + f1(inflation) + '%, unemployment ' + f1(unemployment) + '% — pretty close to where we want to be. I\'d hold for now.';
   }
 
   function parkRationale(rec) {
     if (rec === 'Raise') {
       if (inflation > 2.0 && unemployment < 5.0) {
-        return 'Even with a growth focus, inflation at ' + f1(inflation) + '% and unemployment at ' + f1(unemployment) + '% make a case for gradually raising rates.';
+        return 'Both indicators are pushing toward tightening. Even with my growth focus, I\'d go along with a small raise here.';
       }
       if (inflation > 2.0) {
-        return 'Inflation at ' + f1(inflation) + '% is ' + inflWord() + ' above target — raising rates moderately would reduce the risk of a larger correction later.';
+        return 'Inflation at ' + f1(inflation) + '% is above target. I\'d raise modestly — but I\'d want to stop before it starts hurting job growth.';
       }
-      return 'With unemployment at ' + f1(unemployment) + '%, the labor market is ' + unempWord() + ' tighter than the natural rate — some tightening is warranted.';
+      return 'Unemployment at ' + f1(unemployment) + '% is below the natural rate. A small increase wouldn\'t hurt — the labor market can handle it.';
     }
     if (rec === 'Lower') {
       if (inflation < 2.0 && unemployment > 5.0) {
-        return 'Unemployment at ' + f1(unemployment) + '% and below-target inflation of ' + f1(inflation) + '% both argue for lowering rates to support workers and prices.';
+        return 'Unemployment at ' + f1(unemployment) + '% and inflation below target — workers are hurting and prices aren\'t a problem. Cut rates.';
       }
       if (unemployment > 5.0) {
-        return 'Unemployment at ' + f1(unemployment) + '% is ' + unempWord() + ' too high — lowering rates is the right move to get more people back to work.';
+        return 'At ' + f1(unemployment) + '% unemployment, too many people are out of work. Lower rates and get them hired.';
       }
-      return 'Inflation at ' + f1(inflation) + '% is running ' + inflWord() + ' below the 2% target — lower rates would help lift price levels toward the mandate.';
+      return 'Inflation at ' + f1(inflation) + '% is below the 2% target. Lower rates would help bring it back up and support growth.';
     }
-    return 'Both mandates look roughly on track — inflation ' + f1(inflation) + '%, unemployment ' + f1(unemployment) + '%. No urgent need to move rates.';
+    return 'Inflation ' + f1(inflation) + '%, unemployment ' + f1(unemployment) + '% — we\'re close enough to target. No need to rock the boat.';
   }
 
   var chenR    = chenRec();
