@@ -283,84 +283,127 @@ var ROUTINE_NEWS = [
      title    : role/title string
      avatar   : single character for avatar display (CSS uses data-avatar attr)
      rec      : 'Raise' | 'Lower' | 'Hold'
-     rationale: one-sentence explanation mentioning specific numbers
+     rationale: one-sentence directional explanation — no specific rate targets
 
-   Advisors have slightly different thresholds to create occasional disagreement:
-     Dr. Chen    — hawkish lean (more sensitive to inflation above target)
-     Gov. Rivera — balanced / centrist
-     Sec. Park   — dovish lean (more sensitive to unemployment above target)
+   Signal logic: deviations from 2% inflation and 5% unemployment drive signals.
+     inflation  > 2% + band → raise signal  |  < 2% - band → lower signal
+     unemployment > 5% + band → lower signal | < 5% - band → raise signal
+     combined signals: same direction → Raise/Lower; opposing → Hold
 
-   Thresholds (before advisor-specific adjustments):
-     lean Raise if inflation > 2.5 AND unemployment < 6.0
-     lean Lower if inflation < 1.5 OR unemployment > 6.5
-     otherwise Hold
+   Advisor personality deadbands (tolerance around each target):
+     Dr. Chen    — hawkish: tight inflation band (0.15pp), wider unemployment (0.30pp)
+     Gov. Rivera — balanced: symmetric bands (0.20pp each)
+     Sec. Park   — dovish: wide inflation band (0.30pp), tight unemployment (0.15pp)
    ========================================================================== */
 
 function getAdvisorRecs(inflation, unemployment, fedRate, difficulty) {
   // Helper: format a number to one decimal place for rationale strings
   function f1(n) { return n.toFixed(1); }
 
-  // Determine base recommendation for each advisor with slight bias differences
-  // Dr. Chen: hawkish — raises threshold for inflation concern, lowers for unemployment
-  function chenRec() {
-    // Raises if inflation is even mildly above target and labor is not too slack
-    if (inflation > 2.3 && unemployment < 6.2) { return 'Raise'; }
-    if (inflation < 1.6 || unemployment > 6.3) { return 'Lower'; }
+  // Compute directional signals from current state.
+  // inflSignal: +1 = above target (raise), -1 = below target (lower), 0 = near target
+  // unempSignal: -1 = below 5% = tight labor (raise), +1 = above 5% = slack labor (lower), 0 = near
+  // Each advisor applies slightly different near-target thresholds reflecting their bias.
+  function computeRec(inflNearThresh, unempNearThresh) {
+    var inflAbove  = inflation    > 2.0 + inflNearThresh;
+    var inflBelow  = inflation    < 2.0 - inflNearThresh;
+    var unempAbove = unemployment > 5.0 + unempNearThresh; // slack labor → lower
+    var unempBelow = unemployment < 5.0 - unempNearThresh; // tight labor → raise
+
+    var raiseSignals = (inflAbove ? 1 : 0) + (unempBelow ? 1 : 0);
+    var lowerSignals = (inflBelow ? 1 : 0) + (unempAbove ? 1 : 0);
+
+    if (raiseSignals > lowerSignals) return 'Raise';
+    if (lowerSignals > raiseSignals) return 'Lower';
     return 'Hold';
   }
 
-  // Gov. Rivera: balanced — uses the standard thresholds
-  function riveraRec() {
-    if (inflation > 2.5 && unemployment < 6.0) { return 'Raise'; }
-    if (inflation < 1.5 || unemployment > 6.5) { return 'Lower'; }
-    return 'Hold';
+  // Dr. Chen: hawkish — tighter inflation tolerance, more lenient on unemployment
+  function chenRec()   { return computeRec(0.15, 0.30); }
+  // Gov. Rivera: balanced — symmetric sensitivity to both mandates
+  function riveraRec() { return computeRec(0.20, 0.20); }
+  // Sec. Park: dovish — more lenient on inflation, tighter unemployment sensitivity
+  function parkRec()   { return computeRec(0.30, 0.15); }
+
+  // Magnitude helpers for rationale wording
+  function inflWord()  {
+    var d = Math.abs(inflation - 2.0);
+    if (d < 0.2) return 'slightly';
+    if (d < 0.6) return 'moderately';
+    return 'significantly';
+  }
+  function unempWord() {
+    var d = Math.abs(unemployment - 5.0);
+    if (d < 0.2) return 'slightly';
+    if (d < 0.6) return 'moderately';
+    return 'significantly';
   }
 
-  // Sec. Park: dovish — more tolerant of inflation, more sensitive to unemployment
-  function parkRec() {
-    if (inflation > 2.8 && unemployment < 5.8) { return 'Raise'; }
-    if (inflation < 1.7 || unemployment > 6.2) { return 'Lower'; }
-    return 'Hold';
-  }
-
-  // Build rationale strings per advisor and recommendation
+  // Build rationale strings using directional language only — no specific rate targets
   function chenRationale(rec) {
     if (rec === 'Raise') {
-      return 'Inflation at ' + f1(inflation) + '% is trending above target and unemployment at ' +
-             f1(unemployment) + '% is low enough to absorb tightening.';
+      if (inflation > 2.0 && unemployment < 5.0) {
+        return 'Inflation at ' + f1(inflation) + '% is ' + inflWord() + ' above the 2% target and the labor market is tight — raising rates is appropriate.';
+      }
+      if (inflation > 2.0) {
+        return 'Inflation at ' + f1(inflation) + '% is ' + inflWord() + ' above target; tightening is warranted before price pressures build further.';
+      }
+      return 'The labor market at ' + f1(unemployment) + '% unemployment is ' + unempWord() + ' below the natural rate — raising rates would ease overheating pressure.';
     }
     if (rec === 'Lower') {
-      return 'With inflation at ' + f1(inflation) + '% and unemployment at ' + f1(unemployment) +
-             '%, accommodative policy is warranted to support the mandate.';
+      if (inflation < 2.0 && unemployment > 5.0) {
+        return 'With inflation at ' + f1(inflation) + '% and unemployment at ' + f1(unemployment) + '%, both mandates point toward easing policy.';
+      }
+      if (unemployment > 5.0) {
+        return 'Unemployment at ' + f1(unemployment) + '% is ' + unempWord() + ' above 5% — lowering rates would support the labor market.';
+      }
+      return 'Inflation at ' + f1(inflation) + '% is ' + inflWord() + ' below the 2% target — accommodation is warranted.';
     }
-    return 'Inflation at ' + f1(inflation) + '% is near the 2% target; current rate of ' +
-           f1(fedRate) + '% appears appropriate.';
+    return 'Inflation at ' + f1(inflation) + '% and unemployment at ' + f1(unemployment) + '% are near their targets — holding the current rate is appropriate.';
   }
 
   function riveraRationale(rec) {
     if (rec === 'Raise') {
-      return 'A balanced assessment: inflation of ' + f1(inflation) + '% with unemployment at ' +
-             f1(unemployment) + '% argues for modest tightening to prevent overheating.';
+      if (inflation > 2.0 && unemployment < 5.0) {
+        return 'Both inflation at ' + f1(inflation) + '% and tight labor at ' + f1(unemployment) + '% point toward tightening — a modest raise is prudent.';
+      }
+      if (inflation > 2.0) {
+        return 'Inflation at ' + f1(inflation) + '% is ' + inflWord() + ' above target; a balanced view supports raising rates to keep expectations anchored.';
+      }
+      return 'Unemployment at ' + f1(unemployment) + '% signals an overheating labor market — raising rates would help rebalance conditions.';
     }
     if (rec === 'Lower') {
-      return 'The combination of ' + f1(inflation) + '% inflation and ' + f1(unemployment) +
-             '% unemployment suggests the economy needs more support.';
+      if (inflation < 2.0 && unemployment > 5.0) {
+        return 'Below-target inflation of ' + f1(inflation) + '% combined with ' + f1(unemployment) + '% unemployment calls for an easing of policy.';
+      }
+      if (unemployment > 5.0) {
+        return 'Unemployment at ' + f1(unemployment) + '% is ' + unempWord() + ' elevated — lowering rates would provide additional support for the labor market.';
+      }
+      return 'Inflation at ' + f1(inflation) + '% is running ' + inflWord() + ' below the 2% target — some accommodation would be consistent with the mandate.';
     }
-    return 'Both mandates look reasonably balanced — inflation ' + f1(inflation) + '%, unemployment ' +
-           f1(unemployment) + '%. Holding steady is prudent.';
+    return 'With inflation at ' + f1(inflation) + '% and unemployment at ' + f1(unemployment) + '%, conditions are balanced — holding steady is the appropriate call.';
   }
 
   function parkRationale(rec) {
     if (rec === 'Raise') {
-      return 'Even from a growth-focused perspective, inflation at ' + f1(inflation) +
-             '% with unemployment at ' + f1(unemployment) + '% requires attention.';
+      if (inflation > 2.0 && unemployment < 5.0) {
+        return 'Even with a growth focus, inflation at ' + f1(inflation) + '% and unemployment at ' + f1(unemployment) + '% make a case for gradually raising rates.';
+      }
+      if (inflation > 2.0) {
+        return 'Inflation at ' + f1(inflation) + '% is ' + inflWord() + ' above target — raising rates moderately would reduce the risk of a larger correction later.';
+      }
+      return 'With unemployment at ' + f1(unemployment) + '%, the labor market is ' + unempWord() + ' tighter than the natural rate — some tightening is warranted.';
     }
     if (rec === 'Lower') {
-      return 'Unemployment at ' + f1(unemployment) + '% is above where it needs to be — ' +
-             'lowering to ' + f1(Math.max(0.25, fedRate - 0.25)) + '% would help.';
+      if (inflation < 2.0 && unemployment > 5.0) {
+        return 'Unemployment at ' + f1(unemployment) + '% and below-target inflation of ' + f1(inflation) + '% both argue for lowering rates to support workers and prices.';
+      }
+      if (unemployment > 5.0) {
+        return 'Unemployment at ' + f1(unemployment) + '% is ' + unempWord() + ' too high — lowering rates is the right move to get more people back to work.';
+      }
+      return 'Inflation at ' + f1(inflation) + '% is running ' + inflWord() + ' below the 2% target — lower rates would help lift price levels toward the mandate.';
     }
-    return 'Labor market conditions with ' + f1(unemployment) + '% unemployment look acceptable; ' +
-           'no urgency to move rates from ' + f1(fedRate) + '%.';
+    return 'Both mandates look roughly on track — inflation ' + f1(inflation) + '%, unemployment ' + f1(unemployment) + '%. No urgent need to move rates.';
   }
 
   var chenR    = chenRec();

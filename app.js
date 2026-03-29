@@ -72,18 +72,23 @@ var state = {};
  * @param {number|null} seed       — integer seed (null = random)
  */
 function createInitialState(difficulty, seed) {
-  var diff    = difficulty || 'realworld';
-  var s       = (seed != null) ? (seed >>> 0) : (Math.floor(Math.random() * 0x100000000) >>> 0);
-  var rng     = mulberry32(s);
-  var initial = getInitialConditions(diff);
-  var preset  = DIFFICULTY_PRESETS[diff] || DIFFICULTY_PRESETS.realworld;
+  var diff   = difficulty || 'realworld';
+  var s      = (seed != null) ? (seed >>> 0) : (Math.floor(Math.random() * 0x100000000) >>> 0);
+  var rng    = mulberry32(s);
+  var preset = DIFFICULTY_PRESETS[diff] || DIFFICULTY_PRESETS.realworld;
+
+  // Randomized near-target starting conditions — close to mandate but not perfect.
+  // Inflation [1.8, 2.4], unemployment [4.8, 5.6], fed rate [3.0, 5.0] (rounded to 0.25).
+  var initInflation    = Math.round((1.8 + rng() * 0.6) * 100) / 100;
+  var initUnemployment = Math.round((4.8 + rng() * 0.8) * 100) / 100;
+  var initFedRate      = Math.round((3.0 + rng() * 2.0) * 4)   / 4;
 
   return {
     quarter:      1,
-    inflation:    initial.inflation,
-    unemployment: initial.unemployment,
-    fedRate:      initial.fedRate,
-    pendingRate:  initial.fedRate,
+    inflation:    initInflation,
+    unemployment: initUnemployment,
+    fedRate:      initFedRate,
+    pendingRate:  initFedRate,
 
     // Simulation fields
     difficulty:      diff,
@@ -98,13 +103,14 @@ function createInitialState(difficulty, seed) {
     nextLagUnemp:    0,
     nextInflMom:     0,
     nextUnempMom:    0,
+    initialFedRate:  initFedRate,   // starting rate — used by end-screen "Started: X%" display
     totalPenalty:    0,             // cumulative quarter penalties
     currentEvent:    null,          // event that fired this quarter (set in makeDecision)
 
     // UI state
     phase:            'decision',   // 'decision' | 'animating' | 'result'
     history:          [],
-    chartPoints:      [buildChartPoint(0, initial.inflation, initial.unemployment, initial.fedRate)],
+    chartPoints:      [buildChartPoint(0, initInflation, initUnemployment, initFedRate)],
     chartAnimation:   null,
     animationFrameId: 0,
     totalQuarters:    TOTAL_QUARTERS
@@ -326,24 +332,98 @@ function renderNews() {
 }
 
 /**
- * Render advisor panel using getAdvisorRecs() from events.js.
- * Each advisor has { name, title, avatar, rec, rationale }.
+ * Render advisor panel with signal-combining logic derived from current state.
+ * All three advisors agree on direction (no conflicts); rationales reflect persona.
+ *
+ *   inflSig  +1 = inflation above 2% → raise bias   -1 = below 2% → lower bias
+ *   unempSig +1 = unemployment below 5% (tight) → raise   -1 = above 5% (slack) → lower
+ *   combined: +2/-2 = strong signal; +1/-1 = mild; 0 = mixed/near-target → Hold
  */
 function renderAdvisors() {
   var container = document.getElementById('advisors-list');
   if (!container) return;
 
-  var recs = getAdvisorRecs(
-    state.inflation    || TARGET_INFLATION,
-    state.unemployment || TARGET_UNEMPLOYMENT,
-    state.fedRate      || 0,
-    state.difficulty   || 'realworld'
-  );
+  var infl  = state.inflation    != null ? state.inflation    : TARGET_INFLATION;
+  var unemp = state.unemployment != null ? state.unemployment : TARGET_UNEMPLOYMENT;
 
-  container.innerHTML = recs.map(function(advisor) {
-    var recLower  = (advisor.rec || 'hold').toLowerCase();
+  var inflSig  = infl  > TARGET_INFLATION    ? 1 : infl  < TARGET_INFLATION    ? -1 : 0;
+  var unempSig = unemp < TARGET_UNEMPLOYMENT ? 1 : unemp > TARGET_UNEMPLOYMENT ? -1 : 0;
+
+  var combined = inflSig + unempSig;
+  var bothNear = Math.abs(infl  - TARGET_INFLATION)    <= 0.15
+              && Math.abs(unemp - TARGET_UNEMPLOYMENT) <= 0.15;
+
+  // All advisors share the same direction — no conflicts possible
+  var direction = (bothNear || combined === 0) ? 'Hold'
+                : combined > 0 ? 'Raise' : 'Lower';
+
+  var strong = Math.abs(combined) === 2; // both signals point same way
+
+  function f1(n) { return (n || 0).toFixed(1); }
+  function inflWord()  { var d = Math.abs(infl  - TARGET_INFLATION);    return d < 0.2 ? 'slightly' : d < 0.6 ? 'moderately' : 'significantly'; }
+  function unempWord() { var d = Math.abs(unemp - TARGET_UNEMPLOYMENT); return d < 0.2 ? 'slightly' : d < 0.6 ? 'moderately' : 'significantly'; }
+
+  function chenRationale() { // hawkish — leads with inflation signal
+    if (direction === 'Raise') {
+      if (infl > TARGET_INFLATION && unemp < TARGET_UNEMPLOYMENT)
+        return 'Inflation at ' + f1(infl) + '% is ' + inflWord() + ' above target and the labor market is tight \u2014 raising rates is overdue.';
+      if (infl > TARGET_INFLATION)
+        return 'Inflation at ' + f1(infl) + '% is ' + inflWord() + ' above 2%; price stability requires tightening.';
+      return 'Unemployment at ' + f1(unemp) + '% signals an overheating labor market \u2014 higher rates are warranted.';
+    }
+    if (direction === 'Lower') {
+      if (infl < TARGET_INFLATION && unemp > TARGET_UNEMPLOYMENT)
+        return 'With inflation at ' + f1(infl) + '% and unemployment at ' + f1(unemp) + '%, both mandates point toward easing policy.';
+      if (infl < TARGET_INFLATION)
+        return 'Inflation at ' + f1(infl) + '% is running ' + inflWord() + ' below 2% \u2014 accommodation is warranted.';
+      return 'Unemployment at ' + f1(unemp) + '% is ' + unempWord() + ' elevated; easing would support the labor market.';
+    }
+    return 'Inflation at ' + f1(infl) + '% and unemployment at ' + f1(unemp) + '% are near mandate \u2014 no adjustment is necessary.';
+  }
+
+  function riveraRationale() { // balanced — weighs both mandates equally
+    if (direction === 'Raise') {
+      if (strong)
+        return 'Both inflation at ' + f1(infl) + '% and tight labor at ' + f1(unemp) + '% point toward tightening \u2014 a raise is the right move.';
+      if (infl > TARGET_INFLATION)
+        return 'Inflation at ' + f1(infl) + '% is ' + inflWord() + ' above target; a balanced view supports a modest rate increase.';
+      return 'The labor market at ' + f1(unemp) + '% unemployment is ' + unempWord() + ' tighter than natural \u2014 raising rates would cool it.';
+    }
+    if (direction === 'Lower') {
+      if (strong)
+        return 'Below-target inflation of ' + f1(infl) + '% and elevated unemployment of ' + f1(unemp) + '% both argue for easing.';
+      if (unemp > TARGET_UNEMPLOYMENT)
+        return 'Unemployment at ' + f1(unemp) + '% is ' + unempWord() + ' elevated \u2014 lowering rates would support the labor market.';
+      return 'Inflation at ' + f1(infl) + '% is running ' + inflWord() + ' below 2% \u2014 a modest cut is warranted.';
+    }
+    return 'With inflation at ' + f1(infl) + '% and unemployment at ' + f1(unemp) + '%, conditions are balanced \u2014 holding steady is appropriate.';
+  }
+
+  function parkRationale() { // dovish — leads with unemployment signal
+    if (direction === 'Raise') {
+      if (strong)
+        return 'Even with a full-employment focus, inflation at ' + f1(infl) + '% and unemployment at ' + f1(unemp) + '% justify raising rates.';
+      if (unemp < TARGET_UNEMPLOYMENT)
+        return 'Unemployment at ' + f1(unemp) + '% is ' + unempWord() + ' below the natural rate \u2014 gradual tightening is justified.';
+      return 'Inflation at ' + f1(infl) + '% is ' + inflWord() + ' above target \u2014 a modest raise would reduce the risk of a larger correction.';
+    }
+    if (direction === 'Lower') {
+      if (unemp > TARGET_UNEMPLOYMENT)
+        return 'Unemployment at ' + f1(unemp) + '% is ' + unempWord() + ' above 5% \u2014 lowering rates is the right call to support workers.';
+      return 'Inflation at ' + f1(infl) + '% is running well below target \u2014 accommodative policy is needed.';
+    }
+    return 'Both indicators are near mandate; holding the rate steady lets the economy find its footing.';
+  }
+
+  var advisors = [
+    { name: 'Dr. Chen',    title: 'Chief Economist',  avatar: 'C', rec: direction, rationale: chenRationale()   },
+    { name: 'Gov. Rivera', title: 'Fed Governor',     avatar: 'R', rec: direction, rationale: riveraRationale() },
+    { name: 'Sec. Park',   title: 'Treasury Advisor', avatar: 'P', rec: direction, rationale: parkRationale()   }
+  ];
+
+  container.innerHTML = advisors.map(function(advisor) {
+    var recLower  = advisor.rec.toLowerCase();
     var recClass  = 'advisor-rec--' + recLower;
-    // Use calm for Hold, concerned for Raise/Lower (urgency not in events.js schema)
     var cardClass = recLower === 'hold' ? 'advisor-card--calm' : 'advisor-card--concerned';
     return '<div class="advisor-card ' + cardClass + '">'
       + '<div class="advisor-avatar">' + advisor.avatar + '</div>'
@@ -563,8 +643,9 @@ function renderEndScreen() {
     avgInfl  /= history.length;
     avgUnemp /= history.length;
   }
-  var finalRate = history.length > 0 ? history[history.length - 1].rate : state.fedRate;
-  var initial   = getInitialConditions(state.difficulty || 'realworld');
+  var finalRate    = history.length > 0 ? history[history.length - 1].rate : state.fedRate;
+  var initialPoint = state.chartPoints && state.chartPoints[0] ? state.chartPoints[0] : null;
+  var initialFedRate = initialPoint ? initialPoint.rate : state.fedRate;
 
   var avgInflEl        = document.getElementById('end-avg-infl');
   var avgUnempEl       = document.getElementById('end-avg-unemp');
@@ -580,7 +661,7 @@ function renderEndScreen() {
     setIndicatorClass(avgUnempEl, avgUnemp, TARGET_UNEMPLOYMENT, 0.5, 1.5);
   }
   if (finalRateEl)      finalRateEl.textContent      = fmt(finalRate) + '%';
-  if (finalRateStartEl) finalRateStartEl.textContent = 'Started: ' + fmt(initial.fedRate) + '%';
+  if (finalRateStartEl) finalRateStartEl.textContent = 'Started: ' + fmt(initialFedRate) + '%';
 
   // Soft landing badge
   var softEl = document.getElementById('end-soft-landing');
@@ -991,11 +1072,11 @@ function drawEndChart(canvasId, values, target, color, yMin, yMax) {
 }
 
 function renderEndCharts() {
-  var points = (state.chartPoints || []).slice(1);
-  var initial = getInitialConditions(state.difficulty || 'realworld');
+  var points      = (state.chartPoints || []).slice(1);
+  var startRate   = state.chartPoints && state.chartPoints[0] ? state.chartPoints[0].rate : state.fedRate;
   drawEndChart('end-chart-inflation',    points.map(function(p) { return p.inflation;    }), TARGET_INFLATION,    '#b22222', 0,  8);
   drawEndChart('end-chart-unemployment', points.map(function(p) { return p.unemployment; }), TARGET_UNEMPLOYMENT, '#1a2a4a', 2, 12);
-  drawEndChart('end-chart-rate',         points.map(function(p) { return p.rate;         }), initial.fedRate,     '#c8a400', 0, 10);
+  drawEndChart('end-chart-rate',         points.map(function(p) { return p.rate;         }), startRate,           '#c8a400', 0, 10);
 }
 
 function finishMainChartAnimation() {
@@ -1301,8 +1382,7 @@ document.addEventListener('DOMContentLoaded', function() {
     state = { quarter: 1, totalQuarters: TOTAL_QUARTERS };
   }
   renderQuarterProgress();
-  var endStart = document.getElementById('end-final-rate-start');
-  if (endStart) endStart.textContent = 'Started: ' + fmt(getInitialConditions(selectedDifficulty).fedRate) + '%';
+  // end-final-rate-start is populated by renderEndScreen() with the actual per-game starting rate
 });
 
 // Inject rate selector markup into the decision panel
