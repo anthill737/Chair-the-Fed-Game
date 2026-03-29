@@ -25,8 +25,8 @@ var SHOCK_EVENTS = [
     headline:  'Crude Prices Collapse as OPEC Floods the Market',
     body:      '<p>Benchmark crude tumbled more than 25% after OPEC members abandoned output limits, triggering a supply glut. Gasoline prices dropped sharply at the pump, and energy-sector payrolls fell for the second month running.</p>' +
                '<p class="news-context">Cheaper energy pulls headline CPI lower and squeezes margins in oil-producing regions, weighing on employment there.</p>',
-    inflShock:  -0.36,
-    unempShock:  0.24,
+    inflShock:  -0.41,   // +15%: was -0.36
+    unempShock:  0.28,   // +15%: was  0.24
     severity:   'minor'
   },
   {
@@ -34,8 +34,8 @@ var SHOCK_EVENTS = [
     headline:  'Tech Hiring Boom Adds 90,000 Jobs in a Single Quarter',
     body:      '<p>Major technology firms announced record capital spending plans, and venture funding hit a post-pandemic high. The sector added roughly 90,000 jobs last quarter — twice the pace of the broader economy.</p>' +
                '<p class="news-context">Strong tech hiring tightens the labor market and lifts consumer spending without generating significant goods-price inflation.</p>',
-    inflShock:   0.12,
-    unempShock: -0.36,
+    inflShock:   0.14,   // +15%: was  0.12
+    unempShock: -0.41,   // +15%: was -0.36
     severity:   'minor'
   },
   {
@@ -43,8 +43,8 @@ var SHOCK_EVENTS = [
     headline:  'Regional Bank Failures Spark Credit Crunch Fears',
     body:      '<p>Three mid-sized regional banks failed after losses on commercial real-estate portfolios triggered a deposit run. The Fed\'s Senior Loan Officer Survey showed the steepest tightening of lending standards since the financial crisis.</p>' +
                '<p class="news-context">A credit crunch slows business investment and consumer borrowing, cooling demand and raising unemployment risk.</p>',
-    inflShock:  -0.24,
-    unempShock:  0.60,
+    inflShock:  -0.28,   // +15%: was -0.24
+    unempShock:  0.69,   // +15%: was  0.60
     severity:   'moderate'
   },
   {
@@ -52,8 +52,8 @@ var SHOCK_EVENTS = [
     headline:  'Sweeping Tariffs Hit Imports; Retailers Warn of Price Hikes',
     body:      '<p>The administration imposed broad tariff increases on imports from key trading partners. Major retailers projected price increases of 5–10% on affected goods within two quarters, and manufacturers began reviewing supply-chain shifts.</p>' +
                '<p class="news-context">Tariffs push consumer prices higher while supply-chain uncertainty dampens hiring and business investment.</p>',
-    inflShock:   0.48,
-    unempShock:  0.36,
+    inflShock:   0.55,   // +15%: was  0.48
+    unempShock:  0.41,   // +15%: was  0.36
     severity:   'moderate'
   },
   {
@@ -61,8 +61,8 @@ var SHOCK_EVENTS = [
     headline:  'Home Prices Surge 8% Year-Over-Year; Construction Hiring Accelerates',
     body:      '<p>Residential property values posted their strongest annual gain in a decade, driven by tight inventory and robust demand. Homebuilder payrolls grew by 35,000 last quarter, and shelter costs — the largest CPI component — ticked higher.</p>' +
                '<p class="news-context">Rising home prices add to shelter inflation and lift consumer wealth, supporting spending and tightening the labor market.</p>',
-    inflShock:   0.24,
-    unempShock: -0.24,
+    inflShock:   0.28,   // +15%: was  0.24
+    unempShock: -0.28,   // +15%: was -0.24
     severity:   'minor'
   },
   {
@@ -70,8 +70,8 @@ var SHOCK_EVENTS = [
     headline:  'Average Hourly Earnings Up 4.8% — Fastest Pace in Seven Years',
     body:      '<p>Average hourly earnings rose at their fastest annual rate since the last recovery. Employers in services, healthcare, and logistics reported intense competition for workers, with signing bonuses becoming routine.</p>' +
                '<p class="news-context">Accelerating wages raise household purchasing power and business input costs, feeding through to consumer prices over the following quarters.</p>',
-    inflShock:   0.60,
-    unempShock: -0.12,
+    inflShock:   0.69,   // +15%: was  0.60
+    unempShock: -0.14,   // +15%: was -0.12
     severity:   'moderate'
   },
   {
@@ -79,8 +79,8 @@ var SHOCK_EVENTS = [
     headline:  'Port Backlogs Stretch Lead Times; Input Costs Jump',
     body:      '<p>Labor disputes combined with record container volumes created severe congestion at major ports. Import lead times hit all-time highs, and producer prices for intermediate goods rose 1.2% in a single month.</p>' +
                '<p class="news-context">Supply bottlenecks push goods prices higher while slowing output — a combination that pressures both inflation and employment.</p>',
-    inflShock:   0.48,
-    unempShock:  0.24,
+    inflShock:   0.55,   // +15%: was  0.48
+    unempShock:  0.28,   // +15%: was  0.24
     severity:   'moderate'
   },
   {
@@ -88,8 +88,8 @@ var SHOCK_EVENTS = [
     headline:  'Payrolls Beat Forecasts by 80,000; Unemployment Drops to Cycle Low',
     body:      '<p>The Bureau of Labor Statistics reported 280,000 jobs added last month — well above the consensus estimate. Unemployment fell to its lowest point in the current cycle, and labor force participation rose for the third consecutive month.</p>' +
                '<p class="news-context">A tight labor market boosts consumer confidence and spending, putting mild upward pressure on wages and prices.</p>',
-    inflShock:   0.12,
-    unempShock: -0.48,
+    inflShock:   0.14,   // +15%: was  0.12
+    unempShock: -0.55,   // +15%: was -0.48
     severity:   'minor'
   },
   {
@@ -97,8 +97,8 @@ var SHOCK_EVENTS = [
     headline:  'IMF Slashes World Growth Forecast; U.S. Export Orders Slide',
     body:      '<p>The IMF cut its global growth projection by 0.6 percentage points — the second downgrade in a row. U.S. export orders fell sharply as demand from Europe and Asia deteriorated, with manufacturing hit hardest.</p>' +
                '<p class="news-context">Weakening foreign demand reduces U.S. output and hiring while easing commodity-price pressures.</p>',
-    inflShock:  -0.36,
-    unempShock:  0.48,
+    inflShock:  -0.41,   // +15%: was -0.36
+    unempShock:  0.55,   // +15%: was  0.48
     severity:   'moderate'
   },
   {
@@ -106,8 +106,8 @@ var SHOCK_EVENTS = [
     headline:  'Consumer Sentiment Hits 15-Year High; Retail Sales Jump 1.4%',
     body:      '<p>The Conference Board Consumer Confidence Index surged to its highest reading in 15 years. Retail sales rose 1.4% in a single month, led by big-ticket durable goods. Households are borrowing more and saving less.</p>' +
                '<p class="news-context">Strong consumer demand tightens the labor market and adds to inflationary pressure across goods and services.</p>',
-    inflShock:   0.24,
-    unempShock: -0.36,
+    inflShock:   0.28,   // +15%: was  0.24
+    unempShock: -0.41,   // +15%: was -0.36
     severity:   'minor'
   },
   {
@@ -115,8 +115,8 @@ var SHOCK_EVENTS = [
     headline:  'Banks Pull Back on Lending; Business Investment Plans Cut',
     body:      '<p>The Fed\'s quarterly survey of loan officers showed the sharpest pullback in credit availability in three years. Both consumer and business borrowers faced higher rates and stricter terms, and corporate capital spending plans were revised down.</p>' +
                '<p class="news-context">Tighter credit conditions slow investment and consumption, cooling demand and easing price pressures — but also raising layoff risk.</p>',
-    inflShock:  -0.24,
-    unempShock:  0.36,
+    inflShock:  -0.28,   // +15%: was -0.24
+    unempShock:  0.41,   // +15%: was  0.36
     severity:   'moderate'
   },
   {
@@ -124,8 +124,8 @@ var SHOCK_EVENTS = [
     headline:  'Oil Surges 30% on Geopolitical Shock; Gas Prices Hit Decade High',
     body:      '<p>Escalating conflict in a major oil-producing region sent crude prices up 30% in three weeks. Gasoline at the pump hit a decade high, and trucking and airline costs surged, fanning broader price pressures across the economy.</p>' +
                '<p class="news-context">A large energy shock raises headline CPI sharply, squeezes real incomes, and dampens growth — a classic stagflationary impulse.</p>',
-    inflShock:   0.84,
-    unempShock:  0.24,
+    inflShock:   0.97,   // +15%: was  0.84
+    unempShock:  0.28,   // +15%: was  0.24
     severity:   'major'
   },
   {
@@ -133,8 +133,8 @@ var SHOCK_EVENTS = [
     headline:  'Dollar Index Climbs to 4-Year High; Import Prices Fall',
     body:      '<p>The Dollar Index reached its highest level in four years as safe-haven flows and U.S. rate differentials drove demand. Import prices dropped 1.8% over the quarter, providing a meaningful drag on headline CPI.</p>' +
                '<p class="news-context">A stronger dollar reduces import costs and inflation but puts U.S. exporters at a competitive disadvantage, weighing on manufacturing employment.</p>',
-    inflShock:  -0.24,
-    unempShock:  0.00,
+    inflShock:  -0.28,   // +15%: was -0.24
+    unempShock:  0.00,   // unchanged (zero stays zero)
     severity:   'minor'
   },
   {
@@ -142,8 +142,8 @@ var SHOCK_EVENTS = [
     headline:  'ISM Factory Index Signals Contraction; Layoffs Rise in Industrial States',
     body:      '<p>The ISM Manufacturing Index fell to its lowest level in two years, with new orders, production, and employment sub-indexes all deep in contraction. Industrial companies announced layoffs and deferred planned capital spending.</p>' +
                '<p class="news-context">A manufacturing downturn reduces payrolls in goods-producing sectors and weakens demand, putting downward pressure on prices.</p>',
-    inflShock:  -0.12,
-    unempShock:  0.48,
+    inflShock:  -0.14,   // +15%: was -0.12
+    unempShock:  0.55,   // +15%: was  0.48
     severity:   'moderate'
   },
   {
@@ -151,8 +151,8 @@ var SHOCK_EVENTS = [
     headline:  'Productivity Surges 3.2% — Best Reading in a Decade; Unit Labor Costs Fall',
     body:      '<p>Non-farm business productivity posted its strongest quarterly gain in ten years, driven by technology adoption and process improvements. Unit labor costs fell for the first time in two years, reducing cost pressures on businesses.</p>' +
                '<p class="news-context">Higher productivity lets businesses expand output without raising prices or cutting staff — a positive supply-side development for the Fed.</p>',
-    inflShock:  -0.12,
-    unempShock: -0.36,
+    inflShock:  -0.14,   // +15%: was -0.12
+    unempShock: -0.41,   // +15%: was -0.36
     severity:   'minor'
   }
 ];
