@@ -335,7 +335,7 @@ html, body {
 
 canvas {
   display: block;
-  width: 100%;
+  max-width: 100%;
   height: 48px;
   background: #f9f7f3;
   border: 1px solid #e0dcd0;
@@ -494,7 +494,8 @@ canvas {
 .btn-go:hover { background: #2a3e6e; }
 
 /* Result panel */
-.hidden { display: none !important; }
+.panel.hidden { display: none; }
+.hidden { display: none; }
 
 .result-body {
   font-size: 0.88rem;
@@ -720,7 +721,7 @@ canvas {
 }
 
 .end-chart-wrap canvas {
-  width: 100%;
+  max-width: 100%;
   height: 80px;
   background: #f9f7f3;
 }

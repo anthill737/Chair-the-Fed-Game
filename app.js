@@ -501,15 +501,29 @@ function renderNews() {
   const qNum = ((state.quarter - 1) % 4) + 1;
   label.textContent = 'Q' + qNum + ' ' + year + ' — Economic Briefing';
 
+  // Clear body and build content with safe DOM methods (no innerHTML)
+  body.textContent = '';
+
   if (shock) {
     badge.textContent = shock.badge;
     badge.className   = 'news-badge shock';
-    body.innerHTML    = '<p class="event-title">' + shock.title + '</p><p>' + shock.text + '</p>';
+
+    var titleEl = document.createElement('p');
+    titleEl.className = 'event-title';
+    titleEl.textContent = shock.title;
+    body.appendChild(titleEl);
+
+    var textEl = document.createElement('p');
+    textEl.textContent = shock.text;
+    body.appendChild(textEl);
   } else {
     badge.textContent = 'ROUTINE';
     badge.className   = 'news-badge routine';
     const routine     = ROUTINE_NEWS[state.quarter % ROUTINE_NEWS.length];
-    body.innerHTML    = '<p>' + routine + '</p>';
+
+    var routineEl = document.createElement('p');
+    routineEl.textContent = routine;
+    body.appendChild(routineEl);
   }
 
   // Append extra context about current conditions
@@ -525,8 +539,13 @@ function renderNews() {
     ? 'Unemployment is below the natural rate of 5%.'
     : 'Unemployment is near its natural rate of 5%.';
 
-  body.innerHTML += '<p style="margin-top:8px;font-style:italic;color:#555;font-size:0.83rem;">'
-    + inflNote + ' ' + unempNote + '</p>';
+  var noteEl = document.createElement('p');
+  noteEl.style.marginTop = '8px';
+  noteEl.style.fontStyle = 'italic';
+  noteEl.style.color = '#555';
+  noteEl.style.fontSize = '0.83rem';
+  noteEl.textContent = inflNote + ' ' + unempNote;
+  body.appendChild(noteEl);
 }
 
 /** Build and render the rate selector panel */
@@ -535,20 +554,29 @@ function renderRateSelector() {
   if (!container) return;
 
   // Generate rate options from min to max in steps of RATE_STEP
+  // Use integer-based loop to avoid floating-point accumulation errors
   let html = '';
-  // Show rates from max down to min for visual "higher is up" feel
-  for (let r = RATE_MAX; r >= RATE_MIN - 0.001; r -= RATE_STEP) {
-    const rv     = Math.round(r * 100) / 100;
+  var totalSteps = Math.round((RATE_MAX - RATE_MIN) / RATE_STEP);
+  for (var i = 0; i <= totalSteps; i++) {
+    const rv     = Math.round((RATE_MAX - i * RATE_STEP) * 100) / 100;
     const sel    = Math.abs(rv - state.pendingRate) < 0.001;
     const isCurr = Math.abs(rv - state.fedRate)     < 0.001;
     const cls    = sel ? 'rate-option selected' : isCurr ? 'rate-option current' : 'rate-option';
-    html += `<div class="${cls}" data-rate="${rv}" onclick="selectRate(${rv})">`
+    html += `<div class="${cls}" data-rate="${rv}">`
           + `<span class="rate-val">${fmt(rv)}%</span>`
           + (isCurr ? '<span class="rate-tag current-tag">CURRENT</span>' : '')
           + (sel && !isCurr ? '<span class="rate-tag select-tag">SELECTED</span>' : '')
           + '</div>';
   }
   container.innerHTML = html;
+
+  // Attach click listeners using event delegation (no inline onclick)
+  container.addEventListener('click', function(e) {
+    var rateEl = e.target.closest('[data-rate]');
+    if (rateEl) {
+      selectRate(parseFloat(rateEl.getAttribute('data-rate')));
+    }
+  });
 
   // Scroll the selected rate into view
   setTimeout(() => {
@@ -591,14 +619,20 @@ function appendHistoryRow(record) {
   const unempClass = getDeviationClass(record.unemployment, TARGET_UNEMPLOYMENT, 0.5);
 
   const row = document.createElement('tr');
-  row.innerHTML = `
-    <td>Q${qNum} ${year}</td>
-    <td class="${inflClass}">${fmt(record.inflation)}%</td>
-    <td class="${unempClass}">${fmt(record.unemployment)}%</td>
-    <td>${fmt(record.rate)}%</td>
-    <td>${record.decision}</td>
-    <td>${record.eventTitle || '—'}</td>
-  `;
+  var cells = [
+    { text: 'Q' + qNum + ' ' + year, cls: '' },
+    { text: fmt(record.inflation) + '%', cls: inflClass },
+    { text: fmt(record.unemployment) + '%', cls: unempClass },
+    { text: fmt(record.rate) + '%', cls: '' },
+    { text: record.decision, cls: '' },
+    { text: record.eventTitle || '\u2014', cls: '' }
+  ];
+  cells.forEach(function(c) {
+    var td = document.createElement('td');
+    td.textContent = c.text;
+    if (c.cls) td.className = c.cls;
+    row.appendChild(td);
+  });
   tbody.appendChild(row);
 
   // Auto-scroll history table
@@ -630,23 +664,33 @@ function renderResult(rateDelta, newInfl, newUnemp, qPenalty) {
     ? 'You raised the rate by ' + fmt(rateDelta) + '% to ' + fmt(state.fedRate) + '%.'
     : 'You lowered the rate by ' + fmt(Math.abs(rateDelta)) + '% to ' + fmt(state.fedRate) + '%.';
 
-  body.innerHTML = `
-    <p style="margin-bottom:10px;">${decisionText}</p>
-    <div class="result-stat">
-      <span class="label">Inflation</span>
-      <span>${inflSign} ${fmt(prevInfl)}% &rarr; <strong>${fmt(newInfl)}%</strong>
-        &nbsp;<span style="color:#888;font-size:0.78rem;">(target 2.0%)</span></span>
-    </div>
-    <div class="result-stat">
-      <span class="label">Unemployment</span>
-      <span>${unempSign} ${fmt(prevUnemp)}% &rarr; <strong>${fmt(newUnemp)}%</strong>
-        &nbsp;<span style="color:#888;font-size:0.78rem;">(target 5.0%)</span></span>
-    </div>
-    <div class="result-stat">
-      <span class="label">Fed Funds Rate</span>
-      <span>${fmt(state.fedRate)}%</span>
-    </div>
-  `;
+  // Build result content with safe DOM methods (no innerHTML)
+  body.textContent = '';
+
+  var decisionPara = document.createElement('p');
+  decisionPara.style.marginBottom = '10px';
+  decisionPara.textContent = decisionText;
+  body.appendChild(decisionPara);
+
+  // Helper: build a result-stat row
+  function buildStat(labelText, valueText) {
+    var div = document.createElement('div');
+    div.className = 'result-stat';
+    var lbl = document.createElement('span');
+    lbl.className = 'label';
+    lbl.textContent = labelText;
+    div.appendChild(lbl);
+    var val = document.createElement('span');
+    val.textContent = valueText;
+    div.appendChild(val);
+    return div;
+  }
+
+  body.appendChild(buildStat('Inflation',
+    inflSign + ' ' + fmt(prevInfl) + '% \u2192 ' + fmt(newInfl) + '%  (target 2.0%)'));
+  body.appendChild(buildStat('Unemployment',
+    unempSign + ' ' + fmt(prevUnemp) + '% \u2192 ' + fmt(newUnemp) + '%  (target 5.0%)'));
+  body.appendChild(buildStat('Fed Funds Rate', fmt(state.fedRate) + '%'));
 
   // Quarter score display
   const qs = document.getElementById('result-quarter-score');
@@ -846,14 +890,20 @@ function renderEndHistory() {
     const inflClass  = getDeviationClass(record.inflation,    TARGET_INFLATION,    0.5);
     const unempClass = getDeviationClass(record.unemployment, TARGET_UNEMPLOYMENT, 0.5);
     const row = document.createElement('tr');
-    row.innerHTML = `
-      <td>Q${qNum} ${year}</td>
-      <td class="${inflClass}">${fmt(record.inflation)}%</td>
-      <td class="${unempClass}">${fmt(record.unemployment)}%</td>
-      <td>${fmt(record.rate)}%</td>
-      <td>${record.decision}</td>
-      <td>${record.eventTitle || '—'}</td>
-    `;
+    var cells = [
+      { text: 'Q' + qNum + ' ' + year, cls: '' },
+      { text: fmt(record.inflation) + '%', cls: inflClass },
+      { text: fmt(record.unemployment) + '%', cls: unempClass },
+      { text: fmt(record.rate) + '%', cls: '' },
+      { text: record.decision, cls: '' },
+      { text: record.eventTitle || '\u2014', cls: '' }
+    ];
+    cells.forEach(function(c) {
+      var td = document.createElement('td');
+      td.textContent = c.text;
+      if (c.cls) td.className = c.cls;
+      row.appendChild(td);
+    });
     tbody.appendChild(row);
   });
 }
@@ -1030,9 +1080,17 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
         <div class="rate-selector-controls">
           <div class="rate-change-summary hold" id="rate-change-summary">Hold steady</div>
-          <button class="btn-go" onclick="makeDecision()">GO &rarr;</button>
+          <button class="btn-go" id="btn-go-action">GO &rarr;</button>
         </div>
       </div>
     `;
+
+    // Attach GO button event listener (no inline onclick)
+    document.getElementById('btn-go-action').addEventListener('click', makeDecision);
   }
+
+  // Attach event listeners for all game control buttons (no inline onclick)
+  document.getElementById('btn-start').addEventListener('click', startGame);
+  document.getElementById('btn-next').addEventListener('click', nextQuarter);
+  document.getElementById('btn-play-again').addEventListener('click', resetGame);
 });

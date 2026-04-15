@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self';" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self';" />
   <title>Chair the Fed — Monetary Policy Simulation</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
@@ -73,7 +73,7 @@
     </div>
 
     <div class="intro-footer">
-      <button id="btn-start" class="btn-primary btn-large" onclick="startGame()">Begin Simulation &rarr;</button>
+      <button id="btn-start" class="btn-primary btn-large">Begin Simulation &rarr;</button>
     </div>
 
     <footer class="cc-attribution">
@@ -167,7 +167,7 @@
           <div class="quarter-score-display">
             Quarter score: <span id="result-quarter-score">—</span>
           </div>
-          <button class="btn-primary" id="btn-next" onclick="nextQuarter()">Next Quarter &rarr;</button>
+          <button class="btn-primary" id="btn-next">Next Quarter &rarr;</button>
         </div>
       </div>
 
@@ -280,7 +280,7 @@
     </section>
 
     <div class="end-footer">
-      <button class="btn-primary btn-large" onclick="resetGame()">&#8635; Play Again</button>
+      <button class="btn-primary btn-large" id="btn-play-again">&#8635; Play Again</button>
     </div>
 
     <footer class="cc-attribution">
