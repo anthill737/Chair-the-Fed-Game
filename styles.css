@@ -23,8 +23,22 @@ html, body {
   font-family: 'Georgia', 'Times New Roman', serif;
   background: #ddd8cc;
   color: #1a1a1a;
-  font-size: 15px;
+  font-size: 16px;
   line-height: 1.5;
+}
+
+/* When the game screen is active, lock body scroll so the page never scrolls */
+/* JS toggles .game-screen-active on <html> — more reliable than :has() across browsers */
+html.game-screen-active,
+html.game-screen-active body {
+  overflow: hidden;
+  height: 100%;
+}
+/* Keep :has() as a fallback for browsers that support it */
+html:has(#screen-game.active),
+html:has(#screen-game.active) body {
+  overflow: hidden;
+  height: 100%;
 }
 
 /* ---------- Screens ---------- */
@@ -36,11 +50,22 @@ html, body {
   display: block;
 }
 
+/* Game screen fills viewport exactly — no page scroll during play.
+   min-height: 0 overrides .screen { min-height: 100vh } so the container
+   cannot grow beyond 100vh with content (which would re-enable page scroll). */
+#screen-game.active {
+  height: 100vh;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
 /* ---------- INTRO SCREEN ---------- */
 .intro-wrapper {
-  max-width: 960px;
+  max-width: min(1400px, 96vw);
   margin: 0 auto;
-  padding: 32px 20px 48px;
+  padding: 32px 24px 48px;
 }
 
 .intro-header {
@@ -76,8 +101,8 @@ html, body {
 .intro-body {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 24px;
-  margin-bottom: 32px;
+  gap: 32px;
+  margin-bottom: 36px;
 }
 
 @media (max-width: 700px) {
@@ -94,11 +119,11 @@ html, body {
   background: #fff;
   border: 1px solid #c8c0b0;
   border-left: 4px solid #1a2a4a;
-  padding: 16px 18px;
+  padding: 20px 22px;
 }
 
 .intro-section h2 {
-  font-size: 0.85rem;
+  font-size: 1.05rem;
   text-transform: uppercase;
   letter-spacing: 0.12em;
   color: #1a2a4a;
@@ -108,9 +133,10 @@ html, body {
 }
 
 .intro-section p {
-  font-size: 0.88rem;
+  font-size: 1.0rem;
   color: #2a2a2a;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
+  line-height: 1.6;
 }
 .intro-section p:last-child { margin-bottom: 0; }
 
@@ -118,8 +144,8 @@ html, body {
   background: #f5f0e8;
   border-left: 3px solid #c8a400;
   padding: 6px 10px;
-  font-size: 0.82rem;
-  color: #444;
+  font-size: 0.9rem !important;
+  color: #444 !important;
   font-style: italic;
 }
 
@@ -128,11 +154,12 @@ html, body {
   padding: 0;
 }
 .how-to-list li {
-  font-size: 0.88rem;
-  padding: 4px 0 4px 18px;
+  font-size: 1.0rem;
+  padding: 5px 0 5px 18px;
   position: relative;
   border-bottom: 1px solid #eee;
   color: #2a2a2a;
+  line-height: 1.5;
 }
 .how-to-list li::before {
   content: '▸';
@@ -142,10 +169,11 @@ html, body {
 }
 .how-to-list li:last-child { border-bottom: none; }
 
+.scoring-preview { }
 .score-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.83rem;
+  font-size: 1.0rem;
   font-family: Arial, sans-serif;
   margin-top: 8px;
 }
@@ -179,29 +207,22 @@ html, body {
   transition: background 0.15s;
 }
 .btn-primary:hover { background: #2a3e6e; }
+.btn-primary:focus-visible { outline: 2px solid #c8a400; outline-offset: 2px; }
 .btn-large {
   font-size: 1.05rem;
   padding: 13px 40px;
   letter-spacing: 0.07em;
 }
 
-/* Keyboard focus styles for accessibility */
-.btn-primary:focus-visible,
-.btn-go:focus-visible {
-  outline: 2px solid #c8a400;
-  outline-offset: 2px;
-}
-.rate-option:focus-visible {
-  outline: 2px solid #c8a400;
-  outline-offset: -2px;
-}
-
 /* ---------- GAME SCREEN ---------- */
+/* Hidden when inactive — display:none here so the inactive game screen doesn't
+   push the end/intro screens off-page. #screen-game.active overrides to flex. */
 #screen-game {
-  display: flex;
+  display: none;
   flex-direction: column;
   background: #ddd8cc;
-  min-height: 100vh;
+  height: 100vh;
+  overflow: hidden;
 }
 
 /* Game Header */
@@ -211,12 +232,165 @@ html, body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 24px;
+  padding: 5px 16px;
   border-bottom: 3px solid #c8a400;
+  position: relative; /* needed so the dropdown can position itself relative to the header */
+  flex: 0 0 52px;
+  height: 52px;
+  min-height: 52px;
+  max-height: 52px;
+  overflow: hidden;
+}
+
+/* Hamburger menu */
+.hdr-menu-wrap {
+  position: relative;
+  margin-left: auto;
+}
+.btn-hamburger {
+  background: none;
+  border: 1px solid rgba(255,255,255,0.3);
+  border-radius: 4px;
+  cursor: pointer;
+  padding: 6px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.btn-hamburger span {
+  display: block;
+  width: 20px;
+  height: 2px;
+  background: #fff;
+  border-radius: 1px;
+  transition: transform 0.2s, opacity 0.2s;
+}
+.btn-hamburger.is-open span:nth-child(1) { transform: translateY(6px) rotate(45deg); }
+.btn-hamburger.is-open span:nth-child(2) { opacity: 0; }
+.btn-hamburger.is-open span:nth-child(3) { transform: translateY(-6px) rotate(-45deg); }
+.game-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  background: #1a2a4a;
+  border: 1px solid #c8a400;
+  border-radius: 6px;
+  min-width: 210px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.35);
+  z-index: 1000;
+  overflow: hidden;
+}
+.game-menu.hidden { display: none; }
+.game-menu-item {
+  display: block;
+  width: 100%;
+  background: none;
+  border: none;
+  color: #f0e8d6;
+  font-family: Arial, sans-serif;
+  font-size: 0.88rem;
+  text-align: left;
+  padding: 10px 16px;
+  cursor: pointer;
+}
+.game-menu-item:hover { background: rgba(200,164,0,0.15); color: #fff; }
+.game-menu-divider { border: none; border-top: 1px solid rgba(255,255,255,0.15); margin: 4px 0; }
+
+.quarter-progress-panel {
+  margin: 0 10px;
+  padding: 4px 10px;
+  background: linear-gradient(180deg, #f7f4ee 0%, #ece5d6 100%);
+  border: 1px solid #bbb5a8;
+  box-shadow: 1px 1px 4px rgba(0,0,0,0.08);
+  flex: 0 0 60px;
+  height: 60px;
+  min-height: 60px;
+  max-height: 60px;
+  overflow: hidden;
+}
+
+.quarter-progress-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 5px;
+}
+
+.quarter-progress-caption,
+.quarter-progress-labels {
+  font-family: Arial, sans-serif;
+  font-size: 0.7rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.quarter-progress-caption {
+  color: #666;
+}
+
+.quarter-progress-current {
+  font-family: 'Courier New', monospace;
+  font-size: 0.92rem;
+  color: #1a2a4a;
+  font-weight: bold;
+}
+
+.quarter-progress-track {
+  position: relative;
+  height: 8px;
+  border-radius: 999px;
+  background:
+    linear-gradient(90deg, rgba(26,42,74,0.08) 0%, rgba(26,42,74,0.18) 100%),
+    linear-gradient(90deg, rgba(255,255,255,0.75) 0 1px, transparent 1px 100%);
+  border: 1px solid rgba(26,42,74,0.18);
+  overflow: visible;
+}
+
+.quarter-progress-track::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background-image: linear-gradient(90deg, rgba(255,255,255,0.35) 0, rgba(255,255,255,0) 65%);
+  pointer-events: none;
+}
+
+.quarter-progress-line {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 0;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #c8a400 0%, #f0d87a 100%);
+  box-shadow: 0 0 10px rgba(200,164,0,0.4);
+  transition: width 1.1s ease;
+}
+
+.quarter-progress-marker {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #fff7c8 0%, #f0d87a 45%, #c8a400 100%);
+  border: 2px solid #fff;
+  box-shadow: 0 2px 7px rgba(26,42,74,0.25);
+  transform: translate(-50%, -50%);
+  transition: left 1.1s ease;
+}
+
+.quarter-progress-labels {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 4px;
+  color: #666;
 }
 
 .game-title {
-  font-size: 1.1rem;
+  font-size: 0.95rem;
   letter-spacing: 0.05em;
   display: flex;
   align-items: center;
@@ -230,7 +404,7 @@ html, body {
 
 .game-meta {
   display: flex;
-  gap: 28px;
+  gap: 16px;
 }
 
 .meta-item {
@@ -241,14 +415,14 @@ html, body {
   display: block;
   font-size: 0.65rem;
   letter-spacing: 0.15em;
-  color: #c8d0e0;
+  color: #aab8d0;
   font-family: Arial, sans-serif;
   text-transform: uppercase;
 }
 
 .meta-value {
   display: block;
-  font-size: 1.1rem;
+  font-size: 1.0rem;
   font-family: 'Courier New', monospace;
   color: #f5f0e8;
   font-weight: bold;
@@ -257,14 +431,55 @@ html, body {
 /* Game Body */
 .game-body {
   display: grid;
-  grid-template-columns: 240px 1fr;
-  gap: 12px;
-  padding: 12px 16px;
+  grid-template-columns: 230px minmax(0, 1fr) 300px;
+  gap: 10px;
+  padding: 8px 12px;
   flex: 1;
+  min-height: 0;
+  overflow: hidden;
 }
 
-@media (max-width: 760px) {
+@media (max-width: 1100px) {
+  .game-body {
+    grid-template-columns: 220px minmax(0, 1fr);
+  }
+
+  .panel-indicators {
+    grid-row: 1 / span 2;
+  }
+
+  .panel-center {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .panel-side {
+    grid-column: 2;
+    grid-row: 2;
+  }
+}
+
+@media (max-width: 860px) {
   .game-body { grid-template-columns: 1fr; }
+  .quarter-progress-meta,
+  .quarter-progress-labels {
+    gap: 8px;
+  }
+
+  .panel-indicators,
+  .panel-center,
+  .panel-side {
+    grid-column: auto;
+    grid-row: auto;
+  }
+}
+
+/* Each column is locked — content must fit, no column scroll */
+.panel-indicators,
+.panel-center,
+.panel-side {
+  min-height: 0;
+  overflow: hidden;
 }
 
 /* Panels */
@@ -292,15 +507,16 @@ html, body {
   display: flex;
   flex-direction: column;
 }
+.panel-indicators.panel { padding: 10px 12px; }
 
 .indicator-group {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 8px;
 }
 
 .indicator {
-  padding-bottom: 12px;
+  padding-bottom: 7px;
   border-bottom: 1px solid #eee;
 }
 .indicator:last-child { border-bottom: none; padding-bottom: 0; }
@@ -318,34 +534,53 @@ html, body {
   font-family: 'Courier New', monospace;
   font-weight: bold;
   color: #1a2a4a;
-  line-height: 1.1;
-  margin: 2px 0;
+  line-height: 1.0;
+  margin: 1px 0;
 }
 
-.indicator-value.over-target { color: #b22222; }
-.indicator-value.under-target { color: #1a5c1a; }
-.indicator-value.near-target { color: #1a6b1a; }
+/* Status shown via superscript symbol — no color change to avoid conflicting with chart line colors */
+.indicator-value.over-target::after  { content: ' ▲'; font-size: 0.65em; color: #b45309; vertical-align: super; }
+.indicator-value.under-target::after { content: ' ▼'; font-size: 0.65em; color: #4338ca; vertical-align: super; }
+.indicator-value.near-target::after  { content: ' ✓'; font-size: 0.65em; color: #0b7c6c; vertical-align: super; }
 
 .indicator-target {
   font-size: 0.72rem;
   color: #888;
   font-family: Arial, sans-serif;
-  margin-bottom: 6px;
+  margin-bottom: 3px;
 }
 
-canvas {
-  display: block;
-  max-width: 100%;
-  height: 48px;
-  background: #f9f7f3;
-  border: 1px solid #e0dcd0;
+/* Status pill shown below the indicator value — uses non-chart colors to avoid confusion */
+.indicator-status {
+  display: inline-block;
+  font-family: Arial, sans-serif;
+  font-size: 0.64rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-top: 1px;
+  padding: 2px 5px;
+  border-radius: 3px;
 }
+.ind-status--good  { background: #e8ede6; color: #3a4a38; border: 1px solid #b4c8b0; }
+.ind-status--over  { background: #fdf3e0; color: #7a3e00; border: 1px solid #dfbb60; }
+.ind-status--under { background: #ededf8; color: #2a2a70; border: 1px solid #b4b4d8; }
 
-/* Right column */
-.panel-right {
+/* Center and side columns */
+.panel-center {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  flex: 1;
+  gap: 8px;
+  min-height: 0;
+}
+
+.panel-side {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 0;
+  overflow: hidden;
 }
 
 /* News panel */
@@ -356,6 +591,50 @@ canvas {
   margin-bottom: 10px;
   border-bottom: 1px solid #ddd;
   padding-bottom: 6px;
+}
+
+.news-alert {
+  display: grid;
+  grid-template-columns: 128px 1fr;
+  margin: -14px -16px 12px;
+  border-bottom: 1px solid #d7d1c5;
+  background: #f8f5ef;
+}
+
+.news-alert-label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 12px;
+  background:
+    linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 45%),
+    linear-gradient(135deg, #b22222 0%, #8f1717 100%);
+  color: #fff;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-family: Arial, sans-serif;
+  font-size: 0.82rem;
+  font-weight: bold;
+  text-align: center;
+}
+
+.news-alert-copy {
+  padding: 8px 12px;
+  background: linear-gradient(180deg, #f8f5ef 0%, #efe8dc 100%);
+}
+
+.news-alert-headline {
+  color: #8f1717;
+  font-size: 1.35rem;
+  line-height: 1.15;
+  font-weight: bold;
+  margin-bottom: 4px;
+}
+
+.news-alert-text {
+  color: #4a433a;
+  font-size: 0.84rem;
+  line-height: 1.45;
 }
 
 .news-header .panel-title {
@@ -376,20 +655,116 @@ canvas {
 .news-badge.shock { background: #b22222; color: #fff; }
 .news-badge.routine { background: #c8a400; color: #fff; }
 
+.news-body { overflow: hidden; }
 .news-body p {
-  font-size: 0.88rem;
+  font-size: 1.10rem;
   color: #2a2a2a;
-  line-height: 1.6;
-  margin-bottom: 8px;
+  line-height: 1.65;
+  margin-bottom: 4px;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
 }
 .news-body p:last-child { margin-bottom: 0; }
 
 .news-body .event-title {
   font-family: Arial, sans-serif;
-  font-size: 0.9rem;
+  font-size: 1.05rem;
   font-weight: bold;
   color: #1a2a4a;
+  margin-bottom: 4px;
+}
+
+.news-context {
+  margin-top: 4px;
+  font-style: italic;
+  color: #555;
+  font-size: 0.93rem;
+}
+
+/* Main chart */
+.panel-chart {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+.chart-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
   margin-bottom: 6px;
+}
+
+.chart-header .panel-title {
+  margin-bottom: 0;
+}
+
+.chart-legend {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px 16px;
+  font-family: Arial, sans-serif;
+  font-size: 0.90rem;
+  color: #4a433a;
+}
+
+.legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  white-space: nowrap;
+}
+
+.legend-line {
+  width: 20px;
+  border-top: 3px solid;
+}
+
+.legend-line--inflation {
+  border-color: #b22222;
+}
+
+.legend-line--unemployment {
+  border-color: #1a2a4a;
+}
+
+.legend-line--rate {
+  border-color: #c8a400;
+}
+
+.chart-frame {
+  background: linear-gradient(180deg, #faf8f4 0%, #f2ece1 100%);
+  border: 1px solid #d8d1c3;
+  padding: 10px;
+}
+
+.chart-frame canvas {
+  display: block;
+  width: 100%;
+  /* Base height fallback — viewport-fit block overrides this to flex:1 */
+  height: clamp(160px, calc(100vh - 480px), 500px);
+  background: #fdfcf9;
+  border: 1px solid #ded7ca;
+}
+
+@media (max-width: 860px) {
+  .chart-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .chart-legend {
+    justify-content: flex-start;
+  }
+
+  .chart-frame canvas {
+    height: clamp(140px, calc(100vh - 560px), 260px);
+  }
 }
 
 /* Decision panel */
@@ -492,10 +867,61 @@ canvas {
   transition: background 0.15s;
 }
 .btn-go:hover { background: #2a3e6e; }
+.btn-go:focus-visible { outline: 2px solid #c8a400; outline-offset: 2px; }
+
+.panel-side .panel {
+  padding: 12px 12px 14px;
+}
+
+.panel-side .decision-prompt {
+  font-size: 0.78rem;
+  margin-bottom: 10px;
+}
+
+.panel-side .rate-selector-wrapper {
+  gap: 8px;
+}
+
+.panel-side .rate-selector-scroll {
+  max-height: 120px;
+  min-width: 118px;
+  padding-right: 6px;
+  scrollbar-gutter: stable;
+}
+
+.panel-side .rate-option {
+  padding: 5px 8px;
+  font-size: 0.78rem;
+  gap: 6px;
+  line-height: 1.3;
+}
+
+.panel-side .rate-val {
+  min-width: 56px;
+  padding-right: 2px;
+}
+
+.panel-side .rate-tag {
+  font-size: 0.62rem;
+}
+
+.panel-side .rate-selector-controls {
+  min-width: 108px;
+  gap: 6px;
+}
+
+.panel-side .rate-change-summary {
+  font-size: 0.7rem;
+  padding: 5px 6px;
+}
+
+.panel-side .btn-go {
+  padding: 10px 10px;
+  font-size: 0.84rem;
+}
 
 /* Result panel */
-.panel.hidden { display: none; }
-.hidden { display: none; }
+.hidden { display: none !important; }
 
 .result-body {
   font-size: 0.88rem;
@@ -541,23 +967,34 @@ canvas {
 
 .history-scroll {
   overflow-x: auto;
+  overflow-y: auto;
+  max-height: 130px;
 }
 
 .history-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.80rem;
+  font-size: 0.86rem;
   font-family: Arial, sans-serif;
-  min-width: 520px;
+  min-width: 560px;
+  table-layout: fixed;
 }
+
+/* Explicit column widths */
+.history-table col.col-qtr   { width: 56px; }
+.history-table col.col-infl  { width: 90px; }
+.history-table col.col-unemp { width: 110px; }
+.history-table col.col-rate  { width: 80px; }
+.history-table col.col-dec   { width: 90px; }
+.history-table col.col-event { width: auto; }
 
 .history-table thead th {
   background: #1a2a4a;
   color: #fff;
-  padding: 6px 10px;
+  padding: 8px 14px;
   text-align: left;
-  font-size: 0.70rem;
-  letter-spacing: 0.10em;
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   white-space: nowrap;
 }
@@ -566,10 +1003,19 @@ canvas {
 .history-table tbody tr:nth-child(even) { background: #fff; }
 
 .history-table tbody td {
-  padding: 5px 10px;
+  padding: 8px 14px;
   color: #2a2a2a;
   border-bottom: 1px solid #e8e4dc;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 0.88rem;
+  line-height: 1.4;
+}
+
+/* Event column may wrap */
+.history-table tbody td:last-child {
+  white-space: normal;
 }
 
 .history-table tbody td:first-child {
@@ -583,9 +1029,9 @@ canvas {
 
 /* ---------- END SCREEN ---------- */
 .end-wrapper {
-  max-width: 900px;
+  max-width: min(1300px, 96vw);
   margin: 0 auto;
-  padding: 32px 20px 48px;
+  padding: 32px 24px 48px;
 }
 
 .end-header {
@@ -616,7 +1062,7 @@ canvas {
 .end-verdict-card.fired     { border-color: #b22222; background: #fdf0f0; }
 
 .verdict-title {
-  font-size: 1.6rem;
+  font-size: 1.8rem;
   color: #1a2a4a;
   font-weight: bold;
   letter-spacing: 0.05em;
@@ -642,10 +1088,10 @@ canvas {
 }
 
 .verdict-text {
-  font-size: 0.9rem;
+  font-size: 1.0rem;
   color: #444;
-  line-height: 1.6;
-  max-width: 560px;
+  line-height: 1.65;
+  max-width: 680px;
   margin: 0 auto;
 }
 
@@ -704,6 +1150,16 @@ canvas {
   .end-charts { grid-template-columns: 1fr; }
 }
 
+@media (max-width: 700px) {
+  .news-alert {
+    grid-template-columns: 1fr;
+  }
+
+  .news-alert-label {
+    justify-content: flex-start;
+  }
+}
+
 .end-chart-wrap {
   background: #fff;
   border: 1px solid #c8c0b0;
@@ -721,9 +1177,11 @@ canvas {
 }
 
 .end-chart-wrap canvas {
-  max-width: 100%;
+  display: block;
+  width: 100%;
   height: 80px;
   background: #f9f7f3;
+  border: 1px solid #e0dcd0;
 }
 
 /* End history */
@@ -779,4 +1237,1841 @@ canvas {
 
 .cc-attribution--game a {
   color: rgba(200, 164, 0, 0.8);
+}
+
+/* ==========================================================================
+   T5 — SEEDED RUNS + ONE-MORE-TURN FLOW
+   ========================================================================== */
+
+/* --- Intro screen seed options --- */
+.seed-options {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
+.btn-daily {
+  background: #c8a400;
+  color: #1a2a4a;
+  border: none;
+  border-radius: 6px;
+  padding: 9px 18px;
+  font-size: 0.92rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.1s;
+  white-space: nowrap;
+}
+.btn-daily:hover {
+  background: #e6bc00;
+  transform: translateY(-1px);
+}
+.btn-daily:focus-visible {
+  outline: 2px solid #1a2a4a;
+  outline-offset: 2px;
+}
+
+.seed-custom {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.seed-custom input[type="text"] {
+  padding: 8px 12px;
+  border: 1.5px solid #c8a400;
+  border-radius: 5px;
+  background: rgba(245, 240, 232, 0.9);
+  color: #1a2a4a;
+  font-size: 0.88rem;
+  width: 160px;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.seed-custom input[type="text"]:focus {
+  border-color: #e6bc00;
+  box-shadow: 0 0 0 2px rgba(200, 164, 0, 0.25);
+}
+.seed-custom input[type="text"]::placeholder {
+  color: #888;
+  font-style: italic;
+}
+.btn-seeded {
+  background: transparent;
+  color: #c8a400;
+  border: 1.5px solid #c8a400;
+  border-radius: 5px;
+  padding: 8px 14px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s, color 0.15s;
+}
+.btn-seeded:hover {
+  background: rgba(200, 164, 0, 0.12);
+}
+.btn-seeded:focus-visible {
+  outline: 2px solid #c8a400;
+  outline-offset: 2px;
+}
+
+/* --- Game header: seed display --- */
+.meta-item--seed {
+  border-left: 1px solid rgba(200, 164, 0, 0.3);
+  padding-left: 10px;
+}
+.meta-seed {
+  font-family: 'Courier New', monospace;
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+  color: rgba(200, 164, 0, 0.85);
+}
+
+/* --- Sandbox mode banner --- */
+.sandbox-banner {
+  background: rgba(200, 164, 0, 0.15);
+  border-bottom: 1px solid rgba(200, 164, 0, 0.5);
+  color: #c8a400;
+  text-align: center;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  padding: 4px 0;
+}
+
+/* --- End screen action buttons --- */
+.end-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+  padding: 20px 0 10px;
+}
+.btn-end {
+  border-radius: 6px;
+  padding: 10px 20px;
+  font-size: 0.93rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.1s, box-shadow 0.15s;
+  border: 1.5px solid transparent;
+}
+.btn-end:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 3px 10px rgba(0,0,0,0.18);
+}
+.btn-end:focus-visible {
+  outline: 2px solid #c8a400;
+  outline-offset: 2px;
+}
+.btn-replay-seed {
+  background: transparent;
+  color: #c8a400;
+  border-color: #c8a400;
+}
+.btn-replay-seed:hover {
+  background: rgba(200, 164, 0, 0.1);
+}
+.btn-sandbox {
+  background: transparent;
+  color: #5a8a5a;
+  border-color: #5a8a5a;
+}
+.btn-sandbox:hover {
+  background: rgba(90, 138, 90, 0.1);
+}
+
+.end-actions-hint {
+  text-align: center;
+  font-size: 0.75rem;
+  color: #888;
+  margin: 4px 0 0;
+}
+.end-actions-hint kbd {
+  background: #f0ece4;
+  border: 1px solid #ccc;
+  border-radius: 3px;
+  padding: 1px 5px;
+  font-family: monospace;
+  font-size: 0.75rem;
+}
+
+/* ==========================================================================
+   FEATURE: ENHANCED SCORING + ENDGAME — feature-scoring.js styles
+   Added at end to avoid conflicts with other builders' CSS additions.
+   ========================================================================== */
+
+/* ---- Verdict subtitle ---- */
+.end-subtitle {
+  font-family: Arial, sans-serif;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: #666;
+  margin-bottom: 8px;
+}
+
+/* ---- End highlights row (soft landing + best/worst) ---- */
+.end-highlights {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 18px;
+  flex-wrap: wrap;
+}
+
+/* ---- Soft Landing badge ---- */
+.end-soft-landing {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 18px;
+  border: 2px solid #c8c0b0;
+  background: #fff;
+  min-width: 160px;
+  flex-shrink: 0;
+}
+.end-soft-landing.yes { border-color: #1a6b1a; background: #f0f7f0; }
+.end-soft-landing.no  { border-color: #b22222; background: #fdf0f0; }
+
+.end-soft-landing-label {
+  font-family: Arial, sans-serif;
+  font-size: 0.70rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: #555;
+}
+.end-soft-landing-value {
+  font-family: 'Courier New', monospace;
+  font-size: 1.3rem;
+  font-weight: bold;
+  color: #1a2a4a;
+}
+.end-soft-landing.yes .end-soft-landing-value { color: #1a6b1a; }
+.end-soft-landing.no  .end-soft-landing-value { color: #b22222; }
+
+/* ---- Best / Worst quarter callouts ---- */
+.end-best-worst {
+  display: flex;
+  gap: 10px;
+  flex: 1;
+  flex-wrap: wrap;
+}
+.bw-item {
+  display: flex;
+  flex-direction: column;
+  padding: 8px 14px;
+  border: 1px solid #c8c0b0;
+  background: #fff;
+  flex: 1;
+  min-width: 130px;
+}
+.bw-item.bw-best  { border-left: 3px solid #1a6b1a; }
+.bw-item.bw-worst { border-left: 3px solid #b22222; }
+
+.bw-tag {
+  font-family: Arial, sans-serif;
+  font-size: 0.62rem;
+  text-transform: uppercase;
+  letter-spacing: 0.13em;
+  color: #888;
+  margin-bottom: 2px;
+}
+.bw-quarter {
+  font-size: 0.95rem;
+  font-weight: bold;
+  color: #1a2a4a;
+}
+.bw-detail {
+  font-family: 'Courier New', monospace;
+  font-size: 0.78rem;
+  color: #555;
+  margin-top: 2px;
+}
+
+/* ---- Score breakdown panel ---- */
+.end-breakdown-wrap {
+  margin-bottom: 20px;
+}
+.end-breakdown-title {
+  font-family: Arial, sans-serif;
+  font-size: 0.70rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: #1a2a4a;
+  font-weight: bold;
+  margin-bottom: 8px;
+}
+.end-score-breakdown {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  background: #fff;
+  border: 1px solid #c8c0b0;
+  padding: 14px 16px;
+}
+.bd-row {
+  display: grid;
+  grid-template-columns: 160px 1fr 36px;
+  align-items: center;
+  gap: 10px;
+  cursor: default;
+}
+.bd-label {
+  font-family: Arial, sans-serif;
+  font-size: 0.75rem;
+  color: #444;
+}
+.bd-track {
+  display: block;
+  background: #e8e3d8;
+  height: 10px;
+  border-radius: 2px;
+  overflow: hidden;
+}
+.bd-fill {
+  display: block;
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.6s ease;
+}
+.bd-fill--good { background: #1a6b1a; }
+.bd-fill--ok   { background: #c8a400; }
+.bd-fill--poor { background: #b22222; }
+.bd-value {
+  font-family: 'Courier New', monospace;
+  font-size: 0.80rem;
+  font-weight: bold;
+  color: #1a2a4a;
+  text-align: right;
+}
+
+/* ---- Share text (if added to HTML later) ---- */
+.end-share-wrap {
+  margin-top: 10px;
+  text-align: center;
+}
+.end-share-wrap label {
+  font-family: Arial, sans-serif;
+  font-size: 0.70rem;
+  text-transform: uppercase;
+  letter-spacing: 0.10em;
+  color: #888;
+  display: block;
+  margin-bottom: 4px;
+}
+#end-share-text {
+  width: 100%;
+  max-width: 500px;
+  font-family: 'Courier New', monospace;
+  font-size: 0.78rem;
+  padding: 6px 8px;
+  border: 1px solid #c8c0b0;
+  background: #f9f7f3;
+  color: #444;
+  resize: none;
+}
+
+/* ---- Responsive adjustments ---- */
+@media (max-width: 600px) {
+  .end-highlights { flex-direction: column; }
+  .end-soft-landing { min-width: 0; }
+  .bd-row { grid-template-columns: 130px 1fr 32px; }
+}
+
+
+/* ==========================================================================
+   T3 — DIFFICULTY SELECTOR
+   Three mode cards on the intro screen: Textbook / Real World / Crisis Mode
+   ========================================================================== */
+
+.difficulty-selector {
+  max-width: 700px;
+  margin: 0 auto 24px;
+  text-align: center;
+}
+
+.difficulty-heading {
+  font-family: Arial, sans-serif;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: #888;
+  margin-bottom: 12px;
+}
+
+.difficulty-options {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.btn-difficulty {
+  background: #fff;
+  border: 2px solid #c8c0b0;
+  padding: 14px 18px;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: center;
+  min-width: 160px;
+  flex: 1;
+  max-width: 200px;
+  transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.btn-difficulty:hover {
+  border-color: #1a2a4a;
+  box-shadow: 0 2px 6px rgba(26, 42, 74, 0.12);
+}
+
+.btn-difficulty.active {
+  background: #1a2a4a;
+  border-color: #1a2a4a;
+}
+
+.diff-name {
+  display: block;
+  font-family: Arial, sans-serif;
+  font-size: 0.95rem;
+  font-weight: bold;
+  color: #1a2a4a;
+  letter-spacing: 0.04em;
+}
+
+.btn-difficulty.active .diff-name {
+  color: #fff;
+}
+
+.diff-subtitle {
+  display: block;
+  font-family: Arial, sans-serif;
+  font-size: 0.72rem;
+  color: #888;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.btn-difficulty.active .diff-subtitle {
+  color: rgba(200, 164, 0, 0.85);
+}
+
+.diff-dots {
+  display: block;
+  font-size: 0.7rem;
+  color: #c8a400;
+  letter-spacing: 3px;
+  margin: 3px 0;
+}
+
+.btn-difficulty.active .diff-dots {
+  color: #c8a400;
+}
+
+.diff-desc {
+  display: block;
+  font-size: 0.78rem;
+  color: #555;
+  font-style: italic;
+  line-height: 1.4;
+}
+
+.btn-difficulty.active .diff-desc {
+  color: rgba(245, 240, 232, 0.75);
+}
+
+.difficulty-description {
+  font-size: 0.82rem;
+  color: #555;
+  font-style: italic;
+  margin-top: 10px;
+  min-height: 1.2em;
+  font-family: Georgia, serif;
+}
+
+@media (max-width: 540px) {
+  .difficulty-options { flex-direction: column; align-items: center; }
+  .btn-difficulty { max-width: 100%; width: 100%; }
+}
+
+
+/* ==========================================================================
+   T4 — ADVISORS + NEWS UPGRADE
+   ========================================================================== */
+
+/* -- News mood badge variants -------------------------------------------- */
+.news-badge.routine.news-mood--warning    { background: #c8500a; color: #fff; }
+.news-badge.routine.news-mood--crisis     { background: #8f1717; color: #fff; }
+.news-badge.routine.news-mood--optimistic { background: #2a6e2a; color: #fff; }
+.news-badge.routine.news-mood--stable     { background: #c8a400; color: #fff; }
+
+/* Sub-headline beneath shock event text */
+.news-sub-headline {
+  font-size: 0.80rem;
+  color: #6b5c4a;
+  font-style: italic;
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px dashed #d7d1c5;
+}
+
+/* Market reaction line in routine quarters */
+.news-market-react {
+  font-size: 0.80rem;
+  color: #1a2a4a;
+  background: rgba(26, 42, 74, 0.05);
+  border-left: 3px solid #c8a400;
+  padding: 4px 8px;
+  margin-top: 6px;
+}
+
+/* Enhanced ticker animation for breaking news */
+@keyframes newsTickerIn {
+  0%   { opacity: 0; transform: translateY(-12px) scaleY(0.92); }
+  60%  { opacity: 1; transform: translateY(2px)   scaleY(1.01); }
+  100% { opacity: 1; transform: translateY(0)     scaleY(1); }
+}
+@keyframes newsTickerPulse {
+  0%   { box-shadow: 0 0 0 0 rgba(178, 34, 34, 0.35); }
+  60%  { box-shadow: 0 0 0 6px rgba(178, 34, 34, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(178, 34, 34, 0); }
+}
+.news-alert--flash {
+  animation: newsTickerIn 0.55s ease-out, newsTickerPulse 1.2s ease-out 0.1s;
+}
+
+/* -- Advisor Briefing panel ---------------------------------------------- */
+.panel-advisors {
+  margin-bottom: 12px;
+}
+
+.panel-advisors .panel-title {
+  border-bottom: 1px solid #ddd;
+  padding-bottom: 6px;
+  margin-bottom: 10px;
+}
+
+.advisor-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  border-radius: 3px;
+  border-left: 3px solid #c8c0b0;
+  background: #faf8f4;
+  font-size: 0.86rem;
+}
+.advisor-card:last-child { margin-bottom: 0; }
+
+.advisor-card--calm      { border-left-color: #8aab8a; background: #f7faf7; }
+.advisor-card--concerned { border-left-color: #c8a400; background: #faf8ee; }
+.advisor-card--alarmed   { border-left-color: #b22222; background: #fdf5f5; }
+
+.advisor-avatar {
+  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: #1a2a4a;
+  color: #f0e8d6;
+  font-size: 0.75rem;
+  font-weight: bold;
+  font-family: Arial, sans-serif;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.advisor-content   { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+
+.advisor-header-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 4px 8px;
+  margin-bottom: 5px;
+}
+
+.advisor-name {
+  font-weight: bold;
+  color: #1a2a4a;
+  font-size: 0.86rem;
+  font-family: Arial, sans-serif;
+  white-space: nowrap;
+}
+
+.advisor-title-text {
+  font-size: 0.76rem;
+  color: #777;
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.advisor-rec {
+  font-size: 0.70rem;
+  font-weight: bold;
+  font-family: Arial, sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 2px 8px;
+  border-radius: 2px;
+  white-space: nowrap;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+.advisor-rec--raise { background: #b22222; color: #fff; }
+.advisor-rec--lower { background: #2a6e2a; color: #fff; }
+.advisor-rec--cut   { background: #2a6e2a; color: #fff; }
+.advisor-rec--hold  { background: #5b564b; color: #fff; }
+
+.advisor-rationale {
+  color: #3a3530;
+  line-height: 1.65;
+  font-size: 0.92rem;
+  flex: 1;
+}
+
+@media (max-width: 860px) {
+  .panel-advisors { display: none; }
+}
+
+
+/* ==========================================================================
+   T8 — Achievement Toast & End-Screen Panel
+   ========================================================================== */
+
+/* ---- Achievement Toast ---- */
+@keyframes achievement-slide-in {
+  from { transform: translateX(120%); opacity: 0; }
+  to   { transform: translateX(0);    opacity: 1; }
+}
+@keyframes achievement-slide-out {
+  from { transform: translateX(0);    opacity: 1; }
+  to   { transform: translateX(120%); opacity: 0; }
+}
+
+.achievement-toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 9999;
+  max-width: 340px;
+  min-width: 260px;
+  background: #0d1f3c;
+  border: 2px solid #c9a227;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.45);
+  pointer-events: none;
+  transition: opacity 0.4s ease, transform 0.4s ease;
+}
+.achievement-toast.hidden { display: none; }
+.achievement-toast--in  { animation: achievement-slide-in  0.4s ease forwards; }
+.achievement-toast--out { animation: achievement-slide-out 0.4s ease forwards; }
+
+.achievement-toast-inner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+}
+.achievement-icon { font-size: 2.2rem; line-height: 1; flex-shrink: 0; }
+.achievement-copy { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.achievement-label {
+  font-family: Arial, sans-serif;
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #c9a227;
+}
+.achievement-title {
+  font-family: 'Georgia', serif;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.achievement-desc {
+  font-family: Arial, sans-serif;
+  font-size: 0.72rem;
+  color: #aabbd0;
+  line-height: 1.3;
+}
+
+/* ---- End-Screen Achievements Panel ---- */
+.end-achievements-panel { margin: 20px auto 8px; max-width: min(900px, 90vw); text-align: center; }
+.achievements-heading {
+  font-family: 'Georgia', serif;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #1a2a4a;
+  margin: 0 0 12px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.achievements-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+}
+.achievement-badge {
+  position: relative;
+  cursor: help;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  width: 120px;
+  padding: 12px 8px 10px;
+  background: #f5f0e4;
+  border: 1.5px solid #c9a227;
+  border-radius: 8px;
+}
+.achievement-badge::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: 220px;
+  background: #1a2a4a;
+  color: #fff;
+  font-family: Arial, sans-serif;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  padding: 8px 10px;
+  border-radius: 4px;
+  white-space: normal;
+  text-align: left;
+  z-index: 100;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+  box-shadow: 0 3px 10px rgba(0,0,0,0.3);
+}
+.achievement-badge:hover::after { opacity: 1; }
+.achievement-badge-icon { font-size: 2.5rem; line-height: 1; }
+.achievement-badge-title {
+  font-family: Arial, sans-serif;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #1a2a4a;
+  text-align: center;
+  line-height: 1.25;
+}
+.achievements-empty { font-family: Arial, sans-serif; font-size: 0.8rem; color: #888; font-style: italic; margin: 0; }
+
+@media (max-width: 600px) {
+  .achievement-toast { bottom: 12px; right: 12px; max-width: calc(100vw - 24px); }
+  .achievement-badge { width: 100px; }
+}
+
+/* ============================================================
+   T6 — UI POLISH
+   ============================================================ */
+
+/* Running score in game header — color-coded by performance */
+/* Header score: teal/amber/magenta — distinct from chart line colors (red/navy/gold) */
+.hdr-score--good    { color: #0b7c6c; }
+.hdr-score--ok      { color: #b45309; }
+.hdr-score--poor    { color: #9b1f7a; }
+
+/* CRISIS badge pulse — draws attention to high-severity shocks */
+@keyframes crisisPulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.65; }
+}
+.news-badge.shock.crisis-badge {
+  animation: crisisPulse 1.4s ease-in-out 3;
+}
+
+/* Indicator box — subtle left-border state signal */
+.indicator {
+  border-left: 3px solid transparent;
+  transition: border-color 0.4s ease;
+  padding-left: 8px;
+}
+/* Border + subtle background tint — none of these colors match chart lines (#b22222 red / #1a2a4a navy) */
+.indicator.state-over  { border-left-color: #b45309; background: #fff8f0; }
+.indicator.state-under { border-left-color: #4338ca; background: #f4f4fd; }
+.indicator.state-near  { border-left-color: #0b7c6c; background: #f0f9f7; }
+
+/* Quarter progress marker — prevent clipping at position 0% */
+.quarter-progress-marker {
+  transform: translateX(-50%) translateY(-50%);
+}
+.quarter-progress-track {
+  overflow: visible;
+}
+
+/* Last-quarter highlight on Next Quarter button */
+.btn-next--final {
+  background: #8f1717;
+  border-color: #8f1717;
+}
+.btn-next--final:hover { background: #a01c1c; }
+
+
+/* --- Share result button --- */
+.btn-share {
+  background: #1a2a4a;
+  color: #fff;
+  border: 2px solid #1a2a4a;
+  padding: 10px 20px;
+  font-family: Arial, sans-serif;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.btn-share:hover { background: #243d6a; border-color: #243d6a; }
+
+/* --- Shock status banner (ongoing multi-turn shock indicator below news panel) --- */
+.shock-status-banner { margin-top: 8px; padding: 6px 10px; background: #fdf3e0; border-left: 3px solid #c8a400; font-size: 0.82rem; color: #5a4000; font-family: Arial, sans-serif; }
+.shock-status-icon { color: #c8a400; }
+
+/* --- T11: Ongoing shock badge + Breaking news mood variants --- */
+.news-badge.shock--ongoing { background: #8f6a00; color: #fff; }
+.news-alert--panic .news-alert-label { background: linear-gradient(135deg, #8f1717, #600e0e); }
+.news-alert--calm  .news-alert-label { background: linear-gradient(135deg, #1a6b1a, #145214); }
+
+/* --- BOOM badge: positive economic shock (green, not red) --- */
+.news-badge.shock.boom-badge { background: #1a6b1a; color: #fff; }
+
+/* --- Tier 1 (minor) badge: subtle gray-blue, no alarm — appears like an enhanced briefing --- */
+.news-badge--minor { background: #4a5a78; color: #fff; }
+
+/* --- End screen seed display --- */
+.end-seed-display {
+  text-align: center;
+  font-family: Arial, sans-serif;
+  font-size: 0.82rem;
+  color: #666;
+  margin: 0 0 12px;
+}
+.end-seed-value {
+  font-family: 'Courier New', monospace;
+  font-weight: bold;
+  color: #1a2a4a;
+  background: #f0f3f7;
+  padding: 1px 6px;
+  border: 1px solid #bbb;
+  border-radius: 2px;
+}
+
+/* --- UI sizing: larger intro text and end-screen elements --- */
+.intro-section h2    { font-size: 1.3rem; }
+.intro-section p,
+.how-to-list li      { font-size: 1.15rem; }
+.how-to-list li      { padding: 7px 0 7px 22px; }
+.score-table         { font-size: 1.05rem; }
+.score-table td      { padding: 9px 12px; }
+
+/* Bigger achievement badges on end screen */
+.achievement-badge        { width: 150px; padding: 16px 12px 14px; }
+.achievement-badge-icon   { font-size: 3.2rem; }
+.achievement-badge-title  { font-size: 1.0rem; }
+.achievements-grid        { gap: 20px; }
+.end-achievements-panel   { max-width: 1100px; }
+@media (max-width: 600px) {
+  .achievement-badge { width: 100px; }
+}
+
+/* ============================================================
+   ADDITIONAL UI SIZING — wrappers, verdict card, end screen
+   ============================================================ */
+
+/* Widen the end wrapper to use more screen space */
+.end-wrapper { max-width: min(1300px, 96vw); }
+
+/* Larger verdict card text */
+.verdict-title  { font-size: 2.2rem; }
+.verdict-score  { font-size: 4rem; }
+.verdict-text   { font-size: 1.1rem; max-width: 800px; }
+
+/* Intro body uses more horizontal space */
+.intro-body { gap: 36px; }
+.intro-section { padding: 24px 26px; }
+.intro-column { gap: 24px; }
+
+/* ============================================================
+   GAME LAYOUT — Full-width Advisor Row + 3-Column Game Body
+   T2: Structural overhaul — advisors row, history in center, policy-only right col
+   ============================================================ */
+
+/* === FIXED SHELL HEIGHTS === */
+
+/* Top bar: fixed 52px */
+.game-header {
+  height: 52px;
+  min-height: 52px;
+  max-height: 52px;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+/* Advisors row: full-width strip between header and timeline */
+.advisors-row {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  background: #fff;
+  border: 1px solid #bbb5a8;
+  box-shadow: 1px 1px 4px rgba(0,0,0,0.08);
+  margin: 0 10px;
+  padding: 6px 10px;
+  gap: 8px;
+  flex: 0 0 148px;
+  height: 148px;
+  min-height: 148px;
+  max-height: 148px;
+  overflow: hidden;
+}
+
+/* Timeline: fixed height */
+.quarter-progress-panel {
+  height: 76px;
+  min-height: 76px;
+  max-height: 76px;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+/* Game body: 3-column grid, fills remaining height */
+.game-body {
+  display: grid;
+  grid-template-columns: 230px minmax(0, 1fr) 280px;
+  gap: 10px;
+  padding: 8px 12px;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* Columns locked — content must fit */
+.panel-indicators,
+.panel-center,
+.panel-side {
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* === ADVISORS ROW — 3 horizontal advisor cards === */
+
+/* advisors-row-title: small label above the 3 cards */
+.advisors-row-title {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: #666;
+  font-family: Arial, sans-serif;
+  white-space: nowrap;
+  flex-shrink: 0;
+  align-self: flex-start;
+  padding-top: 2px;
+  writing-mode: vertical-lr;
+  transform: rotate(180deg);
+  margin-right: 4px;
+}
+
+/* Panel-advisors inside advisors-row: full-width flex row */
+.advisors-row .panel-advisors {
+  flex: 1;
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  gap: 8px;
+  padding: 0;
+  margin-bottom: 0;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+
+/* #advisors-list inside advisors-row: flex row of 3 cards */
+.advisors-row #advisors-list {
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  width: 100%;
+}
+
+/* Each card in the horizontal advisor row */
+.advisors-row .advisor-card {
+  flex: 1 1 0;
+  min-width: 0;
+  margin-bottom: 0;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+
+/* advisor-content fills card and stacks header + rationale */
+.advisors-row .advisor-card .advisor-content {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+
+/* Header row: avatar + name/title + badge all on one line */
+.advisors-row .advisor-card .advisor-header-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 6px;
+  margin-bottom: 5px;
+}
+
+/* Badge anchored to right of header row */
+.advisors-row .advisor-card .advisor-rec {
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+/* Name + title stacked, truncated */
+.advisors-row .advisor-card .advisor-name-block {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+
+/* Rationale clips to available space — no hard clamp */
+.advisors-row .advisor-card .advisor-rationale {
+  overflow: hidden;
+  flex: 1;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+}
+
+/* Override panel-title inside advisors-row */
+.advisors-row .panel-title {
+  margin-bottom: 4px;
+  padding-bottom: 4px;
+}
+
+/* Text discipline inside advisor cards */
+.advisors-row .advisor-name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 0.86rem;
+}
+.advisors-row .advisor-title-text {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 0.75rem;
+  flex: unset;
+}
+.advisors-row .advisor-rationale {
+  font-size: 0.92rem;
+  line-height: 1.60;
+}
+
+/* === CENTER COLUMN — news + chart + history === */
+
+.panel-center {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* News panel: fixed 100px — state-invariant */
+.panel-news {
+  flex: 0 0 180px;
+  height: 180px;
+  min-height: 180px;
+  max-height: 180px;
+  overflow: hidden;
+}
+
+/* Chart panel: 285px — reclaimed 25px to give briefing panel more room */
+.panel-chart {
+  flex: 0 0 285px;
+  height: 285px;
+  min-height: 285px;
+  max-height: 285px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Chart frame fills panel */
+.chart-frame {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+/* Canvas fills chart frame */
+.chart-frame canvas {
+  flex: 1;
+  min-height: 0;
+  height: auto;
+  width: 100%;
+}
+
+/* History panel in center column: fills remaining space */
+.panel-center .panel-history {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  margin: 0;
+}
+
+.panel-center .history-scroll {
+  height: 100%;
+  max-height: none;
+  overflow-y: auto;
+}
+
+/* === CENTER COLUMN — history table column widths === */
+
+.panel-center .history-table {
+  table-layout: fixed;
+  width: 100%;
+  min-width: 0;
+}
+
+/* Fixed columns — Quarter/Inflation/Unemp/Rate/Decision get explicit widths; Event is flexible */
+.panel-center .history-table th,
+.panel-center .history-table td {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Event column may wrap */
+.panel-center .history-table th:nth-child(6),
+.panel-center .history-table td:nth-child(6) {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: unset;
+}
+
+.panel-center .history-table th:nth-child(1),
+.panel-center .history-table td:nth-child(1) { width: 48px; }
+.panel-center .history-table th:nth-child(2),
+.panel-center .history-table td:nth-child(2) { width: 72px; }
+.panel-center .history-table th:nth-child(3),
+.panel-center .history-table td:nth-child(3) { width: 88px; }
+.panel-center .history-table th:nth-child(4),
+.panel-center .history-table td:nth-child(4) { width: 65px; }
+.panel-center .history-table th:nth-child(5),
+.panel-center .history-table td:nth-child(5) { width: 68px; }
+.panel-center .history-table th:nth-child(6),
+.panel-center .history-table td:nth-child(6) { width: auto; }
+
+.panel-center .history-table thead th {
+  padding: 6px 10px;
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+
+.panel-center .history-table tbody td {
+  padding: 6px 10px;
+  font-size: 0.80rem;
+}
+
+/* === RIGHT COLUMN — policy panel only === */
+
+.panel-side {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* Decision and result panels: each fills the full available column height */
+.panel-side #panel-decision,
+.panel-side #panel-result {
+  flex: 1;
+  min-height: 0;
+  overflow: visible;
+  display: flex;
+  flex-direction: column;
+}
+
+.panel-side .panel {
+  padding: 10px 12px;
+}
+
+/* Rate selector: comfortable sizing for wider policy column */
+.panel-side .decision-prompt {
+  font-size: 0.80rem;
+  margin-bottom: 10px;
+  flex-shrink: 0;
+}
+
+/* rate-selector-wrapper: stacked column — selector on top, controls below.
+   Stacking lets the selector span the full column width and lets the summary
+   text wrap freely without being squeezed into a narrow side column. */
+.panel-side .rate-selector-wrapper {
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+  min-height: 0;
+}
+
+/* Rate list fills available height at full column width */
+.panel-side .rate-selector-scroll {
+  flex: 1;
+  min-height: 80px;
+  max-height: none;
+  overflow-y: auto;
+  min-width: 0;
+  width: 100%;
+  padding-right: 6px;
+  scrollbar-gutter: stable;
+}
+
+.panel-side .rate-option {
+  padding: 6px 10px;
+  font-size: 0.82rem;
+  gap: 6px;
+  line-height: 1.3;
+}
+
+.panel-side .rate-val {
+  min-width: 60px;
+  padding-right: 2px;
+}
+
+.panel-side .rate-tag {
+  font-size: 0.62rem;
+}
+
+/* Controls: full-width row at the bottom — summary + button side by side */
+.panel-side .rate-selector-controls {
+  flex-direction: row;
+  align-items: stretch;
+  flex-shrink: 0;
+  gap: 8px;
+  width: 100%;
+  min-width: 0;
+}
+
+/* Summary takes available width; text fits in one line at full column width */
+.panel-side .rate-change-summary {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.75rem;
+  padding: 8px 10px;
+  white-space: normal;
+}
+
+/* GO button: fixed width, never wraps */
+.panel-side .btn-go {
+  flex-shrink: 0;
+  padding: 0 18px;
+  font-size: 0.92rem;
+  white-space: nowrap;
+}
+
+/* Result panel internals: body scrolls, footer stays pinned at bottom */
+.panel-side #panel-result .result-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  margin-bottom: 0;
+}
+.panel-side #panel-result .result-footer {
+  flex-shrink: 0;
+}
+
+/* Ensure panel-title never shrinks inside flex column panels */
+.panel-side #panel-decision .panel-title,
+.panel-side #panel-result .panel-title {
+  flex-shrink: 0;
+}
+
+/* === NEWS PANEL INTERNALS — fit at 180px === */
+
+.panel-news .news-header {
+  margin-bottom: 5px;
+  padding-bottom: 4px;
+}
+
+.panel-news .news-body p {
+  margin-bottom: 4px;
+  font-size: 1.10rem;
+  line-height: 1.60;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+}
+
+/* Breaking news alert: fits within 155px panel */
+.panel-news .news-alert {
+  margin: -14px -16px 6px;
+}
+
+.panel-news .news-alert-copy {
+  padding: 6px 12px;
+}
+
+/* Allow headline to wrap up to 2 lines instead of truncating */
+.panel-news .news-alert-headline {
+  font-size: 1.08rem;
+  line-height: 1.20;
+  margin-bottom: 4px;
+  white-space: normal;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+/* Alert body text: allow 2 lines */
+.panel-news .news-alert-text {
+  font-size: 0.86rem;
+  line-height: 1.40;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+}
+
+/* Suppress the in-game CC footer */
+#screen-game .cc-attribution { display: none; }
+
+/* === GLOBAL NO-WRAP RULES === */
+
+/* Panel section headers — never wrap */
+.panel-title {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.news-header .panel-title,
+.chart-header .panel-title {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Quarter labels in timeline — never wrap */
+.quarter-progress-current,
+.quarter-progress-caption,
+.quarter-progress-labels span {
+  white-space: nowrap;
+}
+
+/* Buttons must never wrap */
+.btn-go,
+#btn-next,
+.btn-primary {
+  white-space: nowrap;
+}
+
+/* Advisor rows: name and title stay on one line */
+.advisor-name,
+.advisor-title-text {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 160px;
+}
+.advisor-rec        { white-space: nowrap; flex-shrink: 0; }
+.advisor-header-row { flex-wrap: nowrap; }
+
+/* Rate selector labels */
+.rate-val,
+.rate-tag,
+.rate-change-summary { white-space: nowrap; }
+
+/* Rate option rows — no wrap */
+.rate-option {
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+/* Policy change summary — single line */
+.rate-change-summary {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Indicator labels */
+.indicator-label,
+.indicator-target { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* Chart legend items */
+.legend-item { white-space: nowrap; flex-shrink: 0; }
+
+/* News header row */
+.news-header { flex-wrap: nowrap; }
+
+/* News badge, game title, meta values */
+.news-badge,
+.game-title,
+.sandbox-banner { white-space: nowrap; overflow: hidden; }
+
+/* Meta header values — never wrap */
+.meta-label,
+.meta-value { white-space: nowrap; }
+
+/* Left sidebar stability */
+.indicator-group { flex-shrink: 0; }
+.indicator       { overflow: hidden; }
+
+/* ============================================================
+   S6: OVERFLOW-RESOLUTION — Set Monetary Policy + News panel
+   Surgical fixes for clipping/crowding without layout redesign.
+   ============================================================ */
+
+/* --- Area 1: Set Monetary Policy panel --------------------------------
+   Root cause: horizontal rate-selector-wrapper min-widths (130+10+120=260px)
+   exceed the 256px inner width of the 280px right column.
+   Fix: switch wrapper to stacked (column) layout so rate list sits above
+   controls, both use full column width. */
+
+/* Decision panel: flex column so children can fill height */
+.panel-side #panel-decision {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Stacked layout: rate list on top, controls below */
+.panel-side .rate-selector-wrapper {
+  flex: 1;
+  min-height: 0;
+  flex-direction: column;
+  gap: 6px;
+  align-items: stretch;
+}
+
+/* Rate list: natural height up to 200px, scrolls if needed */
+.panel-side .rate-selector-scroll {
+  flex: 0 0 auto;
+  min-height: 80px;
+  max-height: 200px;
+  width: 100%;
+  min-width: 0;
+  padding-right: 0;
+  scrollbar-gutter: stable;
+}
+
+/* Controls: stacked column below the list — summary above GO button */
+.panel-side .rate-selector-controls {
+  flex-shrink: 0;
+  flex-direction: column;
+  min-width: 0;
+  width: 100%;
+  gap: 8px;
+  align-items: stretch;
+}
+
+/* Summary: full width, wraps freely, never clipped */
+.panel-side .rate-change-summary {
+  white-space: normal;
+  overflow: visible;
+  font-size: 0.78rem;
+  padding: 8px 10px;
+  line-height: 1.4;
+}
+
+/* GO button: full width, prominent, never wraps */
+.panel-side .btn-go {
+  white-space: nowrap;
+  padding: 12px 16px;
+  font-size: 0.92rem;
+  width: 100%;
+}
+
+/* Decision prompt: normal wrap, never clipped */
+.panel-side .decision-prompt {
+  white-space: normal;
+  overflow: visible;
+  flex-shrink: 0;
+}
+
+/* --- Area 2: Breaking news / briefing panel ---------------------------
+   Root cause: fixed height too short for breaking news state (badge + headline
+   + briefing body + news-header). 180px gives clean fit; chart reduced to 285px
+   to offset (net zero). History (flex:1) absorbs remaining space. */
+
+/* News panel: 180px — enough for breaking-news badge+headline+briefing body */
+.panel-news {
+  flex: 0 0 180px;
+  height: 180px;
+  min-height: 180px;
+  max-height: 180px;
+}
+
+/* Chart: 285px — reclaimed 25px from previous 310px to give news panel more room */
+.panel-chart {
+  flex: 0 0 285px;
+  height: 285px;
+  min-height: 285px;
+  max-height: 285px;
+}
+
+/* Breaking news alert fits cleanly in 180px panel */
+.panel-news .news-alert {
+  margin: -14px -16px 6px;
+}
+
+.panel-news .news-alert-copy {
+  padding: 6px 12px;
+}
+
+/* Headline: allow wrapping (truncation was hiding critical info) */
+.panel-news .news-alert-headline {
+  white-space: normal;
+  overflow: hidden;
+  text-overflow: unset;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  font-size: 0.95rem;
+  line-height: 1.2;
+  margin-bottom: 2px;
+}
+
+/* Body text: allow 2 lines */
+.panel-news .news-alert-text {
+  font-size: 0.76rem;
+  line-height: 1.3;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+/* Briefing body: 2 lines max — breaking news badge+headline+body all fit in 180px */
+.panel-news .news-body p {
+  margin-bottom: 3px;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+/* News header tightened to give body more room */
+.panel-news .news-header {
+  margin-bottom: 4px;
+  padding-bottom: 3px;
+}
+
+/* Body budget at 180px ≈ 101px after alert+header.
+   event-title(17) + shock-text(2 lines,44) + sub(1 line,18) + context(1 line,18) = 97px.
+   Clamp sub-headline and context to 1 line so all four items stay visible. */
+.panel-news .news-body .news-sub-headline {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  margin-top: 2px;
+  font-size: 0.78rem;
+}
+
+.panel-news .news-body .news-context {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  margin-top: 2px;
+  font-size: 0.78rem;
+}
+
+/* ============================================================
+   SURGICAL-FIX-3: Override rate-selector-wrapper flex:1 (S6 line 2579)
+   so GO button is near top of panel, not pushed to 826px bottom.
+   2026-03-28
+   ============================================================ */
+
+/* Wrapper must NOT grow — S6's flex:1 caused ~400px dead space below GO button */
+.panel-side .rate-selector-wrapper {
+  flex: none;
+}
+
+/* ============================================================
+   SURGICAL-FIX-2: Correct remaining issues in Set Monetary Policy
+   and Breaking News panels. Overrides S6 block above.
+   2026-03-28
+   ============================================================ */
+
+/* --- AREA 1: Set Monetary Policy ---
+   Problem: overflow:hidden still clips #panel-decision; controls row
+   (summary|button side-by-side) is cramped; GO button is auto-width (small).
+   Fix: remove clipping, make controls a stacked column so both elements
+   use the full 280px right column width. */
+
+/* Allow decision panel to show all content — no clipping */
+.panel-side #panel-decision {
+  overflow: visible;
+}
+
+/* Rate list: fixed max-height so panel is not dominated by a giant list.
+   Scroll internally for the remaining options. */
+.panel-side .rate-selector-scroll {
+  flex: 0 0 auto;
+  min-height: 80px;
+  max-height: 200px;
+  overflow-y: auto;
+  width: 100%;
+  min-width: 0;
+}
+
+/* Controls: COLUMN layout — summary above, GO button below, both full width */
+.panel-side .rate-selector-controls {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  width: 100%;
+  min-width: 0;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+/* Summary: full width, centered, may wrap to show complete action */
+.panel-side .rate-change-summary {
+  flex-shrink: 0;
+  width: 100%;
+  white-space: normal;
+  text-align: center;
+  font-size: 0.82rem;
+  padding: 8px 10px;
+  line-height: 1.35;
+}
+
+/* GO button: full column width, prominent height */
+.panel-side .btn-go {
+  width: 100%;
+  padding: 14px 12px;
+  font-size: 1.0rem;
+  flex-shrink: 0;
+}
+
+/* Instructional prompt: normal wrap, never hidden */
+.panel-side .decision-prompt {
+  white-space: normal;
+  overflow: visible;
+  flex-shrink: 0;
+  font-size: 0.82rem;
+  margin-bottom: 10px;
+}
+
+/* --- AREA 2: Breaking News / Briefing Panel ---
+   Problem: 150px (S6) gives only 122px usable, but breaking news content
+   (alert 67px + margin 6px + header 28px + body 40px = 141px) still clips.
+   S6 also had line-clamp:2 on alert text (adds ~16px more height).
+   Fix: 180px panel (152px usable), 1-line alert-text, 2-line news body.
+   Offset: reduce chart from 310px to 280px (history panel absorbs same space). */
+
+/* News panel: 200px accommodates worst-case breaking-news layout.
+   Height budget (from panel top border, alert bleeds flush to top):
+     alert (headline 1-line + text 1-line + padding): ~48px
+     alert margin-bottom: 6px  → y=54
+     news-header: ~25px        → y=79
+     header margin: 4px        → y=83
+     body (event-title 19 + shock-text 2-line 42 + sub 21 + ctx 21): ~103px → y=186
+   Available: 200px - 14px bottom-padding = 186px. Content fills exactly. */
+.panel-news {
+  flex: 0 0 200px;
+  height: 200px;
+  min-height: 200px;
+  max-height: 200px;
+}
+
+/* Chart: 50px shorter to offset news panel growth (310→260).
+   History (flex:1) absorbs same space — net zero change to history height. */
+.panel-chart {
+  flex: 0 0 260px;
+  height: 260px;
+  min-height: 260px;
+  max-height: 260px;
+}
+
+/* Alert supplementary text: 1 line max — headline IS the news */
+.panel-news .news-alert-text {
+  font-size: 0.76rem;
+  line-height: 1.3;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+}
+
+/* News body paragraphs: 2-line max in all states.
+   Normal state (no alert): header(25) + body(2×22+3=47) + padding(28) = 100px << 200px ✓
+   Breaking news: see height budget comment above — fits at 186px exactly ✓ */
+.panel-news .news-body p {
+  margin-bottom: 3px;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+/* ============================================================
+   UI-REFINEMENT: Typography & layout polish
+   1. Advisor cards — badge alignment, text overflow, equal height
+   2. Briefing text — slightly larger
+   3. Chart legend — slightly larger
+   4. History table — wider columns, better padding, larger text
+   5. Global text hierarchy — raise floor across all small text
+   ============================================================ */
+
+/* --- 1. ADVISOR CARDS ----------------------------------------------- */
+
+/* Header row: badge always anchored to the right — no wrapping */
+.advisor-header-row {
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Title: absorbs middle space, truncates if needed */
+.advisor-title-text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Badge: pinned right, never moves */
+.advisor-rec {
+  margin-left: auto;
+  flex-shrink: 0;
+  align-self: center;
+}
+
+/* Rationale: natural wrap, readable size */
+.advisor-rationale {
+  overflow: visible;
+  display: block;
+  white-space: normal;
+  font-size: 0.92rem;
+  line-height: 1.70;
+}
+
+/* Advisors row: cards stretch to equal height */
+.advisors-row {
+  align-items: stretch;
+}
+
+/* Card row layout — avatar left, content stretches to fill full card height */
+.advisors-row .advisor-card {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+}
+
+/* Avatar: top-aligned, never stretches */
+.advisors-row .advisor-card .advisor-avatar {
+  align-self: flex-start;
+  flex-shrink: 0;
+}
+
+.advisors-row .advisor-content {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+/* Rationale: fills remaining card height, no clamp, full wrap */
+.advisors-row .advisor-rationale {
+  flex: 1;
+  overflow: visible;
+  display: block;
+  -webkit-line-clamp: unset;
+  white-space: normal;
+  font-size: 0.90rem;
+  line-height: 1.65;
+}
+
+/* --- 2. BRIEFING TEXT ----------------------------------------------- */
+
+/* Context line: clearly readable */
+.news-context {
+  font-size: 0.95rem;
+}
+
+/* Briefing body text: slightly larger and more readable */
+.panel-news .news-body p {
+  font-size: 1.04rem;
+  line-height: 1.65;
+  -webkit-line-clamp: 3;
+}
+
+/* --- 3. CHART LEGEND ------------------------------------------------- */
+
+.chart-legend {
+  font-size: 0.92rem;
+}
+
+/* --- 4. HISTORY TABLE ----------------------------------------------- */
+
+/* Wider, clearly readable columns */
+.panel-center .history-table th:nth-child(1),
+.panel-center .history-table td:nth-child(1) { width: 72px; }
+
+.panel-center .history-table th:nth-child(2),
+.panel-center .history-table td:nth-child(2) { width: 70px; }
+
+.panel-center .history-table th:nth-child(3),
+.panel-center .history-table td:nth-child(3) { width: 88px; }
+
+.panel-center .history-table th:nth-child(4),
+.panel-center .history-table td:nth-child(4) { width: 65px; }
+
+.panel-center .history-table th:nth-child(5),
+.panel-center .history-table td:nth-child(5) { width: 68px; }
+
+.panel-center .history-table th:nth-child(6),
+.panel-center .history-table td:nth-child(6) { width: auto; }
+
+/* Header: fully visible, no truncation, comfortable padding */
+.panel-center .history-table thead th {
+  font-size: 0.78rem;
+  padding: 7px 12px;
+  overflow: visible;
+  text-overflow: clip;
+}
+
+/* Body cells: more padding, larger text */
+.panel-center .history-table tbody td {
+  font-size: 0.84rem;
+  padding: 6px 12px;
+}
+
+/* End-screen full history table: also larger */
+.history-table {
+  font-size: 0.84rem;
+}
+
+.history-table thead th {
+  padding: 7px 12px;
+}
+
+.history-table tbody td {
+  padding: 6px 12px;
 }
