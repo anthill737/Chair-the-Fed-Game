@@ -1,20 +1,20 @@
-# Fed Chairman
+# Chair the Fed
 
-**Navigate market shocks as the Fed Chairman. Balance inflation and unemployment over 16 quarters in a 2014-2017 term without crippling the economy.**
+**Navigate market shocks as the Chair of the U.S. Federal Reserve! Balance inflation and unemployment over 16 quarters — without crippling the economy.**
 
 ## Attribution
 
-"[Simulation: Chair the Fed](https://courses.lumenlearning.com/wmintrobusinessx51xmaster/chapter/chair-the-fed-achieve-low-unemployment-and-low-inflation-rates/)" by Linda Williams and [Lumen Learning](https://lumenlearning.com) is licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). Changes were made to the original material.
+"[Simulation: Chair the Fed](https://creativecommons.org/licenses/by/4.0/)" by Linda Williams and [Lumen Learning](https://lumenlearning.com) is licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). Changes were made to the original material.
 
-Screenshot of the original simulation graphic provided by Lumen Learning - [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
+Screenshot of Chair the Fed graphic provided by Lumen Learning — [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
 
 ---
 
 ## Play the Game
 
-**[Launch Fed Chairman](https://htmlpreview.github.io/?https://github.com/anthill737/Chair-the-Fed-Game/blob/main/index.html)**
+**[▶ Launch Chair the Fed](https://htmlpreview.github.io/?https://github.com/anthill737/Chair-the-Fed-Game/blob/main/index.html)**
 
-Or clone the repo and open `index.html` locally - no server or build step required.
+Or clone the repo and open `index.html` locally — no server or build step required.
 
 ---
 
@@ -26,7 +26,7 @@ The simulation uses a simplified macro model inspired by New Keynesian economics
   - The current policy stance (rate changes take effect with a lag)
   - Deferred effects from last quarter's decision (lag transmission)
   - The active shock event for that quarter (if any)
-  - A small random noise term (+/-0.15%)
+  - A small random noise term (±0.15%)
   - Gradual mean-reversion toward targets
 
 - **Policy lag:** Only 45% of a rate change's effect hits this quarter; 55% bleeds into next quarter. This models the real-world delay in monetary policy transmission.
@@ -43,7 +43,7 @@ Each quarter, a **penalty** is calculated:
 penalty = |inflation - 2.0| + |unemployment - 5.0|
 ```
 
-At the end of 16 quarters, an **average penalty** is computed. Final score (0-100):
+At the end of 16 quarters, an **average penalty** is computed. Final score (0–100):
 
 ```
 score = max(0, 100 - (avgPenalty / 5) * 100)
@@ -51,10 +51,10 @@ score = max(0, 100 - (avgPenalty / 5) * 100)
 
 | Score | Outcome |
 |-------|---------|
-| 80-100 | Reappointed with Distinction |
-| 60-79  | Reappointed |
-| 40-59  | Not Reappointed |
-| 0-39   | Removed from Office |
+| 80–100 | Reappointed with Distinction |
+| 60–79  | Reappointed |
+| 40–59  | Not Reappointed |
+| 0–39   | Removed from Office |
 
 ---
 
@@ -80,11 +80,11 @@ All tuning constants are at the top of `app.js`:
 
 All shock events are in the `SHOCK_EVENTS` array near the top of `app.js`. Each event has:
 
-- `title` - headline shown in the news panel
-- `text` - body paragraph explaining the event
-- `inflEffect` - inflation impact this quarter (positive = inflationary)
-- `unempEffect` - unemployment impact this quarter (positive = more unemployment)
-- `inflLag` / `unempLag` - bleed-over effect into the following quarter
+- `title` — headline shown in the news panel
+- `text` — body paragraph explaining the event
+- `inflEffect` — inflation impact this quarter (positive = inflationary)
+- `unempEffect` — unemployment impact this quarter (positive = more unemployment)
+- `inflLag` / `unempLag` — bleed-over effect into the following quarter
 
 Routine (non-shock) headlines are in the `ROUTINE_NEWS` array.
 
@@ -93,8 +93,8 @@ Routine (non-shock) headlines are in the `ROUTINE_NEWS` array.
 ## File Structure
 
 ```
-index.html    - App shell and all screen layouts
-styles.css    - All styling (retro-professional, 2014-era educational tone)
-app.js        - Game logic, economic model, rendering, scoring
-README.md     - This file
+index.html    — App shell and all screen layouts
+styles.css    — All styling (retro-professional, 2014-era educational tone)
+app.js        — Game logic, economic model, rendering, scoring
+README.md     — This file
 ```
