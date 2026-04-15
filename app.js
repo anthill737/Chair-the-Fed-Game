@@ -575,7 +575,8 @@ function renderRateSelector() {
 
 /** Handle rate option click */
 function selectRate(rate) {
-  state.pendingRate = Math.round(rate * 100) / 100;
+  if (state.phase !== 'decision') return;
+  state.pendingRate = Math.max(RATE_MIN, Math.min(RATE_MAX, Math.round(rate * 100) / 100));
   renderRateSelector();
 }
 
@@ -685,7 +686,10 @@ function drawSparkline(canvasId, values, target, color, yMin, yMax) {
 
   ctx.clearRect(0, 0, W, H);
 
-  const toX = i  => pad + (i / (TOTAL_QUARTERS)) * (W - pad * 2);
+  // Guard against division by zero if bounds are equal
+  if (yMax === yMin) yMax = yMin + 1;
+
+  const toX = i  => pad + (i / Math.max(values.length - 1, 1)) * (W - pad * 2);
   const toY = v  => pad + (1 - (v - yMin) / (yMax - yMin)) * (H - pad * 2);
 
   // Target line
@@ -765,6 +769,9 @@ function drawEndChart(canvasId, values, target, color, yMin, yMax) {
 
   ctx.clearRect(0, 0, W, H);
 
+  // Guard against division by zero if bounds are equal
+  if (yMax === yMin) yMax = yMin + 1;
+
   const n   = values.length;
   const toX = i => pad + (i / Math.max(n - 1, 1)) * (W - pad * 2);
   const toY = v => pad + (1 - (v - yMin) / (yMax - yMin)) * (H - pad * 2);
@@ -798,11 +805,12 @@ function drawEndChart(canvasId, values, target, color, yMin, yMax) {
   ctx.lineTo(toX(n - 1), H);
   ctx.lineTo(toX(0), H);
   ctx.closePath();
-  ctx.fillStyle = color.replace(')', ',0.08)').replace('rgb', 'rgba');
-  // simple alpha on hex color
-  ctx.globalAlpha = 0.12;
+  // Convert hex color to rgba for translucent area fill
+  var r = parseInt(color.slice(1, 3), 16);
+  var g = parseInt(color.slice(3, 5), 16);
+  var b = parseInt(color.slice(5, 7), 16);
+  ctx.fillStyle = 'rgba(' + r + ',' + g + ',' + b + ',0.12)';
   ctx.fill();
-  ctx.globalAlpha = 1;
   ctx.restore();
 
   // Line
@@ -852,6 +860,7 @@ function renderEndHistory() {
 
 /** Render the full end screen */
 function renderEndScreen() {
+  if (state.history.length === 0) return;
   const finalScore = calcFinalScore(state.cumulativePenalty);
   const verdict    = getVerdict(finalScore);
 
@@ -976,6 +985,7 @@ function makeDecision() {
 
 /** Called when player clicks "Next Quarter" */
 function nextQuarter() {
+  if (state.phase !== 'result') return;
   if (state.quarter >= TOTAL_QUARTERS) {
     // Game over — show end screen
     renderEndScreen();
@@ -992,6 +1002,14 @@ function resetGame() {
   state = {};
   document.getElementById('history-tbody').innerHTML    = '';
   document.getElementById('end-history-tbody').innerHTML = '';
+  // Reset panel visibility for next game
+  document.getElementById('panel-decision').classList.remove('hidden');
+  document.getElementById('panel-result').classList.add('hidden');
+  // Clear sparkline canvases so no artifacts carry over
+  ['chart-inflation', 'chart-unemployment', 'chart-rate'].forEach(function(id) {
+    var c = document.getElementById(id);
+    if (c) c.getContext('2d').clearRect(0, 0, c.width, c.height);
+  });
   showScreen('screen-intro');
 }
 

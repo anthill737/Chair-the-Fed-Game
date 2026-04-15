@@ -118,8 +118,8 @@ html, body {
   background: #f5f0e8;
   border-left: 3px solid #c8a400;
   padding: 6px 10px;
-  font-size: 0.82rem !important;
-  color: #444 !important;
+  font-size: 0.82rem;
+  color: #444;
   font-style: italic;
 }
 
@@ -142,7 +142,6 @@ html, body {
 }
 .how-to-list li:last-child { border-bottom: none; }
 
-.scoring-preview { }
 .score-table {
   width: 100%;
   border-collapse: collapse;
@@ -184,6 +183,17 @@ html, body {
   font-size: 1.05rem;
   padding: 13px 40px;
   letter-spacing: 0.07em;
+}
+
+/* Keyboard focus styles for accessibility */
+.btn-primary:focus-visible,
+.btn-go:focus-visible {
+  outline: 2px solid #c8a400;
+  outline-offset: 2px;
+}
+.rate-option:focus-visible {
+  outline: 2px solid #c8a400;
+  outline-offset: -2px;
 }
 
 /* ---------- GAME SCREEN ---------- */
@@ -231,7 +241,7 @@ html, body {
   display: block;
   font-size: 0.65rem;
   letter-spacing: 0.15em;
-  color: #aab8d0;
+  color: #c8d0e0;
   font-family: Arial, sans-serif;
   text-transform: uppercase;
 }
